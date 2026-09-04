@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useBreadcrumbSetter(computed(() => [{ label: "Nodus", icon: "i-lucide-house" }]));
+useBreadcrumbSetter(computed(() => [{ label: "Nodus", slot: "home" }]));
 </script>
 
 <template>

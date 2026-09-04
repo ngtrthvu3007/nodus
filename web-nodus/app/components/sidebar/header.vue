@@ -5,7 +5,7 @@ const emit = defineEmits<{ collapse: [] }>();
 <template>
   <div class="flex items-center justify-between gap-2 border-b pb-2">
     <NuxtLink to="/" aria-label="Home" class="flex min-w-0 items-center gap-2">
-      <Logo class="h-6 w-auto shrink-0" />
+      <Logo class="h-8 w-auto shrink-0" />
       <span class="truncate text-md font-bold text-highlighted">Nodus</span>
     </NuxtLink>
 

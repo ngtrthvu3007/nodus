@@ -1,9 +1,25 @@
-import type { ApiResponse, CreateNoteParams, Note } from "~/types/note";
+import type { ApiResponse, CreateNoteParams, Note, NoteLinks, NoteTitleSuggestion } from "~/types/note";
 
 const NOTES_API_PATH = "/api/notes";
 
 export const fetchNote = (id: string) =>
   httpClient.get<ApiResponse<Note>>(`${NOTES_API_PATH}/${id}`, "Could not load note");
+
+export const fetchNoteLinks = (id: string) =>
+  httpClient.get<ApiResponse<NoteLinks>>(`${NOTES_API_PATH}/${id}/links`, "Could not load backlinks");
+
+// Gọi thẳng $fetch (không qua httpClient) — API này bắn liên tục lúc gõ [[,
+// nên lỗi mạng chỉ nên im lặng bỏ qua gợi ý, không toast lỗi mỗi lần gõ.
+export const fetchTitleSuggestions = async (query: string): Promise<NoteTitleSuggestion[]> => {
+  try {
+    const response = await $fetch<ApiResponse<NoteTitleSuggestion[]>>(`${NOTES_API_PATH}/autocomplete`, {
+      query: { q: query },
+    });
+    return response.data;
+  } catch {
+    return [];
+  }
+};
 
 export const searchNotes = (query: string) =>
   httpClient.get<ApiResponse<Note[]>>(NOTES_API_PATH, "Could not search notes", { query: { q: query } });

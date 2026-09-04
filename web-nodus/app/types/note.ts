@@ -15,3 +15,19 @@ export interface Note {
 }
 
 export type CreateNoteParams = { title: string; folderId: string | null; parentNoteId?: string | null };
+
+export interface LinkedNote {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+
+export interface NoteLinks {
+  backlinks: LinkedNote[];
+  outgoing: LinkedNote[];
+}
+
+export interface NoteTitleSuggestion {
+  id: string;
+  title: string;
+}

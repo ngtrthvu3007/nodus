@@ -5,14 +5,17 @@ import (
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
+
+	"go-nodus/internal/notelink"
 )
 
 type service struct {
-	repo *Repository
+	repo            *Repository
+	noteLinkService *notelink.Service
 }
 
-func NewService(repo *Repository) Service {
-	return &service{repo: repo}
+func NewService(repo *Repository, noteLinkService *notelink.Service) Service {
+	return &service{repo: repo, noteLinkService: noteLinkService}
 }
 
 func (s *service) Create(ctx context.Context, req createNoteRequest) (*Note, error) {
@@ -48,11 +51,20 @@ func (s *service) Update(ctx context.Context, id uuid.UUID, req updateNoteConten
 		return nil, fiber.NewError(fiber.StatusNotFound, "Note is not found")
 	}
 
-	return s.repo.Update(ctx, UpdateNoteParams{
+	updated, err := s.repo.Update(ctx, UpdateNoteParams{
 		ID:      id,
 		Title:   req.Title,
 		Content: req.Content,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.noteLinkService.RebuildLinksFromContent(ctx, id, req.Content); err != nil {
+		return nil, err
+	}
+
+	return updated, nil
 }
 
 func (s *service) Move(ctx context.Context, req moveNoteRequest) (*Note, error) {

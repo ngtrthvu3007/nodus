@@ -19,6 +19,10 @@ const { items } = useBreadcrumbs();
     <UBreadcrumb
       v-if="items.length"
       :items="items"
-      :ui="{ linkLeadingIcon: 'size-3.5', linkLabel: 'text-xs' }" />
+      :ui="{ linkLeadingIcon: 'size-3.5', linkLabel: 'text-xs' }">
+      <template #home-leading>
+        <Logo class="size-5 shrink-0" />
+      </template>
+    </UBreadcrumb>
   </div>
 </template>

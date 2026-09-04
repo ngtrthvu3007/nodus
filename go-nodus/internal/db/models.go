@@ -25,3 +25,10 @@ type Note struct {
 	FolderID     pgtype.UUID        `json:"folder_id"`
 	ParentNoteID pgtype.UUID        `json:"parent_note_id"`
 }
+
+type NoteLink struct {
+	ID           pgtype.UUID        `json:"id"`
+	SourceNoteID pgtype.UUID        `json:"source_note_id"`
+	TargetNoteID pgtype.UUID        `json:"target_note_id"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}

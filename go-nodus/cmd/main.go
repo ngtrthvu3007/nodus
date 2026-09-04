@@ -11,6 +11,7 @@ import (
 	"go-nodus/internal/folder"
 	"go-nodus/internal/libs"
 	"go-nodus/internal/note"
+	"go-nodus/internal/notelink"
 )
 
 func main() {
@@ -37,7 +38,8 @@ func main() {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	noteRepo := note.RegisterModule(app, pool)
+	noteLinkService := notelink.RegisterModule(app, pool)
+	noteRepo := note.RegisterModule(app, pool, noteLinkService)
 	folder.RegisterModule(app, pool, noteRepo)
 
 	log.Printf("server listening on :%s", cfg.Port)

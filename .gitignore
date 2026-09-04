@@ -1,1 +1,12 @@
-SPEC-v*.md
+# Env files
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea
+.fleet
+
+# Build outputs
+go-nodus/bin/

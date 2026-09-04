@@ -53,7 +53,7 @@ const getTreeItemKey = (item: { id: string }) => item.id;
 
 useBreadcrumbSetter(
   computed(() => [
-    { label: "Nodus", icon: "i-lucide-house", to: "/" },
+    { label: "Nodus", slot: "home", to: "/" },
     { label: folder.value?.name ?? "Folder", icon: "i-lucide-folder" },
   ]),
 );

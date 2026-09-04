@@ -1,6 +1,51 @@
 <script setup lang="ts">
-import type { ApiResponse, Note } from "~/types/note";
-import { updateNote } from "~/apis/notes";
+import type { SplitterItem } from "@nuxt/ui";
+
+import type { ApiResponse, LinkedNote, Note } from "~/types/note";
+import { fetchNoteLinks, updateNote } from "~/apis/notes";
+
+const BACKLINKS_PANEL_INDEX = 1;
+const splitterItems: SplitterItem[] = [
+  { slot: "content", class: "min-h-0 min-w-0 flex-col overflow-hidden" },
+  {
+    slot: "backlinks",
+    sizeUnit: "px",
+    minSize: 200,
+    defaultSize: 300,
+    maxSize: 480,
+    collapsible: true,
+    collapsedSize: 0,
+    class:
+      "min-h-0 min-w-0 flex-col overflow-hidden border-l border-default transition-[flex-grow] duration-300 ease-in-out",
+  },
+];
+const splitterUi = { handle: "w-0" };
+
+const splitter = useTemplateRef<{ panelsRef: { expand: () => void; collapse: () => void }[] }>(
+  "splitter",
+);
+const splitterReady = ref(false);
+const backlinksCollapsed = ref(false);
+
+onMounted(async () => {
+  await nextTick();
+  splitterReady.value = true;
+});
+
+const toggleBacklinks = () => {
+  const panel = splitter.value?.panelsRef[BACKLINKS_PANEL_INDEX];
+  if (backlinksCollapsed.value) {
+    panel?.expand();
+  } else {
+    panel?.collapse();
+  }
+};
+
+const updateBacklinksCollapsed = (index: number, collapsed: boolean) => {
+  if (index === BACKLINKS_PANEL_INDEX) {
+    backlinksCollapsed.value = collapsed;
+  }
+};
 
 const route = useRoute();
 const noteId = computed(() => String(route.params.id));
@@ -13,6 +58,7 @@ const lastSavedAt = ref("");
 const saving = ref(false);
 const initialized = ref(false);
 const savedSnapshot = ref({ title: "", content: "" });
+const outgoingLinks = ref<LinkedNote[]>([]);
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 
 const isDirty = computed(
@@ -70,6 +116,11 @@ const syncNoteState = (value?: Note) => {
   initialized.value = true;
 };
 
+const loadOutgoingLinks = async () => {
+  const response = await fetchNoteLinks(noteId.value);
+  outgoingLinks.value = response?.data.outgoing ?? [];
+};
+
 const saveNote = async () => {
   if (!initialized.value) {
     return;
@@ -83,15 +134,17 @@ const saveNote = async () => {
   const response = await updateNote(noteId.value, { title: title.value, content: content.value });
   if (response) {
     syncNoteState(response.data);
+    await loadOutgoingLinks();
   }
   saving.value = false;
 };
 
 watch(note, syncNoteState, { immediate: true });
+watch(noteId, loadOutgoingLinks, { immediate: true });
 
 useBreadcrumbSetter(
   computed(() => [
-    { label: "Nodus", icon: "i-lucide-house", to: "/" },
+    { label: "Nodus", slot: "home", to: "/" },
     { label: note.value?.title ?? "Note", icon: "i-lucide-file-text" },
   ]),
 );
@@ -141,25 +194,41 @@ onBeforeUnmount(() => {
 
       <div class="flex items-center gap-2">
         <span class="flex items-center gap-1.5 text-xs text-muted">
-          <span class="size-1.5 shrink-0 rounded-full" :class="saveStatusDotClass" />
+          <span class="size-2 shrink-0 rounded-full" :class="saveStatusDotClass" />
           {{ saveStatusText }}
         </span>
-        <UButton color="neutral" variant="ghost" icon="i-lucide-panel-right" aria-label="Toggle graph" />
+        <UButton
+          v-if="backlinksCollapsed"
+          color="neutral"
+          variant="ghost"
+          icon="i-lucide-arrow-left-to-line"
+          aria-label="Expand backlinks"
+          @click="toggleBacklinks" />
       </div>
     </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_280px]">
-      <div class="min-h-0 p-6">
-        <UTextarea
-          v-model="content"
-          class="h-full w-full"
-          :ui="{ base: 'h-full resize-none font-mono' }" />
-      </div>
+    <USplitter
+      v-if="splitterReady"
+      ref="splitter"
+      :items="splitterItems"
+      class="min-h-0 flex-1"
+      :ui="splitterUi"
+      @collapse="updateBacklinksCollapsed($event, true)"
+      @expand="updateBacklinksCollapsed($event, false)">
+      <template #content>
+        <div class="h-full min-h-0 p-6">
+          <EditorCodeMirror v-model="content" class="h-full rounded-md border border-default p-3" />
+        </div>
+      </template>
 
-      <aside class="border-l border-default p-4">
-        <div class="text-sm font-medium text-highlighted">Local graph</div>
-        <p class="mt-2 text-sm text-muted">Links around this note will appear here.</p>
-      </aside>
-    </div>
+      <template #backlinks>
+        <NoteBacklinksPanel
+          :note-id="noteId"
+          :note-title="title"
+          :content="content"
+          :outgoing-links="outgoingLinks"
+          @collapse="toggleBacklinks" />
+      </template>
+    </USplitter>
   </div>
 </template>
