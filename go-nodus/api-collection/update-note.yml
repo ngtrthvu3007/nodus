@@ -1,0 +1,22 @@
+info:
+  name: update-note
+  type: http
+
+http:
+  method: PUT
+  url: http://localhost:8080/notes/123123123213
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Test 12",
+        "content": "12323213"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+​

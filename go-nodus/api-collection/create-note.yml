@@ -1,0 +1,23 @@
+info:
+  name: create-note
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8080/notes
+  body:
+    type: json
+    data: |-
+      {
+        "title": "Test",
+         "content": "123 test nè"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+​
