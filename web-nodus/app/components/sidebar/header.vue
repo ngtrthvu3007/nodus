@@ -9,14 +9,12 @@ const emit = defineEmits<{ collapse: [] }>();
       <span class="truncate text-md font-bold text-highlighted">Nodus</span>
     </NuxtLink>
 
-    <div class="flex items-center gap-1">
-      <UButton
-        color="neutral"
-        variant="ghost"
-        size="md"
-        icon="i-lucide-arrow-left-to-line"
-        aria-label="Collapse sidebar"
-        @click="emit('collapse')" />
-    </div>
+    <UButton
+      color="neutral"
+      variant="ghost"
+      size="md"
+      icon="i-lucide-arrow-left-to-line"
+      aria-label="Collapse sidebar"
+      @click="emit('collapse')" />
   </div>
 </template>

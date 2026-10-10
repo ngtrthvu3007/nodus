@@ -107,57 +107,63 @@ const {
 
     <BaseSearchBar v-model="search" />
 
-    <!-- Chế độ search: danh sách phẳng -->
-    <SidebarSearchResults v-if="isSearching" :state="searchState" :notes="searchResults" />
+    <div class="flex min-h-0 flex-1 flex-col">
+      <!-- Chế độ search: danh sách phẳng -->
+      <SidebarSearchResults v-if="isSearching" :state="searchState" :notes="searchResults" />
 
-    <!-- Chế độ cây: Folder → note gốc → note con -->
-    <div v-else class="flex min-h-0 flex-1 flex-col space-y-5">
-      <BaseListSkeleton v-if="treePending" />
+      <!-- Chế độ cây: Folder → note gốc → note con -->
+      <div v-else class="flex min-h-0 flex-1 flex-col space-y-5">
+        <BaseListSkeleton v-if="treePending" />
 
-      <BaseCollapse
-        v-else
-        v-for="group in groups"
-        :key="group.id"
-        :label="group.label"
-        v-model:open="openGroupIds[group.id]">
-        <template #actions>
-          <UButton
-            icon="i-lucide-plus"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            :aria-label="isFolderGroup(group.id) ? 'New folder' : 'New note'"
-            @click="isFolderGroup(group.id) ? openCreateFolderModal() : openCreateNoteModal()" />
-        </template>
+        <BaseCollapse
+          v-else
+          v-for="group in groups"
+          :key="group.id"
+          :label="group.label"
+          v-model:open="openGroupIds[group.id]">
+          <template #actions>
+            <UButton
+              icon="i-lucide-plus"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :aria-label="isFolderGroup(group.id) ? 'New folder' : 'New note'"
+              @click="isFolderGroup(group.id) ? openCreateFolderModal() : openCreateNoteModal()" />
+          </template>
 
-        <div class="space-y-1">
-          <p v-if="!group.items.length" class="px-2 py-2 text-xs text-muted">Empty</p>
+          <div class="space-y-1">
+            <p v-if="!group.items.length" class="px-2 py-2 text-xs text-muted">Empty</p>
 
-          <SidebarNoteTreeView
-            v-if="group.items.length > 0 && !isFolderGroup(group.id)"
-            :items="group.items"
-            :notes-by-id="notesById"
-            v-model:expanded-ids="noteTreeExpandedIds"
-            @edit-note="openEditNoteModal"
-            @move-note="openMoveModal"
-            @create-child-note="openCreateNoteModal"
-            @delete-note="deleteNote" />
+            <SidebarNoteTreeView
+              v-if="group.items.length > 0 && !isFolderGroup(group.id)"
+              :items="group.items"
+              :notes-by-id="notesById"
+              v-model:expanded-ids="noteTreeExpandedIds"
+              @edit-note="openEditNoteModal"
+              @move-note="openMoveModal"
+              @create-child-note="openCreateNoteModal"
+              @delete-note="deleteNote" />
 
-          <SidebarFolderTreeView
-            v-if="group.items.length > 0 && isFolderGroup(group.id)"
-            :items="group.items"
-            :folders-by-id="foldersById"
-            :notes-by-id="notesById"
-            v-model:expanded-ids="folderTreeExpandedIds"
-            @edit-folder="openEditFolderModal"
-            @create-note-in-folder="openCreateNoteModalInFolder"
-            @delete-folder="deleteFolder"
-            @edit-note="openEditNoteModal"
-            @move-note="openMoveModal"
-            @create-child-note="openCreateNoteModal"
-            @delete-note="deleteNote" />
-        </div>
-      </BaseCollapse>
+            <SidebarFolderTreeView
+              v-if="group.items.length > 0 && isFolderGroup(group.id)"
+              :items="group.items"
+              :folders-by-id="foldersById"
+              :notes-by-id="notesById"
+              v-model:expanded-ids="folderTreeExpandedIds"
+              @edit-folder="openEditFolderModal"
+              @create-note-in-folder="openCreateNoteModalInFolder"
+              @delete-folder="deleteFolder"
+              @edit-note="openEditNoteModal"
+              @move-note="openMoveModal"
+              @create-child-note="openCreateNoteModal"
+              @delete-note="deleteNote" />
+          </div>
+        </BaseCollapse>
+      </div>
+    </div>
+
+    <div class="border-t pt-2">
+      <BaseThemeSwitcher />
     </div>
   </UContainer>
 </template>
