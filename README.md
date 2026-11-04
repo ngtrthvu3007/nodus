@@ -86,6 +86,18 @@ Mặc định chạy ở `http://localhost:3000`, gọi API qua Nitro proxy (`/a
 | `bun run generate` | Static generate |
 | `bun run preview` | Chạy thử bản đã build |
 
+## MCP server (cho AI agent)
+
+`go-nodus/cmd/mcp` là MCP server chạy qua stdio, gọi vào HTTP API của backend — backend phải đang chạy. Expose tool: search/get/create/update/append/move/delete note, list/get/create/rename/delete folder.
+
+```
+cd go-nodus
+go build -o bin/nodus-mcp ./cmd/mcp
+claude mcp add nodus -e NODUS_API_BASE=http://localhost:8080 -- "$(pwd)/bin/nodus-mcp"
+```
+
+Client khác (Claude Desktop, Cursor...) cấu hình tương tự: `command` = đường dẫn tuyệt đối tới `bin/nodus-mcp`, env `NODUS_API_BASE` (mặc định `http://localhost:8080`).
+
 ## Tài liệu thêm
 
 - [SPEC-v1.md](SPEC-v1.md) → [SPEC-v4.md](SPEC-v4.md) — lịch sử spec qua từng giai đoạn.

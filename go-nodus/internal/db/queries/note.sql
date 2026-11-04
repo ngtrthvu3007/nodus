@@ -6,6 +6,7 @@ WHERE
     AND (
         sqlc.arg (query)::text = ''
         OR title ILIKE '%' || sqlc.arg (query)::text || '%'
+        OR content ILIKE '%' || sqlc.arg (query)::text || '%'
     )
 ORDER BY updated_at DESC;
 

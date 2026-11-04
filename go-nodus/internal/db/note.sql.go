@@ -140,6 +140,7 @@ WHERE
     AND (
         $1::text = ''
         OR title ILIKE '%' || $1::text || '%'
+        OR content ILIKE '%' || $1::text || '%'
     )
 ORDER BY updated_at DESC
 `

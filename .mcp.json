@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "nodus": {
+      "command": "/Users/vu.nguyen/Root Workspace - Vu nguyen/Tobias/Projects/nodus/go-nodus/bin/nodus-mcp",
+      "env": {
+        "NODUS_API_BASE": "http://localhost:8080"
+      }
+    }
+  }
+}
