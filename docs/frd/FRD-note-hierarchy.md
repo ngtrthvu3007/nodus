@@ -12,7 +12,8 @@ Cho phép 1 note có note con, tối đa 2 level, để tổ chức note theo ou
 - **Level 1 (note con)**: thuộc đúng 1 note cha (level 0). Không có level 2 — note con không thể có con riêng.
 - Nội dung note: chỉ markdown thuần (không có rich-text/plain-text riêng — rich-text không convert lossless về markdown).
 - 1 note cha có thể có 0 hoặc nhiều note con.
-- Quan hệ cha–con **chỉ thiết lập lúc tạo note** ("+ New note" trong context của 1 note gốc → tạo note con). Không có UI re-parent (nối 1 note gốc thành con của note gốc khác) sau khi đã tạo.
+- Quan hệ cha–con thiết lập lúc **tạo note** ("+ New note" trong context của 1 note gốc → tạo note con), hoặc sau đó qua [[FRD-move-note]].
+- Note gốc được re-parent (thành con của note gốc khác) **nếu chưa có con nào**; đang có con thì chặn, vì sẽ tạo 3 level (chốt ở [[SPEC-v2]], đã implement).
 - Nút "+ New note" xuất hiện trên **mọi note gốc** trong sidebar (không giới hạn note đặc biệt nào) — bấm tại note gốc nào thì note đó thành cha, giống Notion/Obsidian. Không có modal chọn note cha từ danh sách; cha luôn được xác định ngầm bởi context (note đang bấm).
 
 ## Kế thừa Folder
@@ -67,4 +68,4 @@ Không diễn đạt được bằng CHECK constraint (cần so sánh chéo hàn
 | POST   | `/notes`  | Tạo note — nhận thêm `folder_id?`, `parent_note_id?`       |
 | PUT    | `/notes/:id` | Update note — chỉ sửa `title`/`content`, không đụng vị trí trong cây (xem [[FRD-move-note]] cho việc đổi vị trí) |
 
-Các endpoint khác (`GET/DELETE /notes/:id`, `GET /notes`, `/notes/:id/links`, `/graph`, `/notes/autocomplete`) giữ nguyên như v1.
+Các endpoint khác (`GET/DELETE /notes/:id`, `GET /notes`, `/notes/:id/links`, `/notes/autocomplete`) giữ nguyên như v1. Graph đã bỏ ở [[SPEC-v5]].

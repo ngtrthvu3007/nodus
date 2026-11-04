@@ -17,7 +17,9 @@ flowchart TD
     Start([PATCH /notes/:id/move]) --> IsChild{Note đang move<br/>là note con?}
 
     IsChild -- không, là note gốc --> ParentSent{parent_note_id != null?}
-    ParentSent -- có --> ErrRootNoReparent[400: note gốc không được re-parent]
+    ParentSent -- có --> HasChildren{Note gốc<br/>đang có con?}
+    HasChildren -- có --> ErrRootNoReparent[400: note gốc có con<br/>không được re-parent]
+    HasChildren -- không --> CheckParent
     ParentSent -- không --> CheckFolderA[folder_id phải trỏ<br/>folder tồn tại]
     CheckFolderA --> UpdateA[Update: folder_id mới<br/>note con kế thừa theo]
 
@@ -32,10 +34,12 @@ flowchart TD
 ```
 
 - "Promote to root, giữ nguyên folder" = trường hợp riêng của nhánh **UpdateB**, client tự tính `folder_id` = folder hiện tại của cha. Không cần rule riêng.
-- Cả 2 field cùng khác `null` (trái hợp đồng UI): xử lý dự phòng — **chưa chốt**.
+- Note gốc re-parent (nhánh **HasChildren = không**) đi chung bước kiểm tra note cha mới với note con: cha mới phải tồn tại và là note gốc thật.
+- Cả 2 field cùng khác `null` (trái hợp đồng UI): server **ưu tiên `parent_note_id`, bỏ qua `folder_id`** — nhất quán với `POST /notes` (đã implement trong `note/service.go`).
 
 ## UI — modal "Move to..."
 
 - Nút 3 chấm trên mỗi note item (`UTree`) → "Move to...".
-- Note gốc: modal chỉ có tree-picker folder. Note con: modal cho chọn folder **hoặc** note gốc khác làm cha mới, kèm cảnh báo tách khỏi cha hiện tại.
+- Note gốc chưa có con: modal cho chọn folder **hoặc** note gốc khác làm cha mới. Note gốc đang có con: chỉ chọn folder (đọc field `hasChildren` để disable lựa chọn note cha).
+- Note con: modal cho chọn folder **hoặc** note gốc khác làm cha mới, kèm cảnh báo tách khỏi cha hiện tại.
 - Xác nhận → 1 request duy nhất, đúng 1 field có giá trị theo lựa chọn.
