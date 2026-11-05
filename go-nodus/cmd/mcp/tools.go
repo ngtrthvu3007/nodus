@@ -10,7 +10,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"go-nodus/internal/note"
+	"go-nodus/internal/db"
 )
 
 const previewRunes = 160
@@ -70,7 +70,7 @@ type noteSummary struct {
 }
 
 type noteWithLinks struct {
-	note.Note
+	db.Note
 	Links json.RawMessage `json:"links"`
 }
 
@@ -188,7 +188,7 @@ func buildTools(api *client) []tool {
 }
 
 func (t *toolset) searchNotes(args searchArgs) (any, error) {
-	var notes []note.Note
+	var notes []db.Note
 	if err := t.api.do(http.MethodGet, "/notes?q="+url.QueryEscape(args.Query), nil, &notes); err != nil {
 		return nil, err
 	}
@@ -223,7 +223,7 @@ func (t *toolset) getNote(args idArgs) (any, error) {
 }
 
 func (t *toolset) createNote(args createNoteArgs) (any, error) {
-	var created note.Note
+	var created db.Note
 	if err := t.api.do(http.MethodPost, "/notes", args, &created); err != nil {
 		return nil, err
 	}
@@ -299,16 +299,16 @@ func (t *toolset) deleteFolder(args idArgs) (any, error) {
 	return t.raw(http.MethodDelete, folderPath(args.ID), nil)
 }
 
-func (t *toolset) fetchNote(id uuid.UUID) (*note.Note, error) {
-	var found note.Note
+func (t *toolset) fetchNote(id uuid.UUID) (*db.Note, error) {
+	var found db.Note
 	if err := t.api.do(http.MethodGet, notePath(id), nil, &found); err != nil {
 		return nil, err
 	}
 	return &found, nil
 }
 
-func (t *toolset) saveNote(id uuid.UUID, title, content string) (*note.Note, error) {
-	var saved note.Note
+func (t *toolset) saveNote(id uuid.UUID, title, content string) (*db.Note, error) {
+	var saved db.Note
 	body := map[string]string{"title": title, "content": content}
 	if err := t.api.do(http.MethodPut, notePath(id), body, &saved); err != nil {
 		return nil, err

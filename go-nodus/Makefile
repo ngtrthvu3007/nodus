@@ -1,37 +1,52 @@
-# Every tool is pinned in go.mod (tool directives or cmd/migrate), so the team only needs Go, Docker and make.
+# Everything runs through Go (`go tool`) or Docker — nothing else to install.
+# Atlas runs as the `atlas-migrate-runner` service (docker-compose.yml, profile "tools"); config in atlas.hcl.
+# No Atlas container keeps running: the runner is removed after each command (`run --rm`), and the scratch
+# database `atlas-dev-db` exists only while a diff or a rollback runs.
 
-MIGRATE := go run ./cmd/migrate
+COMPOSE := docker compose --profile tools
+ATLAS := $(COMPOSE) run --rm atlas-migrate-runner migrate --env local
 N ?= 1
 
-.PHONY: dev sqlc swag migrate-up migrate-down migrate-create migrate-version migrate-force
+# Runs an Atlas command that needs the scratch database, then removes it — also when the command fails.
+define with_dev_db
+	$(COMPOSE) up -d --wait atlas-dev-db
+	$(1); status=$$?; $(COMPOSE) rm -sf atlas-dev-db >/dev/null 2>&1; exit $$status
+endef
+
+.PHONY: dev schema migrate-diff migrate-up migrate-status migrate-hash migrate-down-plan migrate-down migrate-clean
 
 # API with hot reload (Air, config in .air.toml).
 dev:
 	go tool air
 
-# Regenerate internal/db from migrations (schema) and internal/db/queries.
-sqlc:
-	go tool sqlc generate
+# Export internal/db/models.go as SQL for Atlas (desired schema).
+schema:
+	@mkdir -p .atlas
+	go tool atlas-provider-gorm load --path ./internal/db --dialect postgres > .atlas/schema.sql
 
-# Regenerate Swagger docs from handler annotations.
-swag:
-	go tool swag fmt
-	go tool swag init -g cmd/main.go -o internal/apidocs --parseInternal
+# Generate the next migration from the GORM models: make migrate-diff NAME=add_note_position
+migrate-diff: schema
+	$(call with_dev_db,$(ATLAS) diff $(NAME))
 
+# Apply pending migrations.
 migrate-up:
-	$(MIGRATE) up
+	$(ATLAS) apply
 
-# Roll back N migrations (default 1): make migrate-down N=2
+migrate-status:
+	$(ATLAS) status
+
+# Recompute migrations/atlas.sum after editing a generated migration by hand.
+migrate-hash:
+	$(ATLAS) hash
+
+# Show the SQL that would revert the last N applied migrations, without running it: make migrate-down-plan N=1
+migrate-down-plan:
+	$(call with_dev_db,$(ATLAS) down $(N) --dry-run)
+
+# Revert the last N applied migrations (default 1). Atlas refuses to drop tables or columns that hold data.
 migrate-down:
-	$(MIGRATE) down $(N)
+	$(call with_dev_db,$(ATLAS) down $(N))
 
-# New numbered pair 00N_<name>.up.sql / .down.sql: make migrate-create NAME=add_note_position
-migrate-create:
-	$(MIGRATE) create $(NAME)
-
-migrate-version:
-	$(MIGRATE) version
-
-# Mark the DB as version V without running SQL (e.g. a DB migrated by hand): make migrate-force V=3
-migrate-force:
-	$(MIGRATE) force $(V)
+# Remove Atlas containers left behind by an interrupted command.
+migrate-clean:
+	$(COMPOSE) rm -sf atlas-dev-db atlas-migrate-runner

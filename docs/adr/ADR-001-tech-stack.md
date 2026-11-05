@@ -19,10 +19,11 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Lớp | Chọn | Ghi chú |
 | --- | --- | --- |
 | Backend | **Go + Gin** | Chuẩn `net/http` — dùng chung được MCP Go SDK, `x/oauth2`, SSE |
-| Tài liệu API | **swaggo** | Annotation trên handler + schema từ struct; FE sinh client bằng **orval** |
-| Truy cập DB | **sqlc** (pgx/v5) | Giữ như hiện tại; SQL là nguồn schema duy nhất |
-| Migration | **golang-migrate** | Giữ định dạng file hiện có (`NNN_name.up.sql` / `.down.sql`); chạy qua `make migrate-*` (`cmd/migrate`, không cần cài CLI) |
-| Công cụ | `go tool sqlc`, `go tool swag`, `go tool air`; golang-migrate qua `cmd/migrate` — tất cả ghim trong `go.mod` | Thành viên mới chỉ cần Go, Docker, `make`; bỏ docker cho sqlc, bỏ `psql -f` cho migration |
+| Kiến trúc backend | **Một package `internal/api`**, mỗi domain một file | Handler đọc từ trên xuống: bind → kiểm tra quy tắc → GORM → response. Tách service khi cần dùng lại ngoài HTTP |
+| Tài liệu API | **swaggo** — **hoãn** | Bật lại khi `next-nodus` cần sinh client bằng **orval** |
+| Truy cập DB | **GORM** (driver Postgres/pgx) | Struct trong `internal/db/models.go` là nguồn schema duy nhất |
+| Migration | **Atlas** | `atlas migrate diff` sinh SQL từ model GORM (`atlas-provider-gorm`), người review, `atlas migrate apply`; DB tạm cho diff/rollback là Postgres trên RAM (service `atlas-dev-db`, tạo và xóa theo từng lệnh). Rollback: `atlas migrate down` tự tính SQL đảo ngược và chặn nếu làm mất dữ liệu; migration đã chia sẻ thì roll forward bằng migration mới. Giống `migration:generate` của TypeORM |
+| Công cụ | `go tool air`, `go tool atlas-provider-gorm` (ghim trong `go.mod`); Atlas chạy bằng Docker (`arigaio/atlas:1.3.6` bản chính thức — miễn phí, không cần đăng nhập, có `migrate down` mà bản community thiếu; service `atlas-migrate-runner`, chỉ chạy khi gọi `make migrate-*`) | Không ai phải cài Atlas; thành viên mới chỉ cần Go, Docker, `make` |
 | Auth | **Session (cookie) + PAT**, OAuth Google/GitHub/GitLab | JWT chỉ dùng **nội bộ giữa service** khi tách service — chi tiết [[FRD-account]] |
 | Frontend | **Next.js (React)** — folder mới `next-nodus/` | Chạy chủ yếu client component; mọi dữ liệu đi qua API Go, không dùng Server Actions/route handler cho nghiệp vụ |
 | UI | **Ant Design v6 + Tailwind CSS v4** | antd cho component, Tailwind cho layout/tinh chỉnh — mục 4 |
@@ -38,7 +39,9 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Bỏ Go, full-stack TypeScript (Next + Prisma) | Muốn giữ Go cho tách service, AI |
 | Fiber (giữ) | Không tương thích `net/http` |
 | Huma | Chọn swaggo — quen thuộc, ít ràng buộc cách viết handler |
-| GORM (+ Atlas / + golang-migrate) | Hai nguồn schema (struct + SQL); Atlas phải cài thêm và cần DB tạm |
+| sqlc + golang-migrate (chọn rồi đổi, 2026-11-05) | Viết SQL cho từng query rồi generate; chậm hơn khi P1–P2 đổi schema nhiều lần |
+| GORM + SQL migration tự viết | Viết schema 2 lần (SQL + struct), dễ lệch |
+| handler → service → repository, mỗi module ~8 file | Quá nhiều lớp cho quy mô hiện tại, khó nắm |
 | ent | Học nhiều, viết lại tầng dữ liệu; lợi ích (privacy, soft delete tự động) chưa đủ bù |
 | JWT cho trình duyệt | Thu hồi phức tạp (refresh rotation, `token_version`); token trong JS dễ lộ qua XSS khi Nodus hiển thị HTML/SVG người dùng viết |
 | Nuxt + Nuxt UI (giữ) | Chọn hệ sinh thái React + antd |
@@ -120,15 +123,16 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
   - Validate title (trim, 1–200 ký tự); escape ký tự đặc biệt khi search `ILIKE`.
   - Lỗi 500 không trả chi tiết DB; lỗi nghiệp vụ có `code` ổn định.
   - Layout dùng được trên mobile (tối thiểu chế độ đọc).
-- Rủi ro của sqlc — phải nhớ `deleted_at IS NULL` và `user_id` trong từng query: quy ước mọi query bảng có chủ sở hữu nhận `user_id`; test repository kiểm tra phân quyền; cân nhắc Row Level Security của Postgres sau.
-- Rủi ro của swaggo — annotation lệch code: CI chạy `swag init` rồi `git diff --exit-code`.
+- Rủi ro của GORM — kém an toàn kiểu hơn sqlc, có bẫy (`Updates` bỏ qua giá trị rỗng, `Raw` không lọc soft delete, quên lọc `user_id`): ghi trong `CLAUDE.md`, lọc `user_id` qua một scope chung, test phân quyền; cân nhắc Row Level Security của Postgres sau.
+- Rủi ro của Atlas — một số tính năng nâng cao gắn với Atlas Cloud; phần dùng (`migrate diff/apply/status/hash`) là bản miễn phí.
+- Khi bật lại swaggo: annotation có thể lệch code → CI chạy `swag init` rồi `git diff --exit-code`.
 - `SPEC-v5` và các FRD đang nhắc file của `web-nodus`/Fiber → cập nhật dần khi làm từng FRD.
 
 ## 7. Kế hoạch chuyển đổi
 
 | Giai đoạn | Việc |
 | --- | --- |
-| 0 — Nền | Tạo công cụ khớp `CLAUDE.md` (quy trình migration, lệnh); `go tool sqlc`/`swag`; `cmd/migrate` + `Makefile`; Fiber → Gin; swaggo; gói `apperr`/`httpx`; giữ hợp đồng API trừ thay đổi đã duyệt |
+| 0 — Nền | Model GORM khớp schema hiện tại + migration baseline của Atlas; Fiber → Gin với kiến trúc `internal/api`; `Makefile`; giữ hợp đồng API trừ thay đổi đã duyệt |
 | 1 — Khung `next-nodus` | Next.js + antd v6 + Tailwind v4 (layer, token); TanStack Query + orval; layout (Layout + Splitter), cây (Tree), editor CodeMirror, preview unified/Shiki; autosave theo tiêu chí mục 6 |
 | 2 — P1 trên stack mới | [[FRD-editor-preview]], [[FRD-sitemap]], [[FRD-account]]; [[FRD-remove-graph]] tự hoàn thành vì không port graph |
 | 3 — Gỡ `web-nodus` | Khi `next-nodus` đủ tính năng — cần duyệt xóa |
