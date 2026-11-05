@@ -66,9 +66,9 @@ Ask before:
 
 - The schema lives in SQL migrations under `go-nodus/migrations` (golang-migrate format). sqlc reads them as its schema.
 - Never use auto-migration to change the schema.
-- After a schema change is approved, agents may create files with `go run ./cmd/migrate create <name>` and draft the `up`/`down` SQL.
+- After a schema change is approved, agents may create files with `make migrate-create NAME=<name>` (golang-migrate CLI) and draft the `up`/`down` SQL.
 - Never edit or delete a migration that has already been applied; add a new one.
-- Required order (user runs): review SQL → `go tool sqlc generate` → `go vet ./...` → `go run ./cmd/migrate up`.
+- Required order (user runs): review SQL → `make sqlc` → `go vet ./...` → `make migrate-up`.
 - Do not claim generate or migrate succeeded unless the user provides output.
 
 ## Frontend

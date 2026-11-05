@@ -21,8 +21,8 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Backend | **Go + Gin** | Chuẩn `net/http` — dùng chung được MCP Go SDK, `x/oauth2`, SSE |
 | Tài liệu API | **swaggo** | Annotation trên handler + schema từ struct; FE sinh client bằng **orval** |
 | Truy cập DB | **sqlc** (pgx/v5) | Giữ như hiện tại; SQL là nguồn schema duy nhất |
-| Migration | **golang-migrate** | Giữ định dạng file hiện có (`NNN_name.up.sql` / `.down.sql`); chạy qua `cmd/migrate` |
-| Công cụ Go | `go tool sqlc`, `go run ./cmd/migrate` | Ghim phiên bản trong `go.mod`, không cài toàn máy, bỏ docker cho sqlc |
+| Migration | **golang-migrate** | Giữ định dạng file hiện có (`NNN_name.up.sql` / `.down.sql`); chạy qua `make migrate-*` (`cmd/migrate`, không cần cài CLI) |
+| Công cụ | `go tool sqlc`, `go tool swag`, `go tool air`; golang-migrate qua `cmd/migrate` — tất cả ghim trong `go.mod` | Thành viên mới chỉ cần Go, Docker, `make`; bỏ docker cho sqlc, bỏ `psql -f` cho migration |
 | Auth | **Session (cookie) + PAT**, OAuth Google/GitHub/GitLab | JWT chỉ dùng **nội bộ giữa service** khi tách service — chi tiết [[FRD-account]] |
 | Frontend | **Next.js (React)** — folder mới `next-nodus/` | Chạy chủ yếu client component; mọi dữ liệu đi qua API Go, không dùng Server Actions/route handler cho nghiệp vụ |
 | UI | **Ant Design v6 + Tailwind CSS v4** | antd cho component, Tailwind cho layout/tinh chỉnh — mục 4 |
@@ -128,7 +128,7 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
 
 | Giai đoạn | Việc |
 | --- | --- |
-| 0 — Nền | Tạo công cụ khớp `CLAUDE.md` (quy trình migration, lệnh); `go tool sqlc`; `cmd/migrate`; Fiber → Gin; swaggo; gói `apperr`/`httpx`; giữ hợp đồng API trừ thay đổi đã duyệt |
+| 0 — Nền | Tạo công cụ khớp `CLAUDE.md` (quy trình migration, lệnh); `go tool sqlc`/`swag`; `cmd/migrate` + `Makefile`; Fiber → Gin; swaggo; gói `apperr`/`httpx`; giữ hợp đồng API trừ thay đổi đã duyệt |
 | 1 — Khung `next-nodus` | Next.js + antd v6 + Tailwind v4 (layer, token); TanStack Query + orval; layout (Layout + Splitter), cây (Tree), editor CodeMirror, preview unified/Shiki; autosave theo tiêu chí mục 6 |
 | 2 — P1 trên stack mới | [[FRD-editor-preview]], [[FRD-sitemap]], [[FRD-account]]; [[FRD-remove-graph]] tự hoàn thành vì không port graph |
 | 3 — Gỡ `web-nodus` | Khi `next-nodus` đủ tính năng — cần duyệt xóa |
