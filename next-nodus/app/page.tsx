@@ -106,13 +106,13 @@ const BackendArticle = () => (
       Note con không lưu folder riêng — folder lấy từ note cha.
     </blockquote>
     <div className="overflow-hidden rounded-lg border border-border-muted">
-      <div className="flex items-center justify-between border-b border-border-muted bg-fill px-3 py-1.5 text-xs text-fg-subtle">
+      <div className="flex items-center justify-between border-b border-border-muted bg-fill px-3 py-1.5 text-ui-sm text-fg-subtle">
         <span className="font-mono">go</span>
         <Button size="small" type="text">
           Copy
         </Button>
       </div>
-      <pre className="overflow-x-auto bg-surface p-4 font-mono text-sm leading-6">
+      <pre className="overflow-x-auto bg-surface p-4 font-mono text-[0.875em] leading-6">
         {`func (s *service) Create(ctx context.Context, req CreateNoteRequest) (*Note, error) {
 	return s.repo.Create(ctx, req)
 }`}
@@ -129,12 +129,12 @@ const BackendArticle = () => (
       <tbody>
         <tr>
           <td className="border border-border-muted px-3 py-2">POST</td>
-          <td className="border border-border-muted px-3 py-2 font-mono text-sm">/notes</td>
+          <td className="border border-border-muted px-3 py-2 font-mono">/notes</td>
           <td className="border border-border-muted px-3 py-2">Tạo tài liệu</td>
         </tr>
         <tr>
           <td className="border border-border-muted px-3 py-2">PATCH</td>
-          <td className="border border-border-muted px-3 py-2 font-mono text-sm">/notes/:id/move</td>
+          <td className="border border-border-muted px-3 py-2 font-mono">/notes/:id/move</td>
           <td className="border border-border-muted px-3 py-2">Đổi vị trí trong cây</td>
         </tr>
       </tbody>
@@ -196,13 +196,13 @@ const Home = () => {
     <div className="flex h-screen bg-canvas text-fg">
       <aside className="flex w-72 shrink-0 flex-col border-r border-border-muted bg-surface">
         <div className="flex items-center gap-2 px-4 pt-4 pb-3">
-          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-sm font-bold text-on-primary">N</div>
+          <div className="flex size-7 items-center justify-center rounded-md bg-primary text-ui font-bold text-on-primary">N</div>
           <span className="font-semibold">Nodus</span>
         </div>
         <div className="px-3 pb-3">
           <Input placeholder="Tìm tài liệu…" prefix={<MagnifyingGlassIcon className="size-4 text-fg-subtle" />} />
         </div>
-        <div className="flex items-center justify-between px-4 pb-1 text-xs font-medium uppercase tracking-wide text-fg-subtle">
+        <div className="flex items-center justify-between px-4 pb-1 text-ui-sm font-medium uppercase tracking-wide text-fg-subtle">
           Sitemap
           <Button size="small" type="text" icon={<PlusIcon className="size-4" />} aria-label="Tạo tài liệu" />
         </div>
@@ -235,7 +235,7 @@ const Home = () => {
         <div className="flex h-12 shrink-0 items-center justify-between gap-4 border-b border-border-muted bg-surface px-5">
           <Breadcrumb items={[{ title: activeDoc.folder }, { title: activeDoc.title }]} />
           <div className="flex items-center gap-2">
-            <span className="text-xs text-fg-subtle">Đã lưu lúc 14:32</span>
+            <span className="text-ui-sm text-fg-subtle">Đã lưu lúc 14:32</span>
             <Segmented size="small" value={view} options={VIEW_OPTIONS} onChange={(value) => setView(value as ViewMode)} />
             <Button size="small" type="text" icon={<LinkIcon className="size-4" />}>
               2 backlink

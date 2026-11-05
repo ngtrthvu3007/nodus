@@ -67,7 +67,7 @@ interface SectionProps {
 
 const Section = ({ title, children }: SectionProps) => (
   <section className="flex flex-col gap-3">
-    <h2 className="text-sm font-semibold uppercase tracking-wide text-fg-subtle">{title}</h2>
+    <h2 className="text-ui font-semibold uppercase tracking-wide text-fg-subtle">{title}</h2>
     {children}
   </section>
 );
@@ -77,7 +77,7 @@ const SwatchGrid = ({ swatches }: { swatches: Swatch[] }) => (
     {swatches.map(({ name, className }) => (
       <div key={name} className="flex flex-col gap-1.5">
         <div className={`h-12 rounded-md border border-border-muted ${className}`} />
-        <code className="font-mono text-xs text-fg-muted">{name}</code>
+        <code className="font-mono text-ui-sm text-fg-muted">{name}</code>
       </div>
     ))}
   </div>
@@ -115,7 +115,7 @@ const TokensPage = () => {
         <div className="flex flex-col gap-1 rounded-lg border border-border-muted bg-surface p-4">
           {TEXT_SAMPLES.map(({ name, className }) => (
             <p key={name} className={className}>
-              <code className="mr-2 font-mono text-xs">{name}</code>
+              <code className="mr-2 font-mono text-ui-sm">{name}</code>
               Tài liệu kỹ thuật dạng liên kết — the quick brown fox.
             </p>
           ))}
@@ -169,7 +169,7 @@ const TokensPage = () => {
           <Button type="primary" className="rounded-full px-6">
             rounded-full px-6
           </Button>
-          <Button className="border-success bg-success text-white">bg-success text-white</Button>
+          <Button className="border-success bg-success text-on-primary">bg-success text-on-primary</Button>
         </div>
       </Section>
     </main>
