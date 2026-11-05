@@ -12,6 +12,13 @@ pnpm dev        # http://localhost:4000
 
 The Go API must allow this origin: `ALLOWED_ORIGIN=http://localhost:4000` in `go-nodus/.env`.
 
+## Commands
+
+- `pnpm dev` — dev server on port 4000.
+- `pnpm lint` — ESLint.
+- `pnpm build` — production build.
+- `pnpm tokens` — regenerate `shared/theme/tokens.css` after changing `shared/theme/tokens.ts`.
+
 ## Theme
 
 - `shared/theme/tokens.ts` is the single source of design tokens (Slate & Blue, light + dark).
