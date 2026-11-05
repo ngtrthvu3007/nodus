@@ -26,7 +26,7 @@ Người dùng chọn nơi lưu tài liệu theo kiểu draw.io: lưu ở Google
   - Note gốc có note con → thư mục cùng tên chứa file `.md` của note gốc và các file `.md` của note con.
 - Nội dung file là đúng markdown người dùng viết, không chèn dữ liệu riêng của Nodus vào nội dung.
 - Tạo, sửa, đổi tên, di chuyển, xóa trong Nodus → thực hiện tương ứng trên Drive.
-- Xin quyền Drive ở mức hẹp nhất đủ dùng (chỉ file do Nodus tạo).
+- Xin quyền Drive ở mức hẹp nhất đủ dùng: scope `drive.file` (chỉ file do Nodus tạo/mở). Scope truy cập toàn bộ Drive bị Google xếp nhóm hạn chế, phải qua đánh giá bảo mật.
 
 ### Chế độ Nodus
 

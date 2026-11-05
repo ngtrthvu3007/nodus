@@ -1,6 +1,8 @@
 # Backend site map — `go-nodus`
 
-Tổng quan toàn bộ module trong backend: mỗi module có gì, phụ thuộc gì, nhận/trả gì. Chi tiết từng flow nghiệp vụ xem [docs/features/](features/).
+> Mô tả code hiện tại (Fiber). Sẽ viết lại khi chuyển sang Gin ở giai đoạn 0 của [[ADR-001-tech-stack]].
+
+Tổng quan toàn bộ module trong backend: mỗi module có gì, phụ thuộc gì, nhận/trả gì. Quy tắc nghiệp vụ từng tính năng xem `docs/frd/`.
 
 ## Kiến trúc chung
 
@@ -60,7 +62,7 @@ Helper dùng chung, không chứa business logic.
 | File | Việc |
 |---|---|
 | `response.go` | `Success(c, status, data)` → format response thành công thống nhất `{ success: true, data }` |
-| `error.go` | `DefaultErrorHandler` — bắt mọi `error` trả về từ handler, format thành `{ success: false, error: { message } }`, giữ đúng HTTP status nếu là `*fiber.Error` |
+| `error.go` | `DefaultErrorHandler` — bắt mọi `error` trả về từ handler, format thành `{ success: false, error: { message } }`, giữ đúng HTTP status nếu là `*fiber.Error`; `IsNotFound(err)` — phân biệt "không tìm thấy" (`pgx.ErrNoRows`) với lỗi DB khác |
 
 ## Module: `internal/db`
 
@@ -81,8 +83,8 @@ CRUD note + di chuyển note trong cây folder/note 2 cấp (root note + note co
 | Route | `GET /notes`, `POST /notes`, `GET /notes/:id`, `PUT /notes/:id`, `DELETE /notes/:id`, `PATCH /notes/:id/move` |
 | Nhận | `createNoteRequest` (title, content, folderId?, parentNoteId?), `updateNoteContentRequest` (title, content), `moveNoteRequest` (folderId, parentNoteId — bắt buộc gửi cả 2 key) |
 | Trả | `Note` (id, title, content, folderId?, parentNoteId?, hasChildren, createdAt, updatedAt) |
-| Business rule | Note con kế thừa `folderId` từ cha; note gốc có con không được re-parent; note con chỉ re-parent sang note gốc thật (giữ tối đa 2 cấp). Chi tiết: [[create-note]], [[move-note]] |
-| Phụ thuộc | `notelink.Service` (gọi `RebuildLinksFromContent` sau khi `Update` thành công — [[note-links]]); đọc thẳng `db.Queries.FindFolderByID` để check folder tồn tại (không qua `folder.Repository`, tránh import cycle vì `folder` đã phụ thuộc `note`) |
+| Business rule | Note con lưu `folder_id = NULL`, folder hiệu lực lấy từ cha; note có con không được re-parent; cha mới phải là note gốc thật (giữ tối đa 2 cấp); xóa note cha soft delete luôn note con. Chi tiết: [[FRD-note-hierarchy]], [[FRD-move-note]] |
+| Phụ thuộc | `notelink.Service` (gọi `RebuildLinksFromContent` sau khi `Update` thành công — [[FRD-wiki-link]]); đọc thẳng `db.Queries.FindFolderByID` để check folder tồn tại (không qua `folder.Repository`, tránh import cycle vì `folder` đã phụ thuộc `note`) |
 | Export cho module khác | `note.Repository` (folder dùng để lấy note theo `folderId`), `note.ValidateID` (middleware validate `:id<guid>`) |
 
 ## Module: `internal/folder`
@@ -106,7 +108,7 @@ Parse wiki-link `[[Title]]`, đồng bộ bảng `note_links`, cung cấp backli
 | Route | `GET /notes/:id/links`, `GET /notes/autocomplete?q=` |
 | Nhận (qua service, không qua HTTP) | `RebuildLinksFromContent(ctx, sourceNoteID, content)` — gọi từ `note.service.Update` |
 | Trả (HTTP) | `/links` → `NoteLinks { backlinks: []LinkedNote, outgoing: []LinkedNote }`; `/autocomplete` → `[]NoteTitleSuggestion` (tối đa 10, sort alphabet) |
-| Business rule | `note_links` derive toàn bộ từ `content` mỗi lần save (xóa cũ, insert lại — không diff); title không tồn tại thì bỏ qua, không tự tạo note. Chi tiết: [[note-links]] |
+| Business rule | `note_links` derive toàn bộ từ `content` mỗi lần save (xóa cũ, insert lại — không diff); title được trim, title không tồn tại thì bỏ qua, không tự tạo note; self-link không tính là backlink. Chi tiết: [[FRD-wiki-link]] |
 | Phụ thuộc | Không phụ thuộc `note`/`folder` (tránh import cycle) |
 | Export cho module khác | `notelink.Service` (dùng trong `main.go` để truyền vào `note.RegisterModule`) |
 

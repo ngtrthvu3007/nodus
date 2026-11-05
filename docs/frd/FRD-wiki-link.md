@@ -1,6 +1,6 @@
 # FRD — Wiki-link & Backlink
 
-Nguồn: [[SPEC-v3]], [[SPEC-v5]]. Flow code chi tiết: `docs/features/note-links.md`.
+Nguồn: [[SPEC-v3]], [[SPEC-v5]]. Flow code của bản Fiber cũ: `docs/archive/features/note-links.md`.
 
 ## Mục tiêu
 
@@ -8,12 +8,13 @@ Cho phép tài liệu trỏ tới nhau bằng `[[Title]]`, và từ 1 tài liệ
 
 ## Yêu cầu (đã implement)
 
-- Cú pháp `[[Title]]` trong nội dung markdown. Link resolve theo **title**, không theo ID.
+- Cú pháp `[[Title]]` trong nội dung markdown. Link resolve theo **title**, không theo ID. Khoảng trắng hai đầu bị bỏ (`[[ AWS ]]` = `[[AWS]]`); `[[ ]]` rỗng bị bỏ qua.
 - Link **luôn suy ra từ nội dung**: mỗi lần save note (`PUT /notes/:id`), parse lại toàn bộ `[[...]]`, xóa link cũ, ghi link mới. Không có API thêm/xóa link thủ công.
 - Title chưa tồn tại → **không** tạo link, preview hiển thị dạng "broken link", không tự tạo note.
 - Cùng 1 title xuất hiện nhiều lần → 1 link duy nhất.
 - Gõ `[[` trong editor → gợi ý tối đa 10 title khớp **tiền tố** (`GET /notes/autocomplete?q=`), chọn → chèn `Title]]`.
-- **Tab Backlinks** ở panel phải: danh sách note đang trỏ tới note hiện tại, bấm để mở. Đây là cách duy nhất Nodus hỗ trợ "xem chỗ liên quan" — Nodus **không** tự theo dõi hay tự đề xuất chỗ cần sửa ([[BRD]] mục 5).
+- Note tự link tới chính nó: vẫn render thành link trong preview, nhưng **không** tính là backlink của chính nó.
+- **Backlinks** (hiện ở tab Links của panel phải, cùng danh sách Outgoing): danh sách note đang trỏ tới note hiện tại, bấm để mở trong app (không tải lại trang). Đây là cách duy nhất Nodus hỗ trợ "xem chỗ liên quan" — Nodus **không** tự theo dõi hay tự đề xuất chỗ cần sửa ([[BRD]] mục 5).
 
 ## API
 
@@ -31,7 +32,8 @@ Cho phép tài liệu trỏ tới nhau bằng `[[Title]]`, và từ 1 tài liệ
 | 3 | So khớp phân biệt hoa thường (`title = $1`) | `[[aws]]` không khớp note "AWS" |
 | 4 | Không chặn trùng title | Hai note cùng title → link trỏ vào note nào không xác định |
 | 5 | Autocomplete chỉ khớp tiền tố | Gõ "RDS" không ra "AWS RDS" |
-| 6 | Update content và rebuild link không chung transaction | Lỗi giữa 2 bước → link lệch tới lần save sau. [[SPEC-v3]] ghi "cùng transaction", code thực tế không — chấp nhận để code đơn giản |
+| 6 | Update content và rebuild link không chung transaction | Lỗi giữa 2 bước → link lệch tới lần save sau. [[SPEC-v3]] ghi "cùng transaction", code thực tế không — xem mục "Chưa chốt" của [[SPEC-v5]] |
+| 7 | Ký tự `%`, `_` trong từ khóa autocomplete/search không được escape | Gõ `%` khớp mọi title — sửa theo tiêu chí ở [[ADR-001-tech-stack]] mục 6 |
 
 ## Chưa chốt
 

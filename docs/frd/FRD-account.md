@@ -41,6 +41,32 @@ Mỗi người dùng có dữ liệu riêng. Đây là điều kiện bắt bu�
 - Giới hạn số lần đăng nhập sai theo email và IP.
 - Thông báo lỗi không tiết lộ email có tồn tại hay không.
 
+## Cơ chế xác thực
+
+Chốt ở [[ADR-001-tech-stack]]: **session cho trình duyệt, PAT cho công cụ, JWT chỉ dùng nội bộ giữa service**.
+
+| Client | Cách xác thực |
+| --- | --- |
+| Web | Session ID ngẫu nhiên trong cookie `httpOnly; Secure; SameSite=Lax`; bảng `sessions` lưu bản băm, thiết bị/IP, hết hạn khi không dùng và hết hạn tuyệt đối |
+| MCP local, CLI | Personal access token (PAT): ngẫu nhiên, lưu bản băm, có phạm vi quyền (`docs:read`, `docs:write`), thu hồi được, ghi lần dùng cuối |
+| Remote MCP (để sau) | OAuth 2.1 theo đặc tả MCP |
+| Service nội bộ (khi tách) | JWT sống ngắn do API Go cấp, có `aud` theo service, ký bất đối xứng + JWKS |
+
+- Auth middleware quy mọi loại thông tin xác thực về một `Principal` (`userId`, `scopes`, `authMethod`); handler/service chỉ làm việc với `Principal`.
+- Token sinh từ nguồn ngẫu nhiên an toàn (≥ 32 byte), chỉ lưu bản băm.
+- Đăng nhập xong luôn cấp session mới (chống session fixation).
+- CSRF: `SameSite=Lax` + kiểm tra `Origin` cho mọi request thay đổi dữ liệu; FE và BE cùng site (`app.` / `api.` cùng tên miền).
+- Xác thực lại cho thao tác nhạy cảm: đổi mật khẩu, gắn/gỡ phương thức đăng nhập, xóa tài khoản, tạo PAT.
+- Nhật ký bảo mật: đăng nhập, đăng xuất, tạo/thu hồi PAT, đổi mật khẩu.
+- Secret lưu ở server (refresh token Google Drive; API key BYOK nếu [[FRD-ai-chat]] chọn lưu ở server) mã hóa khi lưu (envelope encryption, khóa chính ngoài DB).
+
+### OAuth Google / GitHub / GitLab
+
+- Luồng Authorization Code + PKCE, do Go xử lý: `GET /auth/:provider/start` → provider → `GET /auth/:provider/callback` → tạo session → redirect về app (chỉ tới domain trong danh sách cho phép).
+- `state` + PKCE verifier lưu trong cookie tạm 10 phút; client secret chỉ ở Go.
+- Google, GitLab: OIDC, xác minh ID token, khóa định danh `sub`. GitHub: `GET /user` + `GET /user/emails` (email chính, đã xác minh), khóa định danh `id` dạng số (không dùng username).
+- Scope đăng nhập không gồm Drive; "Kết nối Google Drive" xin `drive.file` riêng ([[FRD-storage]]).
+
 ## Cần duyệt
 
 - Auth/permissions; schema (`users`, `user_identities` cho các phương thức đăng nhập, `sessions`, token xác minh/đặt lại mật khẩu, cột `user_id` ở `folders`/`notes`); toàn bộ API đổi sang yêu cầu đăng nhập.
@@ -53,4 +79,3 @@ Mỗi người dùng có dữ liệu riêng. Đây là điều kiện bắt bu�
 - Đăng nhập không mật khẩu (magic link qua email) thay cho/song song với mật khẩu.
 - Xác thực 2 bước (2FA).
 - Dữ liệu đang có trong DB (chưa có chủ) chuyển cho tài khoản nào khi bật auth.
-- Cơ chế session (cookie phía server hay token).

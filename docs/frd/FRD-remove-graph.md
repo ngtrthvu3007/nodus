@@ -8,21 +8,17 @@ Bỏ phần graph khỏi sản phẩm. Graph nhìn đẹp nhưng không giúp đ
 
 ## Hiện trạng
 
-| Hạng mục | Spec gốc | Code hiện tại |
+Graph chỉ còn trong `web-nodus` (đã deprecated, xem [[ADR-001-tech-stack]]):
+
+| Hạng mục | Spec gốc | Code |
 | --- | --- | --- |
-| Tab "Graph" ở panel phải (cạnh Preview, Backlinks) | [[SPEC-v1]] | Có: `components/note/backlinks-panel.vue` → `LazyNoteGraphPanel` |
-| Component vẽ graph | [[SPEC-v1]] | Có: `components/note/graph-panel.vue` |
-| Plugin + CSS `v-network-graph` | [[SPEC-v1]] | Có: `plugins/v-network-graph.ts`, `nuxt.config.ts` (`css`), `package.json` |
+| Tab "Graph" ở panel phải | [[SPEC-v1]] | `web-nodus`: `components/note/backlinks-panel.vue` → `LazyNoteGraphPanel` |
+| Component vẽ graph | [[SPEC-v1]] | `web-nodus`: `components/note/graph-panel.vue` (dùng `v-network-graph`, `d3-force`) |
 | Global graph `/graph`, API `/graph`, `/notes/:id/graph` | [[SPEC-v1]] | Chưa từng làm |
 | Minimap graph nổi | [[SPEC-v4]] | Chưa làm |
 
 ## Yêu cầu
 
-- Panel phải chỉ còn 2 tab: **Preview**, **Backlinks**.
-- Xóa `graph-panel.vue`, `plugins/v-network-graph.ts`, CSS trong `nuxt.config.ts`, gỡ dependency `v-network-graph`.
-- Bỏ minimap graph khỏi [[SPEC-v4]] (không làm).
-- Dữ liệu không đổi: `note_links` vẫn giữ nguyên, Backlinks vẫn dùng.
-
-## Cần duyệt
-
-- Xóa file và gỡ dependency thuộc nhóm phải duyệt trước (`AGENTS.md`). Người dùng chạy `bun remove v-network-graph`.
+- `next-nodus` **không có graph**: panel tài liệu chỉ có Preview và Links (Backlinks + Outgoing).
+- `web-nodus` không cần gỡ graph riêng — graph biến mất khi gỡ `web-nodus` ở giai đoạn 3 của [[ADR-001-tech-stack]].
+- Dữ liệu không đổi: `note_links` giữ nguyên, Backlinks vẫn dùng.

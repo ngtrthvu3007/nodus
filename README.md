@@ -1,106 +1,90 @@
 # Nodus
 
-Personal knowledge base với wiki-link (`[[Title]]`), backlink tự động, và local graph — xem [SPEC-v3.md](SPEC-v3.md) cho spec mới nhất.
+A tool for writing **linked technical docs**: markdown + mermaid, `[[wiki-links]]` with backlinks, a sitemap tree, share/publish by URL, and an MCP server for AI agents. Product direction: [docs/BRD.md](docs/BRD.md).
 
-Repo gồm 2 service độc lập:
+> **Status (2026-11):** migrating to a new stack per [ADR-001](docs/adr/ADR-001-tech-stack.md). The setup below describes the current code and will change after phase 0 of the ADR.
 
-```
+## Stack
+
+| Layer | Current | Target (ADR-001) |
+| --- | --- | --- |
+| Backend | Go 1.26 + Fiber v3 | Go + Gin + swaggo |
+| Database | Postgres 16, sqlc + pgx/v5 | unchanged |
+| Migrations | Plain SQL, applied per file (`make migrate-apply`) | golang-migrate (`go run ./cmd/migrate`) |
+| Auth | none | Session cookie + PAT, OAuth Google/GitHub/GitLab |
+| Frontend | `web-nodus`: Nuxt 4 + Nuxt UI 4 + Tailwind 4 | `next-nodus`: Next.js + antd v6 + Tailwind v4 + TanStack Query |
+
+## Structure
+
+```text
 nodus/
-├── go-nodus/    # Backend API (Go + Fiber + sqlc + Postgres)
-└── web-nodus/   # Frontend (Nuxt 3 + Nuxt UI + Tailwind)
+├── docs/          # BRD, SPEC, FRD, ADR (Vietnamese)
+├── go-nodus/      # Backend API + MCP server (cmd/mcp)
+│   ├── internal/  # one package per domain; internal/db is sqlc-generated
+│   └── migrations/
+├── web-nodus/     # Current frontend (Nuxt), to be replaced
+└── next-nodus/    # New frontend (Next.js 16 + antd v6 + Tailwind v4, scaffolded)
 ```
 
-## Yêu cầu
+Backend layers per domain: handler → service → repository (sqlc) → Postgres. See [docs/backend-map.md](docs/backend-map.md).
 
-- Go 1.26+
-- Node.js + [Bun](https://bun.sh) (frontend dùng `bun.lock`)
-- Docker (chạy Postgres qua `docker-compose`)
-- [Air](https://github.com/air-verse/air) (hot-reload cho Go, tùy chọn nhưng khuyến nghị): `go install github.com/air-verse/air@latest`
+## Getting Started
 
-## Chạy dự án lần đầu
+Requires Go 1.26+, Docker, [Bun](https://bun.sh) (`web-nodus`), [pnpm](https://pnpm.io) (`next-nodus`). [Air](https://github.com/air-verse/air) is optional (hot reload).
 
-### 1. Backend (`go-nodus/`)
+### 1. Database
 
-```
+```bash
 cd go-nodus
-cp .env.example .env    # điền POSTGRES_USER/PASSWORD/DB, DATABASE_URL, ALLOWED_ORIGIN
-docker compose up -d    # khởi động Postgres
-```
-
-Áp toàn bộ migration theo thứ tự (chưa có lệnh tự động chạy hết, mỗi file cần gọi riêng):
-
-```
+cp .env.example .env   # set POSTGRES_*, DATABASE_URL, PORT (default 8080), ALLOWED_ORIGIN=http://localhost:4000 (next-nodus)
+docker compose up -d
 make migrate-apply FILE=001_init_notes.up.sql
 make migrate-apply FILE=002_init_folders.up.sql
 make migrate-apply FILE=003_note_links.up.sql
 ```
 
-Sinh code Go từ SQL query (chỉ cần chạy lại khi sửa file trong `internal/db/queries/`):
+`make migrate-apply` hardcodes user `nodus_admin_user` and database `nodus_local`; use the same values in `.env` or edit the `Makefile`.
 
-```
-make sqlc-generate
-```
+### 2. Backend
 
-Chạy server (hot-reload qua Air):
-
-```
-air
+```bash
+air              # or: go run ./cmd
+curl localhost:8080/health
 ```
 
-Hoặc chạy trực tiếp không hot-reload:
+After editing `internal/db/queries/*.sql` or migrations, regenerate with `make sqlc-generate`.
 
-```
-go run ./cmd
-```
+### 3. Frontend
 
-Mặc định lắng nghe ở `:8080` (đổi qua biến `PORT` trong `.env`).
-
-### 2. Frontend (`web-nodus/`)
-
-```
+```bash
 cd web-nodus
-cp .env.example .env    # điền NUXT_NODUS_API_BASE (mặc định http://localhost:8080)
+cp .env.example .env   # NUXT_NODUS_API_BASE=http://localhost:8080
 bun install
-bun run dev
+bun run dev            # http://localhost:3000 — calls the API through the Nuxt proxy, no CORS needed
 ```
 
-Mặc định chạy ở `http://localhost:3000`, gọi API qua Nitro proxy (`/api/*`) tới `NUXT_NODUS_API_BASE`.
+New frontend (`next-nodus`, in progress):
 
-## Lệnh thường dùng
-
-**Backend** (`go-nodus/`):
-
-| Lệnh | Việc |
-| --- | --- |
-| `air` | Chạy dev server, tự rebuild khi sửa `.go` |
-| `go build -o bin/nodus ./cmd` | Build binary |
-| `make sqlc-generate` | Sinh lại code Go từ `internal/db/queries/*.sql` |
-| `make migrate-apply FILE=<tên file>` | Áp 1 migration cụ thể lên Postgres đang chạy |
-
-**Frontend** (`web-nodus/`):
-
-| Lệnh | Việc |
-| --- | --- |
-| `bun run dev` | Dev server |
-| `bun run build` | Build production (SSR) |
-| `bun run generate` | Static generate |
-| `bun run preview` | Chạy thử bản đã build |
-
-## MCP server (cho AI agent)
-
-`go-nodus/cmd/mcp` là MCP server chạy qua stdio, gọi vào HTTP API của backend — backend phải đang chạy. Expose tool: search/get/create/update/append/move/delete note, list/get/create/rename/delete folder.
-
+```bash
+cd next-nodus
+pnpm install
+pnpm dev               # http://localhost:4000 — calls the API directly, needs ALLOWED_ORIGIN
 ```
+
+### 4. MCP server (optional)
+
+The backend must be running.
+
+```bash
 cd go-nodus
 go build -o bin/nodus-mcp ./cmd/mcp
 claude mcp add nodus -e NODUS_API_BASE=http://localhost:8080 -- "$(pwd)/bin/nodus-mcp"
 ```
 
-Client khác (Claude Desktop, Cursor...) cấu hình tương tự: `command` = đường dẫn tuyệt đối tới `bin/nodus-mcp`, env `NODUS_API_BASE` (mặc định `http://localhost:8080`).
+## Docs
 
-## Tài liệu thêm
-
-- [SPEC-v1.md](SPEC-v1.md) → [SPEC-v4.md](SPEC-v4.md) — lịch sử spec qua từng giai đoạn.
-- [docs/backend-map.md](docs/backend-map.md) — sơ đồ module backend.
-- [docs/features/](docs/features/) — chi tiết flow từng tính năng (create note, move note, wiki-link/backlink...).
-- [AGENTS.md](AGENTS.md) — quy tắc làm việc chung cho AI coding agent trong repo này.
+- [docs/BRD.md](docs/BRD.md): product direction
+- [docs/SPEC-v5.md](docs/SPEC-v5.md): current scope and FRD list
+- [docs/adr/](docs/adr/): architecture decisions
+- [docs/frd/](docs/frd/): feature specs
+- [CLAUDE.md](CLAUDE.md): rules for AI coding agents

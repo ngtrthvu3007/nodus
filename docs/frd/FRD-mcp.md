@@ -8,7 +8,7 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 
 ## Hiện trạng (đã implement)
 
-- Chạy qua **stdio**, JSON-RPC 2.0 tự viết (không dùng thư viện MCP). stdout chỉ dành cho protocol, log ra stderr.
+- Chạy qua **stdio**, JSON-RPC 2.0 tự viết (không dùng thư viện MCP) — sẽ chuyển sang MCP Go SDK ([[ADR-001-tech-stack]]). stdout chỉ dành cho protocol, log ra stderr.
 - Method hỗ trợ: `initialize`, `ping`, `tools/list`, `tools/call`. Capability chỉ có `tools`.
 - Không truy cập DB trực tiếp: mọi tool **gọi HTTP API của backend** → đi qua đúng middleware và quy tắc service như UI. Backend phải đang chạy.
 - Địa chỉ API lấy từ biến môi trường `NODUS_API_BASE`, mặc định `http://localhost:8080`. Timeout 15 giây.
@@ -40,12 +40,15 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 
 ## Yêu cầu khi có tài khoản
 
-- Mọi tool chạy với quyền của 1 tài khoản cụ thể ([[FRD-account]]), không có đường vào dữ liệu của tài khoản khác.
+- Mọi tool chạy với quyền của 1 tài khoản cụ thể, không có đường vào dữ liệu của tài khoản khác.
+- MCP local xác thực bằng **personal access token** (PAT) có phạm vi quyền (`docs:read`, `docs:write`) — [[FRD-account]].
+- `update_note`/`append_to_note` gửi kèm `version` của tài liệu; tài liệu đã bị sửa ở nơi khác → báo xung đột, không ghi đè (tiêu chí ở [[ADR-001-tech-stack]] mục 6).
 - Bộ tool là dùng chung với chat AI trong app ([[FRD-ai-chat]]).
 
 ## Chưa chốt / để sau
 
-- **Remote MCP** qua HTTP, xác thực theo tài khoản: dùng được từ máy khác hoặc Claude web mà không cần chạy Nodus local.
+- **Remote MCP** qua HTTP, xác thực OAuth 2.1 theo đặc tả MCP: dùng được từ máy khác hoặc Claude web mà không cần chạy Nodus local.
+- Tool ghi của MCP hiện áp dụng ngay, không qua bước duyệt trong Nodus như [[FRD-ai-chat]] — có cần cơ chế duyệt ([[BRD]] mục 7) hay dựa vào xác nhận của client MCP.
 - **MCP prompts** (mẫu lệnh có sẵn trong client).
 - Thêm `limit`/lọc theo thời gian cho `search_notes` (đổi API contract `GET /notes` → cần duyệt).
 - Đổi `instructions` khi các hạn chế của [[FRD-wiki-link]] được xử lý (ví dụ cho phép link tới note chưa tồn tại).

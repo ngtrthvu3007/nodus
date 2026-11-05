@@ -1,6 +1,6 @@
 # FRD — Folder
 
-Nguồn: SPEC.md v2.
+Nguồn: [[SPEC-v2]].
 
 ## Mục tiêu
 
@@ -21,7 +21,7 @@ Cho phép nhóm các note gốc (level 0) vào Folder để tổ chức, thay v�
 
 ```sql
 CREATE TABLE folders (
-    id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name       TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -39,3 +39,5 @@ CREATE TABLE folders (
 | GET    | `/folders/:id`| Chi tiết folder + danh sách note gốc bên trong             |
 | PATCH  | `/folders/:id`| Đổi tên folder                                             |
 | DELETE | `/folders/:id`| Xóa folder — cascade note bên trong (client đã confirm)    |
+
+Folder không tồn tại → `404` ở mọi endpoint có `:id`. Request body dùng camelCase (`name`).

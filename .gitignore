@@ -10,3 +10,4 @@
 
 # Build outputs
 go-nodus/bin/
+.playwright-mcp/

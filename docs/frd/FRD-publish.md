@@ -56,3 +56,4 @@ flowchart LR
 - Custom domain (`docs.tenduan.com`).
 - Bảo vệ trang publish bằng mật khẩu.
 - Ở chế độ Drive: trang publish đọc trực tiếp từ Drive hay Nodus giữ một bản sao để phục vụ.
+- Render trang publish ở `next-nodus` (SPA, không tối ưu SEO) hay ở Go thành HTML tĩnh (SEO tốt, nhưng thêm một bộ render markdown phải giữ khớp) — [[ADR-001-tech-stack]] mục 8.
