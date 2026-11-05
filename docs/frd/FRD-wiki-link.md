@@ -9,7 +9,7 @@ Cho phép tài liệu trỏ tới nhau bằng `[[Title]]`, và từ 1 tài liệ
 ## Yêu cầu (đã implement)
 
 - Cú pháp `[[Title]]` trong nội dung markdown. Link resolve theo **title**, không theo ID. Khoảng trắng hai đầu bị bỏ (`[[ AWS ]]` = `[[AWS]]`); `[[ ]]` rỗng bị bỏ qua.
-- Link **luôn suy ra từ nội dung**: mỗi lần save note (`PUT /notes/:id`), parse lại toàn bộ `[[...]]`, xóa link cũ, ghi link mới. Không có API thêm/xóa link thủ công.
+- Link **luôn suy ra từ nội dung**: mỗi lần tạo note (`POST /notes`) hoặc save note (`PUT /notes/:id`), parse lại toàn bộ `[[...]]`, xóa link cũ, ghi link mới — cùng transaction với việc ghi note. Không có API thêm/xóa link thủ công.
 - Title chưa tồn tại → **không** tạo link, preview hiển thị dạng "broken link", không tự tạo note.
 - Cùng 1 title xuất hiện nhiều lần → 1 link duy nhất.
 - Gõ `[[` trong editor → gợi ý tối đa 10 title khớp **tiền tố** (`GET /notes/autocomplete?q=`), chọn → chèn `Title]]`.
@@ -30,10 +30,8 @@ Cho phép tài liệu trỏ tới nhau bằng `[[Title]]`, và từ 1 tài liệ
 | 1 | Viết `[[X]]` trước khi tạo note X | Tạo X sau đó link vẫn không nối, phải save lại note nguồn |
 | 2 | Đổi title note | `[[Title cũ]]` ở note khác thành broken link ở lần save kế tiếp |
 | 3 | So khớp phân biệt hoa thường (`title = $1`) | `[[aws]]` không khớp note "AWS" |
-| 4 | Không chặn trùng title | Hai note cùng title → link trỏ vào note nào không xác định |
+| 4 | Không chặn trùng title | Hai note cùng title → link trỏ vào note tạo sớm nhất |
 | 5 | Autocomplete chỉ khớp tiền tố | Gõ "RDS" không ra "AWS RDS" |
-| 6 | Update content và rebuild link không chung transaction | Lỗi giữa 2 bước → link lệch tới lần save sau. [[SPEC-v3]] ghi "cùng transaction", code thực tế không — xem mục "Chưa chốt" của [[SPEC-v5]] |
-| 7 | Ký tự `%`, `_` trong từ khóa autocomplete/search không được escape | Gõ `%` khớp mọi title — sửa theo tiêu chí ở [[ADR-001-tech-stack]] mục 6 |
 
 ## Chưa chốt
 

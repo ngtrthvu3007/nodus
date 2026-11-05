@@ -1,0 +1,15 @@
+# Always LF in the working tree, on every OS: Makefiles and shell scripts break with CRLF
+# (e.g. a checkout by Git for Windows with core.autocrlf=true).
+* text=auto eol=lf
+
+# Never touch line endings in binary files.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.pdf binary

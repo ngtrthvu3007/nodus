@@ -10,7 +10,7 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 
 - Chạy qua **stdio**, JSON-RPC 2.0 tự viết (không dùng thư viện MCP) — sẽ chuyển sang MCP Go SDK ([[ADR-001-tech-stack]]). stdout chỉ dành cho protocol, log ra stderr.
 - Method hỗ trợ: `initialize`, `ping`, `tools/list`, `tools/call`. Capability chỉ có `tools`.
-- Không truy cập DB trực tiếp: mọi tool **gọi HTTP API của backend** → đi qua đúng middleware và quy tắc service như UI. Backend phải đang chạy.
+- Không truy cập DB trực tiếp: mọi tool **gọi HTTP API của backend** → đi qua đúng middleware và quy tắc nghiệp vụ như UI. Backend phải đang chạy.
 - Địa chỉ API lấy từ biến môi trường `NODUS_API_BASE`, mặc định `http://localhost:8080`. Timeout 15 giây.
 - `initialize` trả `instructions` mô tả Nodus cho AI: note nằm trong folder hoặc root, có 1 cấp note con; link bằng `[[Exact Title]]` chỉ nối được tới note đã tồn tại nên phải tạo note đích trước; tool nhận ID, dùng `search_notes` để tìm ID.
 

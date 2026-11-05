@@ -37,7 +37,7 @@
 - **P2**: lưu trữ, chia sẻ, publish.
 - **P3**: thu phí, AI, tiện ích.
 
-Trước P1: giai đoạn 0 (nền backend) và 1 (khung `next-nodus`) theo kế hoạch ở [[ADR-001-tech-stack]] mục 7. Mọi FRD từ P1 trở đi làm trên stack mới.
+Trước P1: giai đoạn 0 (nền backend — đã xong: Gin + GORM + Atlas, rebuild link chung transaction với update content) và 1 (khung `next-nodus` — đang làm) theo kế hoạch ở [[ADR-001-tech-stack]] mục 7. Mọi FRD từ P1 trở đi làm trên stack mới.
 
 ## Thứ tự phụ thuộc
 
@@ -57,5 +57,4 @@ Publish hiển thị nội dung người dùng cho người lạ → [[FRD-edito
 
 ## Chưa chốt
 
-- Rebuild link chưa chung transaction với update content ([[FRD-wiki-link]] hạn chế 6), trong khi `CLAUDE.md` yêu cầu ghi nhiều bước trong 1 transaction — sửa ở giai đoạn 0 hay giữ chấp nhận.
 - Các mục còn mở ở [[ADR-001-tech-stack]] mục 8.

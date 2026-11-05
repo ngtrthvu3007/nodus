@@ -43,6 +43,7 @@ flowchart TD
 - Note gốc re-parent (nhánh **HasChildren = không**) đi chung bước kiểm tra note cha mới với note con: cha mới phải tồn tại và là note gốc thật.
 - Cả 2 field cùng khác `null` (trái hợp đồng UI): server **ưu tiên `parentNoteId`, bỏ qua `folderId`** — nhất quán với `POST /notes`.
 - Note không được làm cha của chính nó (`400`). Note không tồn tại → `404`.
+- Kiểm tra và cập nhật là một thao tác nguyên tử: move hoặc tạo note con chạy đồng thời không thể vượt qua các bước validate trên (ví dụ: một note vừa được gán con thì không còn được move vào dưới note khác).
 
 ## UI — modal "Move to..."
 

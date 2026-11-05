@@ -47,12 +47,13 @@ CREATE INDEX idx_notes_parent_note_id ON notes (parent_note_id);
 
 `note_links` giữ nguyên như v1, không đổi.
 
-## Ràng buộc tầng service
+## Ràng buộc kiểm tra ở backend
 
-Không diễn đạt được bằng CHECK constraint (cần so sánh chéo hàng) — bắt buộc validate ở service:
+Không diễn đạt được bằng CHECK constraint (cần so sánh chéo hàng) — backend bắt buộc tự kiểm tra trước khi ghi:
 
 - Nếu `parent_note_id IS NOT NULL` → `folder_id` của chính note đó phải luôn là `NULL` khi lưu (giá trị hiệu lực lấy từ `folder_id` của note cha lúc truy vấn/hiển thị).
 - Note có `parent_note_id IS NOT NULL` không được là cha của note khác — chặn khi set `parent_note_id`: từ chối nếu note cha đó đã có `parent_note_id` riêng (chặn quá 2 level).
+- Hai ràng buộc trên giữ đúng cả khi nhiều request chạy đồng thời (tạo note con, move note): việc kiểm tra và ghi là một thao tác nguyên tử, không có thứ tự request nào tạo ra cây 3 level.
 
 ## Tạo note — `folderId` và `parentNoteId` cùng trong `POST /notes`
 
@@ -69,5 +70,7 @@ Không diễn đạt được bằng CHECK constraint (cần so sánh chéo hàn
 | ------ | --------- | -------------------------------------------------------- |
 | POST   | `/notes`  | Tạo note — nhận thêm `folderId?`, `parentNoteId?`          |
 | PUT    | `/notes/:id` | Update note — chỉ sửa `title`/`content`, không đụng vị trí trong cây (xem [[FRD-move-note]] cho việc đổi vị trí) |
+
+Title (`POST` và `PUT`): bỏ khoảng trắng hai đầu rồi lưu; sau khi bỏ phải dài 1–200 ký tự, sai → `400` `invalid_params`.
 
 Các endpoint khác (`GET/DELETE /notes/:id`, `GET /notes`, `/notes/:id/links`, `/notes/autocomplete`) giữ nguyên như v1. Note không tồn tại (hoặc đã xóa) → `404`. Graph đã bỏ ở [[SPEC-v5]].

@@ -19,7 +19,7 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Lớp | Chọn | Ghi chú |
 | --- | --- | --- |
 | Backend | **Go + Gin** | Chuẩn `net/http` — dùng chung được MCP Go SDK, `x/oauth2`, SSE |
-| Kiến trúc backend | **Một package `internal/api`**, mỗi domain một file | Handler đọc từ trên xuống: bind → kiểm tra quy tắc → GORM → response. Tách service khi cần dùng lại ngoài HTTP |
+| Kiến trúc backend | **Một package `internal/api`**, mỗi domain một file (một handler struct); **`internal/app`** là composition root, DI bằng constructor viết tay | Handler đọc từ trên xuống: bind → kiểm tra quy tắc → GORM → response. `cmd/api/main.go` chỉ bootstrap; `internal/app` mở DB, dựng module, chạy server và tắt êm (graceful shutdown). Tách service khi cần dùng lại ngoài HTTP |
 | Tài liệu API | **swaggo** — **hoãn** | Bật lại khi `next-nodus` cần sinh client bằng **orval** |
 | Truy cập DB | **GORM** (driver Postgres/pgx) | Struct trong `internal/db/models.go` là nguồn schema duy nhất |
 | Migration | **Atlas** | `atlas migrate diff` sinh SQL từ model GORM (`atlas-provider-gorm`), người review, `atlas migrate apply`; DB tạm cho diff/rollback là Postgres trên RAM (service `atlas-dev-db`, tạo và xóa theo từng lệnh). Rollback: `atlas migrate down` tự tính SQL đảo ngược và chặn nếu làm mất dữ liệu; migration đã chia sẻ thì roll forward bằng migration mới. Giống `migration:generate` của TypeORM |
@@ -42,6 +42,7 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | sqlc + golang-migrate (chọn rồi đổi, 2026-11-05) | Viết SQL cho từng query rồi generate; chậm hơn khi P1–P2 đổi schema nhiều lần |
 | GORM + SQL migration tự viết | Viết schema 2 lần (SQL + struct), dễ lệch |
 | handler → service → repository, mỗi module ~8 file | Quá nhiều lớp cho quy mô hiện tại, khó nắm |
+| DI framework (uber-go/fx, google/wire) | Thêm dependency (fx resolve lúc chạy bằng reflection, wire cần bước sinh code); wiring hiện chỉ vài dòng trong `internal/app/modules.go`, constructor viết tay đủ rõ |
 | ent | Học nhiều, viết lại tầng dữ liệu; lợi ích (privacy, soft delete tự động) chưa đủ bù |
 | JWT cho trình duyệt | Thu hồi phức tạp (refresh rotation, `token_version`); token trong JS dễ lộ qua XSS khi Nodus hiển thị HTML/SVG người dùng viết |
 | Nuxt + Nuxt UI (giữ) | Chọn hệ sinh thái React + antd |
@@ -106,11 +107,12 @@ Chỉ có 2 theme: **light** và **dark** (theo `data-theme` trên `<html>`, m�
 - Dark mode không dùng màu nhấn do thuật toán dark của antd sinh ra (bị xỉn): giữ sắc độ như light; nền nhạt của màu nhấn là lớp trong suốt 16–24% thay vì khối màu đặc.
 - Link dùng màu thương hiệu (dark: sắc sáng hơn để dễ đọc).
 
-Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tailwind `text-ui`, `text-doc`, `text-h1`–`text-h3`):
+Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tailwind `text-ui`, `text-ui-sm`, `text-doc`, `text-h1`–`text-h3`; bảng màu và thang chữ mặc định của Tailwind bị tắt trong `app/globals.css`, nên chỉ class theo token mới có tác dụng):
 
 | | Giá trị |
 | --- | --- |
 | Giao diện (sidebar, nút, tab) | 14px; control cao 34px (nhỏ 26, lớn 40); dòng trên cây 30px; bo góc 8px |
+| Chú thích, nhãn nhỏ (`text-ui-sm`) | 12px, line-height 1.5 |
 | Nội dung tài liệu | 16px, line-height 1.75; H1/H2/H3 = 32/24/20px (nhỏ hơn mặc định 38/30/24 của antd); cột đọc ≤ 72 ký tự |
 
 ## 6. Hệ quả
