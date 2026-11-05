@@ -42,7 +42,7 @@ export const toNoteTreeItem = (note: Note, childrenByParentId: Map<string, Note[
     label: note.title,
     icon: "i-lucide-file-text",
     to: `/notes/${note.id}`,
-    // UTree tự mở sẵn item có children — không cần tự quản lý expanded state.
+    // Đánh dấu item cần mở sẵn — app-sidebar.vue đọc cờ này để mở (UTree dùng v-model:expanded nên tự nó bỏ qua).
     defaultExpanded: Boolean(children?.length),
     children: children?.map((child) => toNoteTreeItem(child, childrenByParentId)),
   };

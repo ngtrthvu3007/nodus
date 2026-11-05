@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { SIDEBAR_GROUP, type SidebarGroupId } from "~/constants/sidebar";
 import type { SearchState } from "~/composables/useAppSidebar";
+import type { NoteTreeItem } from "~/composables/useNoteTree";
 
 const emit = defineEmits<{ collapse: [] }>();
 
@@ -60,8 +61,8 @@ const openGroupIds = ref<Record<SidebarGroupId, boolean>>({
 
 const isFolderGroup = (groupId: SidebarGroupId) => groupId === SIDEBAR_GROUP.folders.id;
 
-// Mặc định mở hết đã do defaultExpanded trên từng item lo (useNoteTree.ts).
-// State này chỉ dùng để tự mở đúng id sau khi tạo note mới thành công.
+// UTree nhận v-model:expanded nên bỏ qua defaultExpanded của item (useNoteTree.ts) — state này
+// tự mở các item đó, và mở đúng id sau khi tạo note mới thành công.
 const folderTreeExpandedIds = ref<string[]>([]);
 const noteTreeExpandedIds = ref<string[]>([]);
 
@@ -74,6 +75,27 @@ const handleExpand = (id: string) => {
   }
 };
 
+const toDefaultExpandedIds = (items: NoteTreeItem[]): string[] =>
+  items.flatMap((item) => [...(item.defaultExpanded ? [item.id] : []), ...toDefaultExpandedIds(item.children ?? [])]);
+
+// Chỉ tự mở item lần đầu nó cần mở (tải trang, vừa có con) — user đã thu gọn thì không mở lại.
+const seenExpandableIds = new Set<string>();
+
+watch(
+  groups,
+  (value) => {
+    const newIds = value
+      .flatMap((group) => toDefaultExpandedIds(group.items))
+      .filter((id) => !seenExpandableIds.has(id));
+
+    newIds.forEach((id) => {
+      seenExpandableIds.add(id);
+      handleExpand(id);
+    });
+  },
+  { immediate: true },
+);
+
 const {
   openCreateNoteModal,
   openCreateNoteModalInFolder,
@@ -82,6 +104,7 @@ const {
   openEditFolderModal,
   openMoveModal,
 } = useSidebarModals({
+  allNotes,
   allFolders,
   createNote: async (options) => {
     await createNote(options);

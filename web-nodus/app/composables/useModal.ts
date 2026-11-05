@@ -33,7 +33,9 @@ const state = ref<ModalState>(defaultState());
 
 export const useModal = () => {
   const open = (options: ModalOptions) => {
-    state.value = { ...defaultState(), ...options, isOpen: true };
+    // markRaw: component definition không được bọc reactive trong state (Vue cảnh báo + tốn chi phí).
+    const component = options.component && markRaw(options.component);
+    state.value = { ...defaultState(), ...options, component, isOpen: true };
   };
 
   const close = () => {

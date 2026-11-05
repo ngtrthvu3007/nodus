@@ -1,5 +1,9 @@
-import type { ApiResponse, CreateNoteParams, Note } from "~/types/note";
+import type { ApiResponse, CreateNoteParams, MoveNoteParams, Note } from "~/types/note";
 import { createNote as createNoteApi, moveNote as moveNoteApi, deleteNote as deleteNoteApi, updateNote } from "~/apis/notes";
+
+// Note con xác định vị trí bằng note cha (folderId của nó không có nghĩa), note gốc bằng folder.
+const isSameLocation = (note: Note, { folderId, parentNoteId }: MoveNoteParams) =>
+  parentNoteId ? parentNoteId === note.parentNoteId : !note.parentNoteId && folderId === note.folderId;
 
 export const useNote = async () => {
   const router = useRouter();
@@ -30,12 +34,12 @@ export const useNote = async () => {
     }
   };
 
-  const moveNote = async (note: Note, folderId: string | null) => {
-    if (folderId === note.folderId) {
+  const moveNote = async (note: Note, target: MoveNoteParams) => {
+    if (isSameLocation(note, target)) {
       return;
     }
 
-    const response = await moveNoteApi(note.id, { folderId, parentNoteId: null });
+    const response = await moveNoteApi(note.id, target);
     if (response) {
       await refreshNotes();
     }

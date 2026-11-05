@@ -1,4 +1,4 @@
-import type { ApiResponse, CreateNoteParams, Note, NoteLinks, NoteTitleSuggestion } from "~/types/note";
+import type { ApiResponse, CreateNoteParams, MoveNoteParams, Note, NoteLinks, NoteTitleSuggestion } from "~/types/note";
 
 const NOTES_API_PATH = "/api/notes";
 
@@ -34,7 +34,7 @@ export const createNote = (params: CreateNoteParams) =>
 export const updateNote = (id: string, body: { title: string; content: string }) =>
   httpClient.put<ApiResponse<Note>>(`${NOTES_API_PATH}/${id}`, body, "Could not save note");
 
-export const moveNote = (id: string, body: { folderId: string | null; parentNoteId: string | null }) =>
+export const moveNote = (id: string, body: MoveNoteParams) =>
   httpClient.patch<ApiResponse<Note>>(`${NOTES_API_PATH}/${id}/move`, body, "Could not move note");
 
 export const deleteNote = (id: string) => httpClient.delete(`${NOTES_API_PATH}/${id}`, "Could not delete note");

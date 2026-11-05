@@ -16,6 +16,10 @@ export interface Note {
 
 export type CreateNoteParams = { title: string; folderId: string | null; parentNoteId?: string | null };
 
+// Vị trí đích khi move: parentNoteId ưu tiên; cả 2 null = root, không folder.
+// Dùng type (không phải interface) để gán được vào body Record<string, unknown> của httpClient.
+export type MoveNoteParams = { folderId: string | null; parentNoteId: string | null };
+
 export interface LinkedNote {
   id: string;
   title: string;
