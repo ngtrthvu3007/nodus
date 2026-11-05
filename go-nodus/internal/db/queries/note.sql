@@ -45,16 +45,17 @@ WHERE
 RETURNING
     *;
 
--- name: DeleteNote :one
+-- name: DeleteNote :execrows
+-- Soft delete không kích hoạt FK ON DELETE CASCADE → soft delete luôn note con trong cùng câu lệnh.
 UPDATE notes
 SET
     updated_at = now(),
     deleted_at = now()
-WHERE
-    id = $1
-    AND deleted_at IS NULL
-RETURNING
-    *;
+WHERE (
+        id = $1
+        OR parent_note_id = $1
+    )
+    AND deleted_at IS NULL;
 
 -- name: NoteHasChildren :one
 SELECT EXISTS(

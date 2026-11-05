@@ -51,8 +51,8 @@ func (h *Handler) GetNoteHandler(c fiber.Ctx) error {
 	id := getNoteID(c)
 
 	note, err := h.service.FindByID(c.RequestCtx(), id)
-	if err != nil || note == nil {
-		return fiber.NewError(fiber.StatusNotFound, "Note is not found")
+	if err != nil {
+		return err
 	}
 
 	return libs.Success(c, fiber.StatusOK, note)
@@ -62,7 +62,7 @@ func (h *Handler) DeleteNoteHandler(c fiber.Ctx) error {
 	id := getNoteID(c)
 
 	if err := h.service.Delete(c.RequestCtx(), id); err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "Note is not found")
+		return err
 	}
 
 	return libs.Success(c, fiber.StatusOK, fiber.Map{"message": "Delete success"})

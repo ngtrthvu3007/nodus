@@ -16,7 +16,8 @@ type Querier interface {
 	CreateNote(ctx context.Context, arg CreateNoteParams) (Note, error)
 	CreateNoteLink(ctx context.Context, arg CreateNoteLinkParams) (NoteLink, error)
 	DeleteFolder(ctx context.Context, id pgtype.UUID) error
-	DeleteNote(ctx context.Context, id pgtype.UUID) (Note, error)
+	// Soft delete không kích hoạt FK ON DELETE CASCADE → soft delete luôn note con trong cùng câu lệnh.
+	DeleteNote(ctx context.Context, id pgtype.UUID) (int64, error)
 	DeleteNoteLinksBySourceID(ctx context.Context, sourceNoteID pgtype.UUID) error
 	FindBacklinksByNoteID(ctx context.Context, targetNoteID pgtype.UUID) ([]FindBacklinksByNoteIDRow, error)
 	FindFolderByID(ctx context.Context, id pgtype.UUID) (Folder, error)

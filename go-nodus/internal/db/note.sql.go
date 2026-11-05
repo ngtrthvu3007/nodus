@@ -84,32 +84,25 @@ func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (Note, e
 	return i, err
 }
 
-const deleteNote = `-- name: DeleteNote :one
+const deleteNote = `-- name: DeleteNote :execrows
 UPDATE notes
 SET
     updated_at = now(),
     deleted_at = now()
-WHERE
-    id = $1
+WHERE (
+        id = $1
+        OR parent_note_id = $1
+    )
     AND deleted_at IS NULL
-RETURNING
-    id, title, content, created_at, updated_at, deleted_at, folder_id, parent_note_id
 `
 
-func (q *Queries) DeleteNote(ctx context.Context, id pgtype.UUID) (Note, error) {
-	row := q.db.QueryRow(ctx, deleteNote, id)
-	var i Note
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.Content,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.DeletedAt,
-		&i.FolderID,
-		&i.ParentNoteID,
-	)
-	return i, err
+// Soft delete không kích hoạt FK ON DELETE CASCADE → soft delete luôn note con trong cùng câu lệnh.
+func (q *Queries) DeleteNote(ctx context.Context, id pgtype.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteNote, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const findNoteByID = `-- name: FindNoteByID :one

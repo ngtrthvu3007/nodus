@@ -6,8 +6,11 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/google/uuid"
 
+	"go-nodus/internal/libs"
 	"go-nodus/internal/note"
 )
+
+var errFolderNotFound = fiber.NewError(fiber.StatusNotFound, "Folder is not found")
 
 type service struct {
 	repo     *Repository
@@ -23,10 +26,23 @@ func (s *service) Create(ctx context.Context, name string) (*Folder, error) {
 }
 
 func (s *service) Update(ctx context.Context, id uuid.UUID, name string) (*Folder, error) {
-	return s.repo.Update(ctx, id, name)
+	updated, err := s.repo.Update(ctx, id, name)
+	if libs.IsNotFound(err) {
+		return nil, errFolderNotFound
+	}
+
+	return updated, err
 }
 
 func (s *service) Delete(ctx context.Context, id uuid.UUID) error {
+	// DeleteFolder là :exec, không báo khi id không tồn tại — kiểm tra trước để trả 404.
+	if _, err := s.repo.FindByID(ctx, id); err != nil {
+		if libs.IsNotFound(err) {
+			return errFolderNotFound
+		}
+		return err
+	}
+
 	return s.repo.Delete(ctx, id)
 }
 
@@ -36,8 +52,11 @@ func (s *service) FindAll(ctx context.Context) ([]Folder, error) {
 
 func (s *service) FindDetailByID(ctx context.Context, id uuid.UUID) (*FolderDetail, error) {
 	found, err := s.repo.FindByID(ctx, id)
-	if err != nil || found == nil {
-		return nil, fiber.NewError(fiber.StatusNotFound, "Folder is not found")
+	if libs.IsNotFound(err) {
+		return nil, errFolderNotFound
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	notes, err := s.noteRepo.FindByFolderID(ctx, id)

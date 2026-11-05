@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"go-nodus/internal/db"
@@ -167,8 +168,17 @@ func (r *Repository) HasChildren(ctx context.Context, id uuid.UUID) (bool, error
 }
 
 func (r *Repository) Delete(ctx context.Context, id uuid.UUID) error {
-	_, err := r.queries.DeleteNote(ctx, toPgUUID(id))
-	return err
+	rows, err := r.queries.DeleteNote(ctx, toPgUUID(id))
+	if err != nil {
+		return err
+	}
+
+	// Không dòng nào bị xóa = note không tồn tại hoặc đã xóa — báo như mọi query :one khác.
+	if rows == 0 {
+		return pgx.ErrNoRows
+	}
+
+	return nil
 }
 
 func (r *Repository) Move(ctx context.Context, params MoveNoteParams) (*Note, error) {

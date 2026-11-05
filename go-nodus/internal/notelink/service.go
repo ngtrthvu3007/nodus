@@ -2,6 +2,7 @@ package notelink
 
 import (
 	"context"
+	"slices"
 
 	"github.com/google/uuid"
 )
@@ -39,7 +40,10 @@ func (s *Service) FindLinks(ctx context.Context, noteID uuid.UUID) (*NoteLinks, 
 		return nil, err
 	}
 
-	return &NoteLinks{Backlinks: backlinks, Outgoing: outgoing}, nil
+	// Self-link vẫn giữ ở outgoing để preview render được [[chính nó]], nhưng không tính là backlink.
+	otherBacklinks := slices.DeleteFunc(backlinks, func(link LinkedNote) bool { return link.ID == noteID })
+
+	return &NoteLinks{Backlinks: otherBacklinks, Outgoing: outgoing}, nil
 }
 
 func (s *Service) FindTitleSuggestions(ctx context.Context, query string) ([]NoteTitleSuggestion, error) {

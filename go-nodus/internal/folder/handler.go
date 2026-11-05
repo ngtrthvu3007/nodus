@@ -50,7 +50,7 @@ func (h *Handler) UpdateFolderHandler(c fiber.Ctx) error {
 
 	updatedFolder, err := h.service.Update(c.RequestCtx(), req.ID, req.Name)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return err
 	}
 
 	return libs.Success(c, fiber.StatusOK, updatedFolder)
@@ -60,7 +60,7 @@ func (h *Handler) DeleteFolderHandler(c fiber.Ctx) error {
 	id := getFolderId(c)
 
 	if err := h.service.Delete(c.RequestCtx(), id); err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "Folder is not found")
+		return err
 	}
 
 	return libs.Success(c, fiber.StatusOK, fiber.Map{"message": "Delete success"})
