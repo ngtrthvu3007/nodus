@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -227,12 +226,6 @@ func (t *toolset) createNote(args createNoteArgs) (any, error) {
 	if err := t.api.do(http.MethodPost, "/notes", args, &created); err != nil {
 		return nil, err
 	}
-
-	// POST /notes does not build wiki-links; only a save (PUT) does.
-	if strings.Contains(created.Content, "[[") {
-		return t.saveNote(created.ID, created.Title, created.Content)
-	}
-
 	return created, nil
 }
 

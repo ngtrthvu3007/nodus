@@ -1,34 +1,38 @@
+// Command api bootstraps the Nodus HTTP API: load config, build the app, run until SIGINT or SIGTERM.
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
-
-	"go-nodus/internal/api"
+	"go-nodus/internal/app"
 	"go-nodus/internal/config"
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	if err := run(ctx); err != nil {
+		slog.Error("api stopped", "err", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		return fmt.Errorf("load config: %w", err)
 	}
 
-	database, err := gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{
-		TranslateError: true,                                // unique violations → gorm.ErrDuplicatedKey
-		Logger:         logger.Default.LogMode(logger.Warn), // log slow queries and errors only
-	})
+	application, err := app.New(cfg)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		return err
 	}
 
-	router := api.NewRouter(database, cfg.AllowedOrigin)
-
-	log.Printf("server listening on :%s", cfg.Port)
-	if err := router.Run(":" + cfg.Port); err != nil {
-		log.Fatal(err)
-	}
+	return application.Run(ctx)
 }

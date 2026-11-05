@@ -34,21 +34,29 @@ type titleSuggestion struct {
 	Title string    `json:"title"`
 }
 
-func (s *Server) linkRoutes(r gin.IRouter) {
-	r.GET("/notes/:id/links", s.getNoteLinks)
-	r.GET("/notes/autocomplete", s.autocompleteTitles)
+type LinkHandler struct {
+	db *gorm.DB
+}
+
+func NewLinkHandler(database *gorm.DB) *LinkHandler {
+	return &LinkHandler{db: database}
+}
+
+func (h *LinkHandler) RegisterRoutes(r gin.IRouter) {
+	r.GET("/notes/:id/links", h.getNoteLinks)
+	r.GET("/notes/autocomplete", h.autocompleteTitles)
 }
 
 // GET /notes/:id/links — backlinks (notes linking here) and outgoing links, newest first.
 // A self-link stays in outgoing (the preview renders it) but is not counted as a backlink.
-func (s *Server) getNoteLinks(c *gin.Context) {
+func (h *LinkHandler) getNoteLinks(c *gin.Context) {
 	id, ok := pathID(c, errNoteNotFound)
 	if !ok {
 		return
 	}
 
 	links := noteLinks{Backlinks: []linkedNote{}, Outgoing: []linkedNote{}}
-	query := s.db.WithContext(c.Request.Context())
+	query := h.db.WithContext(c.Request.Context())
 
 	// Raw SQL does not filter soft-deleted rows by itself.
 	err := query.Raw(`
@@ -72,9 +80,9 @@ func (s *Server) getNoteLinks(c *gin.Context) {
 }
 
 // GET /notes/autocomplete?q= — up to 10 titles starting with q (case-insensitive), for the editor's [[.
-func (s *Server) autocompleteTitles(c *gin.Context) {
+func (h *LinkHandler) autocompleteTitles(c *gin.Context) {
 	suggestions := []titleSuggestion{}
-	err := s.db.WithContext(c.Request.Context()).Model(&db.Note{}).
+	err := h.db.WithContext(c.Request.Context()).Model(&db.Note{}).
 		Select("id", "title").
 		Where("title ILIKE ?", likePattern("", c.Query("q"), "%")).
 		Order("title ASC").Limit(10).

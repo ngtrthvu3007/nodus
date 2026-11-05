@@ -1,5 +1,6 @@
 // Package api is the whole HTTP API: server.go holds the shared plumbing, and each domain lives in one file
-// (notes.go, folders.go, links.go) with its routes, handlers and rules.
+// (notes.go, folders.go, links.go) as a handler struct with its routes, handlers and rules.
+// Handlers receive their dependencies through constructors; internal/app wires them.
 package api
 
 import (
@@ -11,25 +12,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
-type Server struct {
-	db *gorm.DB
+// Module is one domain of the API (NoteHandler, FolderHandler, LinkHandler) that registers its own routes.
+type Module interface {
+	RegisterRoutes(r gin.IRouter)
 }
 
-func NewRouter(db *gorm.DB, allowedOrigin string) *gin.Engine {
-	s := &Server{db: db}
-
+// NewRouter builds the Gin engine with the shared middleware and the routes of every module.
+func NewRouter(allowedOrigin string, modules ...Module) *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery(), cors(allowedOrigin))
 
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
-	s.noteRoutes(router)
-	s.folderRoutes(router)
-	s.linkRoutes(router)
+	for _, module := range modules {
+		module.RegisterRoutes(router)
+	}
 
 	return router
 }
