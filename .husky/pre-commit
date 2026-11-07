@@ -1,0 +1,30 @@
+. "$(dirname "$0")/lib.sh"
+
+staged() { git diff --cached --name-only --diff-filter=ACM -- "$@"; }
+
+go_files=$(staged 'go-nodus/*.go')
+if [ -n "$go_files" ]; then
+  if command -v gofmt >/dev/null 2>&1; then
+    say "🎨" format "gofmt on $(count "$go_files") staged Go file(s)"
+    unformatted=$(gofmt -l $go_files)
+    if [ -n "$unformatted" ]; then
+      echo "$unformatted"
+      die "gofmt needed, run: gofmt -w <file>"
+    fi
+  else
+    skip "gofmt not found, Go format check skipped"
+  fi
+else
+  skip "no staged Go files, gofmt not needed"
+fi
+
+web_files=$(staged 'next-nodus/*.ts' 'next-nodus/*.tsx')
+if [ -n "$web_files" ]; then
+  files=$(echo "$web_files" | sed 's#^next-nodus/##')
+  say "🔍" lint "eslint on $(count "$web_files") staged TS file(s) in next-nodus"
+  (cd next-nodus && pnpm exec eslint $files) || die "eslint reported errors"
+else
+  skip "no staged TS files, eslint not needed"
+fi
+
+done_
