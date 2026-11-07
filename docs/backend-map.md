@@ -77,7 +77,7 @@ flowchart LR
 | GET | `/notes?q=` | `notes.go` | Mới cập nhật trước; `q` lọc title/content (đã escape `%`, `_`) |
 | POST | `/notes` | `notes.go` | Có `parentNoteId` → note con, `folder_id` lưu NULL; tạo note + dựng wiki-link **trong 1 transaction** |
 | GET, PUT, DELETE | `/notes/:id` | `notes.go` | PUT cập nhật content + dựng lại wiki-link **trong 1 transaction**; DELETE soft delete cả note con |
-| PATCH | `/notes/:id/move` | `notes.go` | Bắt buộc gửi đủ `folderId`, `parentNoteId` (cho phép null) — [[FRD-move-note]]. Kiểm tra + cập nhật trong 1 transaction: khóa note (`FOR UPDATE`), note cha và folder đích (`FOR SHARE`) |
+| PATCH | `/notes/:id/move` | `notes.go` | Bắt buộc gửi đủ `folderId`, `parentNoteId` (cho phép null) — [[FRD-move]]. Kiểm tra + cập nhật trong 1 transaction: khóa note (`FOR UPDATE`), note cha và folder đích (`FOR SHARE`) |
 | GET | `/notes/:id/links` | `links.go` | Backlinks (không tính self-link) + outgoing, mới nhất trước |
 | GET | `/notes/autocomplete?q=` | `links.go` | Tối đa 10 title khớp tiền tố |
 | GET, POST | `/folders` | `folders.go` | Sắp theo tên; kèm `noteCount` (note gốc trong folder) |

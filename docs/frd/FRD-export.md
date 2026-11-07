@@ -1,46 +1,37 @@
 # FRD — Xuất tài liệu
 
-Nguồn: [[BRD]], [[SPEC-v5]]. Liên quan: [[FRD-storage]], [[FRD-sitemap]], [[FRD-editor-preview]].
+Nguồn: [[BRD]], [[SPEC-v5]]. Liên quan: [[FRD-sitemap]], [[FRD-editor-preview]].
 
 ## Mục tiêu
 
 Người dùng mang tài liệu ra khỏi Nodus bất cứ lúc nào, đúng nguyên tắc "dữ liệu là markdown thuần, không khóa người dùng" ([[BRD]] mục 7).
 
+Giai đoạn này làm theo cách đơn giản nhất, chạy ngay trong API hiện có. Khi cần tách thành service riêng (publish, export, ảnh) thì tách sau; yêu cầu bên dưới không đổi.
+
 ## Yêu cầu
 
 ### 1. Xuất markdown
 
-- Phạm vi: **1 note**, **1 folder**, hoặc **toàn bộ** tài liệu của tài khoản.
-- 1 note → 1 file `.md`. Folder/toàn bộ → 1 file `.zip`.
-- Zip **giữ cây** như sitemap ([[FRD-sitemap]]): folder → thư mục; note gốc có con → thư mục cùng tên chứa file của note gốc và các note con.
+- Phạm vi: **1 doc** (kèm doc con), **1 folder** (kèm nhánh), hoặc **toàn bộ workspace**: `GET /docs/:id/export`, `GET /folders/:id/export`, `GET /workspaces/:workspaceId/export`.
+- 1 doc không có con → 1 file `.md`. Còn lại → 1 file `.zip`. Response là file (`Content-Disposition: attachment`), lỗi vẫn là JSON.
+- Zip **giữ cây** như sitemap ([[FRD-sitemap]]): folder → thư mục; doc có con → thư mục cùng tên chứa file của chính doc đó (`00-Tên.md`) và các doc con.
+- Thứ tự sitemap được giữ bằng **tiền tố số trong tên file/thư mục** (`01-`, `02-`…, 3 chữ số khi từ 100 trở lên).
 - Nội dung giữ nguyên markdown gốc, kể cả `[[wiki-link]]`, mermaid, code block, HTML/SVG.
-- Ảnh do Nodus lưu ([[FRD-image]]) được đưa vào zip, đường dẫn ảnh trong markdown đổi sang đường dẫn tương đối tới file trong zip.
-- Thứ tự sitemap được giữ (ví dụ bằng tiền tố số trong tên file hoặc file mục lục kèm theo).
+- Tên file lấy từ title/tên folder; ký tự không hợp lệ cho tên file (`\ : * ? " < > |` và ký tự điều khiển) bị thay bằng `-`, tên dài quá 100 ký tự bị cắt; hai tên đụng nhau sau khi thay thì thêm `-2`, `-3`. Title và tên folder đã cấm `/` nên không gây thư mục ngoài ý muốn ([[FRD-doc]]).
+- Bỏ doc đã xóa; chỉ xuất dữ liệu của workspace trong request và chỉ cho member ([[FRD-account]]).
 
 ### 2. Xuất PDF
 
-- Phạm vi: **1 note** mỗi lần.
-- PDF giống bản preview: heading, bảng, code block có tô màu, mermaid và SVG đã vẽ thành hình, ảnh.
-- `[[wiki-link]]` trong PDF hiển thị thành chữ (không bấm được).
-- HTML/SVG trong PDF đi qua cùng bộ lọc của [[FRD-editor-preview]].
-
-### 3. Tài liệu lưu trên Google Drive
-
-- Tài liệu ở chế độ Drive ([[FRD-storage]]) **vốn đã là file markdown** trong Drive của người dùng — người dùng lấy trực tiếp từ Drive được, không phụ thuộc chức năng xuất.
-- Chức năng xuất vẫn áp dụng như trên cho cả 2 chế độ lưu trữ.
-
-## Cần duyệt
-
-- API xuất (thay đổi API contract).
-- Thư viện/công cụ tạo PDF (dependency mới, hoặc dùng in trang của trình duyệt).
+- Dùng chức năng **in của trình duyệt → Lưu PDF** trên bản đọc: giống bản preview (heading, bảng, code có tô màu, mermaid và SVG đã vẽ), không thêm dependency, không có service tạo PDF.
+- Chế độ in có style riêng: ẩn thanh công cụ, sidebar, tab; chỉ còn nội dung doc.
+- 1 doc mỗi lần. `[[wiki-link]]` trong PDF hiển thị thành chữ.
 
 ## Chưa chốt
 
-- Tạo PDF ở server hay dùng "In → Lưu PDF" của trình duyệt (rẻ nhất, không cần dependency).
-- Xuất PDF cho cả folder (gộp nhiều trang theo thứ tự sitemap) có làm không.
-- Quy ước đặt tên file khi title có ký tự không hợp lệ cho tên file.
+- Xuất PDF cho cả folder (gộp theo thứ tự sitemap) có làm không — cần công cụ tạo PDF phía server, để sau.
 
 ## Ngoài phạm vi
 
+- Ảnh trong zip (khi có [[FRD-image]]) và import/export Google Drive ([[FRD-storage]]): làm khi các FRD đó được làm.
 - Xuất sang định dạng khác (Word, HTML site tĩnh).
 - Nhập (import) tài liệu.

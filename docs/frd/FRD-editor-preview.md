@@ -10,13 +10,7 @@ Editor và preview đủ cho tài liệu kỹ thuật: code nhiều ngôn ngữ,
 
 **Code chỉ hiển thị, không chạy.** Mọi code block (`ts`, `css`, `html`, `json`, `yaml`, `sql`…) chỉ được tô màu và copy, không bao giờ được thực thi hay áp dụng lên trang. Ngoại lệ duy nhất: `mermaid` và `svg` được vẽ thành hình (SVG phải qua bộ lọc).
 
-## Hiện trạng (`web-nodus`)
-
-- Editor: CodeMirror 6 `markdown()` — chưa tô màu theo ngôn ngữ bên trong code block; toàn bộ editor dùng font mono, có số dòng.
-- Preview: `markdown-it` với `html: false` — HTML viết trực tiếp hiện thành chữ thô; code block một màu, chưa tô màu theo ngôn ngữ; `mermaid` đã render thành SVG.
-- Preview khó đọc: heading cùng cỡ chữ, danh sách đánh số mất số, bảng không viền, màu chữ đậm/link tương phản thấp ở theme sáng.
-
-`next-nodus` làm lại theo [[ADR-001-tech-stack]]: CodeMirror 6 cho editor, pipeline unified (remark/rehype) + Shiki cho preview và trang publish.
+Theo [[ADR-001-tech-stack]]: CodeMirror 6 cho editor, một pipeline unified (remark/rehype) + Shiki dùng chung cho preview và trang publish. Lưu tự động xem [[FRD-autosave]].
 
 ## Yêu cầu
 
@@ -45,11 +39,24 @@ Editor và preview đủ cho tài liệu kỹ thuật: code nhiều ngôn ngữ,
 - Editor theo vibe viết tài liệu: font sans cho văn bản, mono chỉ trong code block; heading hiện đúng cấp; ký hiệu markdown dịu màu; tắt số dòng mặc định.
 - Bản đọc (preview, trang publish): body 16px, heading có thứ bậc, chữ đậm không đổi màu, bảng có viền, danh sách giữ số/dấu đầu dòng, độ tương phản đạt WCAG AA. Chi tiết ở [[ADR-001-tech-stack]] mục 5.
 
+### 5. Mục lục & anchor heading
+
+- Mục lục sinh từ heading **h2–h3** (h1 là tiêu đề trang). Hiển thị ở preview và trang publish; bấm mục → cuộn tới heading. Không có h2/h3 → ẩn mục lục. Heading nằm trong code block không tính.
+- Mỗi heading có anchor (slug) ổn định sinh từ chữ heading: **bỏ dấu tiếng Việt, chữ thường, khoảng trắng thành `-`** (`Kiến trúc` → `kien-truc`). Quy tắc này cố định vì link `#heading` đã viết sẽ gãy nếu đổi; trùng chữ trong cùng trang → thêm hậu tố `-1`, `-2` theo thứ tự xuất hiện. URL có `#slug` → cuộn thẳng tới heading.
+- `id` của heading do **bộ render tự sinh sau bước lọc HTML** (có tiền tố riêng của Nodus). Người dùng vẫn không tự đặt được `id`/`class` trong nội dung, nên không dùng được anchor để ghi đè phần tử của app.
+- Link tới heading từ doc khác: xem [[FRD-wiki-link]].
+
 ## Ngoài phạm vi
 
 - Editor vẽ/sửa icon SVG.
-- Note là file JSON/YAML/HTML thuần, kiểm tra cú pháp file.
+- Doc là file JSON/YAML/HTML thuần, kiểm tra cú pháp file.
 - Chạy HTML/CSS/JS trực tiếp trên trang.
+
+## Để sau
+
+- Callout (Note/Warning/Tip): cần cú pháp riêng; markdown thuần vẫn đọc được khi chưa có.
+- Hiển thị OpenAPI (YAML/JSON) thành trang API docs.
+- Nút "Xem trước" cho block HTML(+CSS) chạy trong `iframe` sandbox tách khỏi trang — trái nguyên tắc "code chỉ hiển thị, không chạy" nên chưa làm.
 
 ## Cần duyệt
 
@@ -57,6 +64,4 @@ Editor và preview đủ cho tài liệu kỹ thuật: code nhiều ngôn ngữ,
 
 ## Chưa chốt
 
-- Hiển thị OpenAPI (YAML/JSON) thành trang API docs.
-- Nút "Xem trước" cho block HTML(+CSS), chạy trong `iframe` sandbox tách khỏi trang.
-- Callout (Note/Warning/Tip).
+- Vị trí mục lục (đầu trang hay cột bên).

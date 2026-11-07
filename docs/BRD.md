@@ -42,15 +42,16 @@ Nodus cung cấp tính năng; người dùng dùng nó vào việc gì (spec, FR
 
 ## 6. Mô hình kinh doanh
 
-Lưu trữ theo kiểu draw.io: người dùng chọn nơi lưu.
+> Cập nhật 2026-11-07: dữ liệu **luôn lưu trong DB của Nodus**; Google Drive chỉ để import/export file markdown (sao chép vào/ra, không đồng bộ hai chiều, kiểu draw.io). Trước đó BRD ghi bản miễn phí lưu trên Drive của người dùng.
 
 | | Miễn phí | Trả phí |
 | --- | --- | --- |
-| Lưu trữ | Google Drive của người dùng | Hạ tầng Nodus |
-| Chia sẻ | Share cho người cụ thể | Publish trang public qua URL |
+| Lưu trữ | Hạ tầng Nodus, có giới hạn dung lượng (mức chưa chốt) | Dung lượng lớn hơn |
+| Google Drive | Import/export markdown với Drive của người dùng | Như miễn phí |
+| Chia sẻ | Share cho người cụ thể | Publish trang public qua URL (giai đoạn đầu publish miễn phí, chưa kiểm tra gói) |
 | AI | BYOK (người dùng tự trả tiền token) | Để sau |
 
-- Chỉ thu tiền cho phần làm Nodus tốn chi phí (lưu trữ, phục vụ trang public).
+- Chỉ thu tiền cho phần làm Nodus tốn chi phí (dung lượng lưu trữ vượt mức miễn phí, phục vụ trang public). Gói miễn phí cũng tốn chi phí lưu trữ nên cần giới hạn dung lượng khi làm billing ([[FRD-billing]]).
 - Gói AI do Nodus trả tiền token: không bán gói rẻ — đọc tài liệu kỹ thuật cần model tầm trung trở lên (GPT-6.1 Terra / Sonnet 5.5), gói phải ở mức cao (ví dụ ~200 USD/tháng cho Opus 5.5). Để sau.
 
 ## 7. Nguyên tắc sản phẩm
@@ -73,5 +74,5 @@ Lưu trữ theo kiểu draw.io: người dùng chọn nơi lưu.
 ## 9. Để sau
 
 - Gói AI do Nodus cung cấp (gói cao).
-- Thêm nơi lưu trữ: GitHub, OneDrive; có mặt trên marketplace tương ứng.
+- Thêm nơi import/export: GitHub, OneDrive; có mặt trên marketplace tương ứng.
 - Remote MCP (dùng MCP từ máy khác/Claude web mà không chạy Nodus local).

@@ -2,6 +2,8 @@
 
 Nguồn: [[BRD]], [[SPEC-v5]]. Phụ thuộc [[FRD-account]] (đăng nhập bằng bất kỳ phương thức nào, rồi kết nối Google Drive riêng).
 
+> **Đã đổi hướng (2026-11-07), FRD này lỗi thời và sẽ viết lại khi làm Drive.** Dữ liệu luôn lưu trong DB của Nodus. Google Drive chỉ để **import/export file markdown** (sao chép vào/ra DB, không đồng bộ hai chiều, kiểu draw.io). Các mục "Chế độ Drive", chỉ mục nội dung Drive, đồng bộ khi sửa trên Drive bên dưới không còn áp dụng. Xem [[SPEC-v5]].
+
 ## Mục tiêu
 
 Người dùng chọn nơi lưu tài liệu theo kiểu draw.io: lưu ở Google Drive của chính mình (miễn phí) hoặc trên hạ tầng Nodus (trả phí). Dù lưu ở đâu, nội dung vẫn là markdown thuần và các tính năng lõi chạy như nhau.

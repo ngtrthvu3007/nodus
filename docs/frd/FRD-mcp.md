@@ -23,7 +23,7 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 | `create_note` | `title`, `content?`, `folderId?`, `parentNoteId?` | Tạo note; có `parentNoteId` thì kế thừa folder của cha |
 | `update_note` | `id`, `title?`, `content?` | Thay title/content; `content` thay **toàn bộ** nội dung |
 | `append_to_note` | `id`, `text` | Nối text vào cuối nội dung (cách 1 dòng trống) |
-| `move_note` | `id`, `folderId?`, `parentNoteId?` | Di chuyển note theo [[FRD-move-note]]; bỏ trống cả 2 → lên top level |
+| `move_note` | `id`, `folderId?`, `parentNoteId?` | Di chuyển note theo [[FRD-move]]; bỏ trống cả 2 → lên top level |
 | `delete_note` | `id` | Xóa note, link biến khỏi backlink của note khác |
 | `list_folders` | — | Danh sách folder kèm số note |
 | `get_folder` | `id` | Folder + các note gốc bên trong |

@@ -1,43 +1,21 @@
 # FRD — Folder
 
-Nguồn: [[SPEC-v2]].
+Nguồn: [[SPEC-v2]], [[SPEC-v5]]. Quy tắc đặt chỗ và độ sâu xem [[FRD-sitemap]]. Route và schema xem [[backend-map]].
 
 ## Mục tiêu
 
-Cho phép nhóm các note gốc (level 0) vào Folder để tổ chức, thay vì chỉ có note phẳng như v1.
+Folder là chỗ chứa để tổ chức doc. Folder **không phải doc**: không có nội dung markdown, chỉ có tên và mô tả.
 
 ## Yêu cầu
 
-- CRUD đầy đủ: tạo, đổi tên, xóa, xem chi tiết (kèm danh sách note gốc bên trong).
-- 1 note gốc thuộc **0 hoặc 1** folder (`folder_id` nullable). Note không thuộc folder nào coi là ở **root**.
-- Folder chỉ áp dụng cho note gốc — note con không có `folder_id` riêng (xem [[FRD-note-hierarchy]]).
+- Folder thuộc về một workspace ([[FRD-account]]). Có `name` (bắt buộc) và `description` (tùy chọn, văn bản thường).
+- CRUD: tạo, đổi tên, sửa mô tả, xóa, xem chi tiết. `PATCH` gửi field nào đổi field đó.
+- Folder nằm ở root hoặc trong một Folder khác (lồng nhiều cấp, tối đa theo [[FRD-sitemap]]). Folder không nằm trong doc.
+- `name` dài 1–200 ký tự, duy nhất trong cùng cha, tính chung với doc, không phân biệt hoa thường ([[FRD-sitemap]]). Không chứa `/`, `#`, `|`, `[`, `]` (ký tự của cú pháp link — [[FRD-wiki-link]]).
+- Bấm vào folder → hiện **danh sách con trực tiếp** (folder con và doc con, theo thứ tự sitemap) kèm `description`. Không có nội dung để soạn.
+- Folder không tồn tại → `404 folder_not_found`.
 
-## Xóa Folder
+## Xóa folder
 
-- Nếu folder còn note bên trong (gốc hoặc có con): client hiện **alert cảnh báo trước**, yêu cầu user chuyển note cần giữ ra khỏi folder trước khi xóa.
-- Nếu user xác nhận xóa bất chấp cảnh báo: xóa folder **cascade toàn bộ note gốc + note con bên trong** — không giữ lại note nào.
-
-## Schema
-
-```sql
-CREATE TABLE folders (
-    id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name       TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-```
-
-`notes.folder_id UUID REFERENCES folders(id) ON DELETE CASCADE` — xem chi tiết bảng `notes` ở [[FRD-note-hierarchy]].
-
-## API
-
-| Method | Path          | Việc                                                    |
-| ------ | ------------- | -------------------------------------------------------- |
-| POST   | `/folders`    | Tạo folder                                                |
-| GET    | `/folders`    | List folder                                               |
-| GET    | `/folders/:id`| Chi tiết folder + danh sách note gốc bên trong             |
-| PATCH  | `/folders/:id`| Đổi tên folder                                             |
-| DELETE | `/folders/:id`| Xóa folder — cascade note bên trong (client đã confirm)    |
-
-Folder không tồn tại → `404` ở mọi endpoint có `:id`. Request body dùng camelCase (`name`).
+- Folder còn node bên trong: client hiện **cảnh báo trước**; người dùng có thể chuyển node cần giữ ra ngoài ([[FRD-move]]).
+- Người dùng xác nhận xóa bất chấp cảnh báo → xóa folder **cùng toàn bộ nhánh bên dưới** (folder con, doc, doc con). Không giữ lại gì.

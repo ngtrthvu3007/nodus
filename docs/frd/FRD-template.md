@@ -1,6 +1,6 @@
 # FRD — Tạo tài liệu từ mẫu
 
-Nguồn: [[SPEC-v5]]. Liên quan: [[FRD-note-hierarchy]], [[FRD-sitemap]].
+Nguồn: [[SPEC-v5]]. Liên quan: [[FRD-doc]], [[FRD-sitemap]].
 
 ## Mục tiêu
 
@@ -12,7 +12,7 @@ Tạo tài liệu mới theo khung có sẵn thay vì bắt đầu từ trang tr
 
 - Khi tạo note mới: chọn **Trang trắng** hoặc **1 mẫu**.
 - Note tạo từ mẫu = note bình thường: copy nội dung mẫu vào note mới, sau đó **không còn liên kết** với mẫu (sửa mẫu không ảnh hưởng note đã tạo).
-- Vị trí note mới tuân theo quy tắc tạo note hiện có ([[FRD-note-hierarchy]]): folder, note cha.
+- Vị trí note mới tuân theo quy tắc tạo note hiện có ([[FRD-doc]], [[FRD-sitemap]]): folder, doc cha.
 - Title note mới do người dùng nhập; mẫu chỉ cung cấp nội dung.
 
 ### 2. Mẫu có sẵn

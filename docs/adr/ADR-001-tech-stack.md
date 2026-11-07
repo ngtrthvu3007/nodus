@@ -136,7 +136,7 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
 | --- | --- |
 | 0 — Nền | Model GORM khớp schema hiện tại + migration baseline của Atlas; Fiber → Gin với kiến trúc `internal/api`; `Makefile`; giữ hợp đồng API trừ thay đổi đã duyệt |
 | 1 — Khung `next-nodus` | Next.js + antd v6 + Tailwind v4 (layer, token); TanStack Query + orval; layout (Layout + Splitter), cây (Tree), editor CodeMirror, preview unified/Shiki; autosave theo tiêu chí mục 6 |
-| 2 — P1 trên stack mới | [[FRD-editor-preview]], [[FRD-sitemap]], [[FRD-account]]; [[FRD-remove-graph]] tự hoàn thành vì không port graph |
+| 2 — P1 trên stack mới | [[FRD-editor-preview]], [[FRD-sitemap]], [[FRD-account]]; graph không port sang `next-nodus` (xem [[SPEC-v5]]) |
 | 3 — Gỡ `web-nodus` | Khi `next-nodus` đủ tính năng — cần duyệt xóa |
 
 ## 8. Chưa chốt

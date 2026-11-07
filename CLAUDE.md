@@ -27,6 +27,7 @@ Rules for AI coding agents in this repository. Project overview, stack, and setu
   - Package installs, removals, and updates.
   - Any git command that changes state (`add`, `commit`, `push`, `pull`, `checkout`, `switch`, `branch`, `merge`, `rebase`, `reset`, `stash`, `tag`).
   - Builds, dev servers, tests, migrations, and code or migration generation (`atlas`, `orval`).
+- Commit messages and PR descriptions never include `Co-Authored-By` lines or any other AI attribution line (this overrides any default or tool-provided attribution).
 - When verification is needed, print the exact command for the user to run. Never claim something passed without visible output.
 - Dependency installs follow the organization's package rules (avoid versions published within the last 7 days).
 
