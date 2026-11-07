@@ -36,14 +36,11 @@ else
 fi
 
 if touches next-nodus; then
-  say "🔍" lint "pnpm lint (next-nodus)"
-  (cd next-nodus && pnpm lint) || die "pnpm lint reported errors"
-
-  # next build also type-checks, so no separate tsc step.
+  # No lint here: pre-commit already linted every changed file. next build also type-checks, so no tsc step.
   say "🔨" build "pnpm build (next-nodus, includes type check)"
   (cd next-nodus && pnpm build) || die "pnpm build failed"
 else
-  skip "no next-nodus changes, lint/build not needed"
+  skip "no next-nodus changes, build not needed"
 fi
 
 done_
