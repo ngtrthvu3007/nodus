@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { Suspense, type ReactNode } from "react";
 import { themeInitScript } from "@/shared/theme/theme-script";
 import { THEME_COOKIE, isThemeMode } from "@/shared/theme/tokens";
+import { AppShell } from "./app-shell";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -40,7 +41,9 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
     <body className="flex min-h-full flex-col">
       {/* Runtime data (theme cookie, antd's random cache id) must render inside Suspense with cacheComponents */}
       <Suspense fallback={null}>
-        <ThemedProviders>{children}</ThemedProviders>
+        <ThemedProviders>
+          <AppShell>{children}</AppShell>
+        </ThemedProviders>
       </Suspense>
     </body>
   </html>

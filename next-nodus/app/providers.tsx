@@ -13,7 +13,12 @@ interface ProvidersProps {
 }
 
 const AntdProviders = ({ children }: { children: ReactNode }) => {
-  const [queryClient] = useState(() => new QueryClient());
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
+      }),
+  );
   const { mode } = useThemeMode();
   const themeConfig = useMemo(() => buildThemeConfig(theme, mode), [mode]);
 
