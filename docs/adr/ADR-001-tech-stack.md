@@ -20,7 +20,7 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | --- | --- | --- |
 | Backend | **Go + Gin** | Chuẩn `net/http` — dùng chung được MCP Go SDK, `x/oauth2`, SSE |
 | Kiến trúc backend | **Mỗi domain một package** (`internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`) gồm **handler + service**; `internal/httpx` chỉ giữ phần HTTP dùng chung (router, response, lỗi, middleware); **`cmd/api`** là composition root, DI bằng constructor viết tay. `tree` có thêm `Repository` (truy vấn tách khỏi quy tắc cây); module khác gọi GORM trong service | Handler chỉ bind → gọi service → response. Service kiểm tra quy tắc → GORM, nhận `ctx`, tự mở transaction. `cmd/api/main.go` đọc config và chạy; `app.go` mở DB, dựng module, chạy server và tắt êm (graceful shutdown); `modules.go` ghép dependency |
-| Tài liệu API | **swaggo** — **hoãn** | Bật lại khi `next-nodus` cần sinh client bằng **orval** |
+| Tài liệu API | **swaggo** | Annotation trên handler; `make swagger` sinh `internal/apidocs/`; UI ở `/swagger/index.html`; `orval` đọc file này |
 | Truy cập DB | **GORM** (driver Postgres/pgx) | Struct trong `internal/db/models.go` là nguồn schema duy nhất |
 | Migration | **Atlas** | `atlas migrate diff` sinh SQL từ model GORM (`atlas-provider-gorm`), người review, `atlas migrate apply`; DB tạm cho diff/rollback là Postgres trên RAM (service `atlas-dev-db`, tạo và xóa theo từng lệnh). Rollback: `atlas migrate down` tự tính SQL đảo ngược và chặn nếu làm mất dữ liệu; migration đã chia sẻ thì roll forward bằng migration mới. Giống `migration:generate` của TypeORM |
 | Công cụ | `go tool air`, `go tool atlas-provider-gorm` (ghim trong `go.mod`); Atlas chạy bằng Docker (`arigaio/atlas:1.3.6` bản chính thức — miễn phí, không cần đăng nhập, có `migrate down` mà bản community thiếu; service `atlas-migrate-runner`, chỉ chạy khi gọi `make migrate-*`) | Không ai phải cài Atlas; thành viên mới chỉ cần Go, Docker, `make` |
@@ -127,7 +127,7 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
   - Layout dùng được trên mobile (tối thiểu chế độ đọc).
 - Rủi ro của GORM — kém an toàn kiểu hơn sqlc, có bẫy (`Updates` bỏ qua giá trị rỗng, `Raw` không lọc soft delete, quên lọc `user_id`): ghi trong `CLAUDE.md`, lọc `user_id` qua một scope chung, test phân quyền; cân nhắc Row Level Security của Postgres sau.
 - Rủi ro của Atlas — một số tính năng nâng cao gắn với Atlas Cloud; phần dùng (`migrate diff/apply/status/hash`) là bản miễn phí.
-- Khi bật lại swaggo: annotation có thể lệch code → CI chạy `swag init` rồi `git diff --exit-code`.
+- Annotation swaggo có thể lệch code → CI (`go-nodus.yml`) chạy `make swagger` rồi `git diff --exit-code -- internal/apidocs`. CI chạy theo từng thư mục (`go-nodus`, `next-nodus`) và có thêm bước kiểm tra migration khi đổi schema (`go-nodus-migrate.yml`).
 - `SPEC-v5` và các FRD đang nhắc file của `web-nodus`/Fiber → cập nhật dần khi làm từng FRD.
 
 ## 7. Kế hoạch chuyển đổi

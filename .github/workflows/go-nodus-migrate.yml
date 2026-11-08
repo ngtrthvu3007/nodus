@@ -1,0 +1,61 @@
+name: go-nodus-migrate
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - "go-nodus/migrations/**"
+      - "go-nodus/internal/db/**"
+      - "go-nodus/atlas.hcl"
+      - "go-nodus/Makefile"
+      - "go-nodus/docker-compose.yml"
+      - ".github/workflows/go-nodus-migrate.yml"
+  push:
+    branches: [dev, main]
+    paths:
+      - "go-nodus/migrations/**"
+      - "go-nodus/internal/db/**"
+      - "go-nodus/atlas.hcl"
+      - "go-nodus/Makefile"
+      - "go-nodus/docker-compose.yml"
+      - ".github/workflows/go-nodus-migrate.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-nodus-migrate-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: go-nodus
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go-nodus/go.mod
+          cache-dependency-path: go-nodus/go.sum
+
+      - name: Start Postgres
+        run: |
+          cp .env.example .env
+          docker compose up -d --wait postgres
+
+      - name: Apply all migrations to an empty database
+        run: make migrate-up
+
+      - name: Models and migrations are in sync
+        run: |
+          make migrate-diff NAME=ci
+          if [ -n "$(git status --porcelain -- migrations)" ]; then
+            git status --porcelain -- migrations
+            git diff -- migrations
+            echo "::error::models.go (or extra_schema.sql) and migrations/ differ: run make migrate-diff NAME=<name> and commit the result"
+            exit 1
+          fi

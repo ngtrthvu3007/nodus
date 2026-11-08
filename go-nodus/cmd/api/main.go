@@ -11,6 +11,9 @@ import (
 	"go-nodus/internal/config"
 )
 
+// @title		Nodus API
+// @version	0.1
+// @BasePath	/
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

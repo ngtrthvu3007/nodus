@@ -64,7 +64,7 @@ Rules:
 - Pass the request context to GORM (`db.WithContext(ctx)`); wrap multi-step writes in `db.Transaction`.
 - Dependency injection is manual: dependencies are constructor parameters, wired only in `cmd/api/modules.go`. No DI framework, no package-level mutable state. A new domain is a package whose `Handler` implements `httpx.Module`, added to `modules.go`.
 - Shared rule helpers take the `*gorm.DB` (or the transaction) as a parameter, so they work inside `db.Transaction`.
-- API docs (swaggo) are postponed until `next-nodus` generates its API client.
+- API docs use swaggo: every route handler has a short annotation (`@Summary`, `@Tags`, `@Param`, `@Success`, `@Failure`, `@Router`). The user runs `make swagger` after changing a route, request or response type; `internal/apidocs/` is generated, never edit it. UI at `/swagger/index.html`.
 - Keep code `gofmt`-clean. Do not panic in the request path.
 
 ### GORM
@@ -155,3 +155,4 @@ Rules:
 - Give the smallest relevant verification command for anything the user runs (tests, builds, generation).
 - Do not open Playwright or any browser automation to check changes unless the user asks for it in the current prompt.
 - Do not suppress lint, type, build, or test failures without explaining why.
+- CI (`.github/workflows/`) runs per folder: `go-nodus.yml` (format, vet, build, test, Swagger up to date), `go-nodus-migrate.yml` (only on schema changes), `next-nodus.yml` (lint, build). A change that would fail there is not done: fix the cause, do not edit the workflow to pass.

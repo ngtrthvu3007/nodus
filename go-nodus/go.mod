@@ -8,6 +8,9 @@ require (
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/swaggo/files v1.0.1
+	github.com/swaggo/gin-swagger v1.6.1
+	github.com/swaggo/swag v1.16.6
 	gorm.io/driver/postgres v1.6.3
 	gorm.io/gorm v1.31.2
 )
@@ -28,6 +31,9 @@ require (
 	filippo.io/edwards25519 v1.1.1 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.6.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.33.0 // indirect
+	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/PuerkitoBio/purell v1.1.1 // indirect
+	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/air-verse/air v1.67.4 // indirect
 	github.com/alecthomas/kong v1.9.0 // indirect
 	github.com/andybalholm/brotli v1.2.2 // indirect
@@ -40,6 +46,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
+	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.37.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -50,6 +57,11 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-openapi/jsonpointer v0.22.5 // indirect
+	github.com/go-openapi/jsonreference v0.19.6 // indirect
+	github.com/go-openapi/spec v0.20.4 // indirect
+	github.com/go-openapi/swag v0.19.15 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
@@ -72,9 +84,11 @@ require (
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
+	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect
@@ -86,12 +100,14 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.60.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/tdewolff/parse/v2 v2.8.12 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
+	github.com/urfave/cli/v2 v2.3.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.8.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -119,12 +135,15 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260630182238-925bb5da69e7 // indirect
 	google.golang.org/grpc v1.82.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gorm.io/driver/mysql v1.5.7 // indirect
 	gorm.io/driver/sqlite v1.6.0 // indirect
 	gorm.io/driver/sqlserver v1.5.4 // indirect
+	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 tool (
 	ariga.io/atlas-provider-gorm
 	github.com/air-verse/air
+	github.com/swaggo/swag/cmd/swag
 )

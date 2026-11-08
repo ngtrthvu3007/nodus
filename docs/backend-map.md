@@ -26,8 +26,11 @@ go-nodus/
 │   │   ├── folder/        # /folders
 │   │   ├── doc/           # /docs (ghi doc gọi link.RebuildLinks)
 │   │   └── link/          # wiki-link: backlink, autocomplete, RebuildLinks
+│   ├── apidocs/           # Swagger do `make swagger` sinh từ annotation (không sửa tay)
 │   ├── config/config.go   # biến môi trường
-│   └── db/models.go       # model GORM — nguồn schema duy nhất
+│   └── db/
+│       ├── models.go          # model GORM — nguồn schema chính
+│       └── extra_schema.sql   # index/CHECK viết tay mà tag GORM không diễn đạt được (`make schema` nối vào schema cho Atlas)
 ├── migrations/            # SQL do Atlas sinh + atlas.sum
 ├── atlas.hcl              # cấu hình Atlas (môi trường `local`)
 └── docker-compose.yml     # postgres; atlas-migrate-runner, atlas-dev-db (chỉ chạy khi migrate)
@@ -56,7 +59,8 @@ flowchart LR
 1. Tạo package `internal/modules/<domain>/`: `handler.go` (`Handler`, `NewHandler(service)`, `RegisterRoutes`, handler mỏng), `service.go` (`Service`, `NewService(db)`, quy tắc + GORM), `types.go`.
 2. Thêm `<domain>.NewHandler(<domain>.NewService(database))` vào `cmd/api/modules.go`.
 3. Có bảng mới → sửa `internal/db/models.go` và sinh migration (mục **Dữ liệu**).
-4. Cập nhật bảng **Route** dưới đây và FRD liên quan.
+4. Viết annotation swaggo trên từng handler rồi chạy `make swagger` (xem **API docs** dưới đây).
+5. Cập nhật bảng **Route** dưới đây và FRD liên quan.
 
 ## Luồng một request
 
@@ -85,6 +89,7 @@ flowchart LR
 | Method | Path | Module | Ghi chú |
 | --- | --- | --- | --- |
 | GET | `/health` | `httpx` | |
+| GET | `/swagger/index.html` | `cmd/api` | Giao diện Swagger; URL cũng được log khi API khởi động |
 | GET | `/workspaces/:workspaceId/tree` | `tree` | Danh sách phẳng folder + doc, xếp theo `position` |
 | POST | `/workspaces/:workspaceId/folders` | `folder` | Quy tắc: tên 1–200 ký tự không chứa `/ # \| [ ]`, độ sâu tối đa 4, không trùng tên cùng cha — [[FRD-folder]] |
 | GET, PATCH, DELETE | `/folders/:id` | `folder` | GET kèm `children`; PATCH đổi `name`/`description`; DELETE xóa cứng, FK cascade |
@@ -95,9 +100,15 @@ flowchart LR
 | GET | `/docs/:id/links` | `link` | Backlinks (không tính self-link) + outgoing, mới nhất trước — [[FRD-wiki-link]] |
 | GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 title khớp tiền tố |
 
+## API docs
+
+- Mỗi handler có annotation swaggo (`@Summary`, `@Tags`, `@Param`, `@Success`, `@Failure`, `@Router`). `make swagger` sinh `internal/apidocs/` (file sinh ra, được commit, không sửa tay).
+- Mở `/swagger/index.html` trên cổng của API (mặc định http://localhost:8080/swagger/index.html) để xem và gọi thử route. `uuid.UUID` được khai báo là `string` trong `.swaggo`.
+- Sửa route, request hoặc response type thì chạy lại `make swagger`.
+
 ## Dữ liệu
 
 - Bảng: `workspaces`, `folders`, `docs`, `doc_links`. Doc nằm ở gốc, trong folder (`folder_id`) hoặc trong doc khác (`parent_doc_id`), không bao giờ cả hai (CHECK `docs_one_parent`).
-- Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration.
+- Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration, khai báo thêm ở `internal/db/extra_schema.sql` để Atlas không đề nghị xóa.
 - GORM tự lọc soft delete (`deleted_at`) với mọi query qua model, kể cả `Preload`; không còn câu SQL thô nào phải tự thêm `deleted_at IS NULL`.
 - Đổi schema: sửa `internal/db/models.go` → `make migrate-diff NAME=…` → review SQL → `make migrate-up`. Rollback local: `make migrate-down-plan` rồi `make migrate-down`; migration đã chia sẻ thì roll forward.

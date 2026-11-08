@@ -45,12 +45,12 @@ func NewRouter(allowedOrigin string, modules ...Module) *gin.Engine {
 	return router
 }
 
-type successBody struct {
+type SuccessBody struct {
 	Success bool `json:"success"`
 	Data    any  `json:"data"`
 }
 
-type errorBody struct {
+type ErrorBody struct {
 	Success bool       `json:"success"`
 	Error   errorField `json:"error"`
 }
@@ -61,11 +61,11 @@ type errorField struct {
 }
 
 func WriteOK(ginContext *gin.Context, status int, data any) {
-	ginContext.JSON(status, successBody{Success: true, Data: data})
+	ginContext.JSON(status, SuccessBody{Success: true, Data: data})
 }
 
 func writeErrorResponse(ginContext *gin.Context, status int, code string, message string) {
-	body := errorBody{Error: errorField{Code: code, Message: message}}
+	body := ErrorBody{Error: errorField{Code: code, Message: message}}
 	ginContext.AbortWithStatusJSON(status, body)
 }
 

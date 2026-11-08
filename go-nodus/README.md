@@ -18,6 +18,7 @@ go-nodus/
 │   │   ├── folder/
 │   │   ├── doc/
 │   │   └── link/          # wiki-link, backlink, autocomplete
+│   ├── apidocs/           # Swagger sinh bởi `make swagger` (không sửa tay)
 │   ├── config/config.go   # env
 │   └── db/models.go       # GORM models — nguồn schema
 ├── migrations/            # SQL do Atlas sinh + atlas.sum
@@ -44,6 +45,18 @@ make migrate-up
 make dev                 # http://localhost:8080
 curl localhost:8080/health
 ```
+
+## API docs (Swagger)
+
+Bật cùng API: chạy `make dev` rồi mở **http://localhost:8080/swagger/index.html** (cổng theo `PORT`; URL cũng được log khi API khởi động). Bấm **Try it out** để gọi thử từng route. Workspace mặc định có id `00000000-0000-0000-0000-000000000001`.
+
+Sau khi sửa route, request hoặc response type, sinh lại docs rồi commit `internal/apidocs/` (file sinh ra, không sửa tay):
+
+```bash
+make swagger
+```
+
+Mỗi handler cần annotation `@Summary`, `@Tags`, `@Param`, `@Success`, `@Failure`, `@Router` (xem `internal/modules/folder/handler.go`).
 
 ## Env
 

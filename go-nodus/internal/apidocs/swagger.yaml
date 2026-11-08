@@ -1,0 +1,606 @@
+basePath: /
+definitions:
+  doc.createDocRequest:
+    properties:
+      content:
+        type: string
+      parentId:
+        type: string
+      title:
+        type: string
+    required:
+    - title
+    type: object
+  doc.docDetail:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+      next:
+        $ref: '#/definitions/doc.docRef'
+      parentId:
+        type: string
+      prev:
+        $ref: '#/definitions/doc.docRef'
+      title:
+        type: string
+    type: object
+  doc.docRef:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  doc.docResponse:
+    properties:
+      content:
+        type: string
+      id:
+        type: string
+      parentId:
+        type: string
+      position:
+        type: integer
+      title:
+        type: string
+    type: object
+  doc.updateDocRequest:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+    required:
+    - title
+    type: object
+  folder.childNode:
+    properties:
+      id:
+        type: string
+      kind:
+        type: string
+      name:
+        type: string
+    type: object
+  folder.createFolderRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      parentId:
+        type: string
+    required:
+    - name
+    type: object
+  folder.folderDetail:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/folder.childNode'
+        type: array
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parentId:
+        type: string
+    type: object
+  folder.folderResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parentId:
+        type: string
+      position:
+        type: integer
+    type: object
+  folder.updateFolderRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  httpx.ErrorBody:
+    properties:
+      error:
+        $ref: '#/definitions/httpx.errorField'
+      success:
+        type: boolean
+    type: object
+  httpx.SuccessBody:
+    properties:
+      data: {}
+      success:
+        type: boolean
+    type: object
+  httpx.errorField:
+    properties:
+      code:
+        type: string
+      message:
+        type: string
+    type: object
+  link.docLinks:
+    properties:
+      backlinks:
+        items:
+          $ref: '#/definitions/link.linkedDoc'
+        type: array
+      outgoing:
+        items:
+          $ref: '#/definitions/link.linkedDoc'
+        type: array
+    type: object
+  link.linkedDoc:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  link.titleSuggestion:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  tree.MoveRequest:
+    properties:
+      afterId:
+        type: string
+      parentId:
+        type: string
+    type: object
+  tree.Moved:
+    properties:
+      id:
+        type: string
+      parentId:
+        type: string
+      position:
+        type: integer
+    type: object
+  tree.Node:
+    properties:
+      id:
+        type: string
+      kind:
+        type: string
+      name:
+        type: string
+      parentId:
+        type: string
+      position:
+        type: integer
+    type: object
+info:
+  contact: {}
+  title: Nodus API
+  version: "0.1"
+paths:
+  /docs/{id}:
+    delete:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Delete a doc and every doc under it
+      tags:
+      - doc
+    get:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.docDetail'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Get a doc with the previous and next doc in reading order
+      tags:
+      - doc
+    put:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Title and content
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/doc.updateDocRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.docDetail'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Replace the title and content of a doc
+      tags:
+      - doc
+  /docs/{id}/links:
+    get:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/link.docLinks'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Get the backlinks and outgoing links of a doc
+      tags:
+      - link
+  /docs/{id}/move:
+    patch:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target parent and position
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/tree.MoveRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/tree.Moved'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Move a doc into a folder, under another doc, or to the root
+      tags:
+      - doc
+  /folders/{id}:
+    delete:
+      parameters:
+      - description: Folder ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Delete a folder and everything inside it
+      tags:
+      - folder
+    get:
+      parameters:
+      - description: Folder ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/folder.folderDetail'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Get a folder with its direct children
+      tags:
+      - folder
+    patch:
+      parameters:
+      - description: Folder ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Fields to change
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/folder.updateFolderRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/folder.folderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Update the name and/or description of a folder
+      tags:
+      - folder
+  /folders/{id}/move:
+    patch:
+      parameters:
+      - description: Folder ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Target parent and position
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/tree.MoveRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/tree.Moved'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Move a folder under another folder or to the root
+      tags:
+      - folder
+  /workspaces/{workspaceId}/docs:
+    post:
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Doc
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/doc.createDocRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.docResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Create a doc
+      tags:
+      - doc
+  /workspaces/{workspaceId}/docs/autocomplete:
+    get:
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Title prefix or part
+        in: query
+        name: q
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/link.titleSuggestion'
+                  type: array
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Suggest doc titles in a workspace for [[wiki-links]]
+      tags:
+      - link
+  /workspaces/{workspaceId}/folders:
+    post:
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Folder
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/folder.createFolderRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/folder.folderResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Create a folder
+      tags:
+      - folder
+  /workspaces/{workspaceId}/tree:
+    get:
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/tree.Node'
+                  type: array
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Get the workspace tree
+      tags:
+      - tree
+swagger: "2.0"
