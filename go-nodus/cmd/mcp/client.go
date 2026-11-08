@@ -60,6 +60,10 @@ func (c *client) do(method, path string, body, out any) error {
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode == http.StatusNoContent {
+		return nil
+	}
+
 	var envelope struct {
 		Success bool            `json:"success"`
 		Data    json.RawMessage `json:"data"`

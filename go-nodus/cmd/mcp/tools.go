@@ -288,7 +288,7 @@ func (t *toolset) moveNote(args moveNoteArgs) (any, error) {
 }
 
 func (t *toolset) deleteNote(args idArgs) (any, error) {
-	return t.raw(http.MethodDelete, notePath(args.ID), nil)
+	return t.delete(notePath(args.ID), args.ID)
 }
 
 func (t *toolset) listFolders(struct{}) (any, error) {
@@ -320,7 +320,16 @@ func (t *toolset) renameFolder(args renameFolderArgs) (any, error) {
 }
 
 func (t *toolset) deleteFolder(args idArgs) (any, error) {
-	return t.raw(http.MethodDelete, folderPath(args.ID), nil)
+	return t.delete(folderPath(args.ID), args.ID)
+}
+
+// delete answers 204 with no body, so the tool result is built here.
+func (t *toolset) delete(path string, id uuid.UUID) (any, error) {
+	if err := t.api.do(http.MethodDelete, path, nil, nil); err != nil {
+		return nil, err
+	}
+
+	return map[string]any{"deleted": true, "id": id}, nil
 }
 
 func (t *toolset) tree() ([]treeNode, error) {

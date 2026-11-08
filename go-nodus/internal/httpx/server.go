@@ -60,10 +60,6 @@ type errorField struct {
 	Message string `json:"message"`
 }
 
-type MessageData struct {
-	Message string `json:"message"`
-}
-
 func WriteOK(ginContext *gin.Context, status int, data any) {
 	ginContext.JSON(status, successBody{Success: true, Data: data})
 }

@@ -19,10 +19,11 @@ endef
 dev:
 	go tool air
 
-# Export internal/db/models.go as SQL for Atlas (desired schema).
+# Export internal/db/models.go as SQL for Atlas (desired schema), plus what GORM tags cannot express.
 schema:
 	@mkdir -p .atlas
 	go tool atlas-provider-gorm load --path ./internal/db --dialect postgres > .atlas/schema.sql
+	cat internal/db/extra_schema.sql >> .atlas/schema.sql
 
 # Generate the next migration from the GORM models: make migrate-diff NAME=add_note_position
 migrate-diff: schema

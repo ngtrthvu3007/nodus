@@ -84,12 +84,11 @@ func (handler *Handler) moveDoc(ginContext *gin.Context) {
 }
 
 func (handler *Handler) deleteDoc(ginContext *gin.Context) {
-
 	err := handler.service.Delete(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
 	}
 
-	httpx.WriteOK(ginContext, http.StatusOK, httpx.MessageData{Message: "Delete success"})
+	ginContext.Status(http.StatusNoContent)
 }
