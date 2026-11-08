@@ -63,6 +63,7 @@ Mỗi handler cần annotation `@Summary`, `@Tags`, `@Param`, `@Success`, `@Fail
 | Biến | Ghi chú |
 | --- | --- |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Container Postgres |
+| `POSTGRES_PORT` | Cổng host của container, mặc định `5432`. Đổi khi máy đã có Postgres chiếm 5432 (nhớ đổi cổng trong `DATABASE_URL`) |
 | `DATABASE_URL` | API kết nối DB |
 | `PORT` | Mặc định `8080` |
 | `ALLOWED_ORIGIN` | Frontend gọi API (`http://localhost:4000`) |
