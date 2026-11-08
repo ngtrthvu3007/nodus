@@ -32,6 +32,11 @@ Doc là đơn vị tài liệu: có title và nội dung markdown. Đây là FRD
 - Lưu kèm `version`, sai version → `409 version_conflict` — xem [[FRD-autosave]].
 - Mỗi lần ghi nội dung, link `[[...]]` được dựng lại cùng transaction ([[FRD-wiki-link]]).
 
+### Hiển thị
+
+- Trang doc hiện title, nội dung, đường dẫn (breadcrumb) và hai liên kết **Previous/Next** theo thứ tự đọc của [[FRD-sitemap]]; doc đầu hoặc cuối cây thì thiếu liên kết tương ứng.
+- Doc chưa có nội dung hiện câu báo trống, không hiện vùng soạn thảo.
+
 ### Xóa doc
 
 - Xóa doc → xóa luôn mọi doc con bên dưới, không cần xác nhận từng con.

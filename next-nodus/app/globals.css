@@ -88,3 +88,44 @@
     font-family: var(--nodus-font-sans);
   }
 }
+
+/* Tree guides at every depth: antd skips the guide under a last child, and its leaf elbows are redundant. */
+.ant-tree-show-line .ant-tree-indent-unit-end::before {
+  display: block;
+}
+
+.ant-tree-show-line .ant-tree-indent-unit::before {
+  border-inline-end-color: var(--nodus-color-border-muted);
+}
+
+.ant-tree-show-line .ant-tree-switcher-leaf-line::before,
+.ant-tree-show-line .ant-tree-switcher-leaf-line::after {
+  display: none;
+}
+
+/* Drag grip sits in the gutter left of the row so it does not push the guides and chevrons. */
+.ant-tree .ant-tree-treenode {
+  position: relative;
+}
+
+.ant-tree .ant-tree-draggable-icon {
+  position: absolute;
+  inset-inline-start: -16px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  width: auto;
+  opacity: 0;
+  color: var(--nodus-color-fg-subtle);
+}
+
+.ant-tree .ant-tree-treenode:hover .ant-tree-draggable-icon {
+  opacity: 1;
+}
+
+/* antd's disabled row is only a faint text color; a gray block makes "cannot drop here" obvious. */
+.ant-tree .ant-tree-treenode-disabled .ant-tree-node-content-wrapper {
+  background-color: color-mix(in srgb, var(--nodus-color-fg) 12%, transparent);
+  color: var(--nodus-color-fg-muted);
+}

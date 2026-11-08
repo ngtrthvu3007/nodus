@@ -20,17 +20,19 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | --- | --- | --- |
 | Backend | **Go + Gin** | Chuẩn `net/http` — dùng chung được MCP Go SDK, `x/oauth2`, SSE |
 | Kiến trúc backend | **Mỗi domain một package** (`internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`) gồm **handler + service**; `internal/httpx` chỉ giữ phần HTTP dùng chung (router, response, lỗi, middleware); **`cmd/api`** là composition root, DI bằng constructor viết tay. `tree` có thêm `Repository` (truy vấn tách khỏi quy tắc cây); module khác gọi GORM trong service | Handler chỉ bind → gọi service → response. Service kiểm tra quy tắc → GORM, nhận `ctx`, tự mở transaction. `cmd/api/main.go` đọc config và chạy; `app.go` mở DB, dựng module, chạy server và tắt êm (graceful shutdown); `modules.go` ghép dependency |
-| Tài liệu API | **swaggo** | Annotation trên handler; `make swagger` sinh `internal/apidocs/`; UI ở `/swagger/index.html`; `orval` đọc file này |
+| Tài liệu API | **swaggo** | Annotation trên handler; `make swagger` sinh `internal/apidocs/`; UI ở `/swagger/index.html` |
 | Truy cập DB | **GORM** (driver Postgres/pgx) | Struct trong `internal/db/models.go` là nguồn schema duy nhất |
 | Migration | **Atlas** | `atlas migrate diff` sinh SQL từ model GORM (`atlas-provider-gorm`), người review, `atlas migrate apply`; DB tạm cho diff/rollback là Postgres trên RAM (service `atlas-dev-db`, tạo và xóa theo từng lệnh). Rollback: `atlas migrate down` tự tính SQL đảo ngược và chặn nếu làm mất dữ liệu; migration đã chia sẻ thì roll forward bằng migration mới. Giống `migration:generate` của TypeORM |
 | Công cụ | `go tool air`, `go tool atlas-provider-gorm` (ghim trong `go.mod`); Atlas chạy bằng Docker (`arigaio/atlas:1.3.6` bản chính thức — miễn phí, không cần đăng nhập, có `migrate down` mà bản community thiếu; service `atlas-migrate-runner`, chỉ chạy khi gọi `make migrate-*`) | Không ai phải cài Atlas; thành viên mới chỉ cần Go, Docker, `make` |
 | Auth | **Session (cookie) + PAT**, OAuth Google/GitHub/GitLab | JWT chỉ dùng **nội bộ giữa service** khi tách service — chi tiết [[FRD-account]] |
 | Frontend | **Next.js (React)** — folder mới `next-nodus/` | Chạy chủ yếu client component; mọi dữ liệu đi qua API Go, không dùng Server Actions/route handler cho nghiệp vụ |
 | UI | **Ant Design v6 + Tailwind CSS v4** | antd cho component, Tailwind cho layout/tinh chỉnh — mục 4 |
-| Gọi dữ liệu | **TanStack Query** + client sinh bằng orval từ Swagger | Cache/invalidate thống nhất |
+| Gọi dữ liệu | **TanStack Query** + hàm gọi API trong `api/` dựa trên `httpClient`, hook viết tay, type viết tay đối chiếu Swagger | Cache/invalidate thống nhất |
+| State UI phía client | **zustand** (`shared/stores`) | Chia sẻ state giữa component (độ rộng sidebar, tab); dữ liệu server vẫn ở TanStack Query |
+| Kiểm tra dữ liệu nhập | **zod** | Schema khai báo một lần cho ô nhập (ví dụ tên node); server vẫn là bên quyết định, client chỉ báo lỗi sớm |
 | Editor | **CodeMirror 6** (giữ) | Lưu markdown thuần |
 | Render markdown | **unified** (remark-gfm, rehype-sanitize) + **Shiki** + `@tailwindcss/typography` | Một pipeline cho preview và publish; lọc HTML/SVG sẵn |
-| Repo | Một repo: `go-nodus/`, `next-nodus/` (`web-nodus/` giữ tới khi thay xong) | Hợp đồng FE↔BE qua file Swagger |
+| Repo | Một repo: `go-nodus/`, `next-nodus/` (`web-nodus/` giữ tới khi thay xong) | Hợp đồng FE↔BE đối chiếu qua Swagger |
 
 ## 3. Phương án đã loại
 
@@ -77,7 +79,7 @@ flowchart LR
 ```
 
 - antd nhận seed qua `ConfigProvider`, tự tính màu phái sinh (hover, active, nền…) bằng algorithm light/dark.
-- `pnpm tokens` (`shared/theme/build-tokens.mts`) gọi `theme.getDesignToken()` với cùng cấu hình để sinh `shared/theme/tokens.css` (biến `--nodus-*` cho light và dark) → Tailwind `@theme` dùng lại, nên `bg-primary`, `text-fg-muted`, `rounded-md` khớp đúng antd, kể cả màu phái sinh. File sinh ra được commit; sửa `tokens.ts` thì chạy lại `pnpm tokens`.
+- `pnpm tokens` (`shared/theme/buildTokens.mts`) gọi `theme.getDesignToken()` với cùng cấu hình để sinh `shared/theme/tokens.css` (biến `--nodus-*` cho light và dark) → Tailwind `@theme` dùng lại, nên `bg-primary`, `text-fg-muted`, `rounded-md` khớp đúng antd, kể cả màu phái sinh. File sinh ra được commit; sửa `tokens.ts` thì chạy lại `pnpm tokens`.
 - Dark mode: một nguồn trạng thái điều khiển cả algorithm antd lẫn `@custom-variant dark` của Tailwind (`data-theme` trên `<html>`) — component portal (Modal, Dropdown) cũng nhận đúng theme.
 - Seed cho antd viết bằng **hex** (antd không tính màu phái sinh từ `oklch`).
 
@@ -135,14 +137,13 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
 | Giai đoạn | Việc |
 | --- | --- |
 | 0 — Nền | Model GORM khớp schema hiện tại + migration baseline của Atlas; Fiber → Gin với kiến trúc module (handler + service); `Makefile`; giữ hợp đồng API trừ thay đổi đã duyệt |
-| 1 — Khung `next-nodus` | Next.js + antd v6 + Tailwind v4 (layer, token); TanStack Query + orval; layout (Layout + Splitter), cây (Tree), editor CodeMirror, preview unified/Shiki; autosave theo tiêu chí mục 6 |
+| 1 — Khung `next-nodus` | Next.js + antd v6 + Tailwind v4 (layer, token); TanStack Query; layout (Layout + Splitter), cây (Tree), editor CodeMirror, preview unified/Shiki; autosave theo tiêu chí mục 6 |
 | 2 — P1 trên stack mới | [[FRD-editor-preview]], [[FRD-sitemap]], [[FRD-account]]; graph không port sang `next-nodus` (xem [[SPEC-v5]]) |
 | 3 — Gỡ `web-nodus` | Khi `next-nodus` đủ tính năng — cần duyệt xóa |
 
 ## 8. Chưa chốt
 
 - Hợp đồng `PATCH /notes/:id/move`: giữ `folderId`/`parentNoteId` (bắt buộc có key, cho phép null) hay đổi sang `targetType`/`targetId` (Swagger 2.0 không mô tả được nullable).
-- orval đọc Swagger 2.0 (swag v1) hay chuyển swag v2 (OpenAPI 3.1, đang RC).
 - Mô hình lưu trữ khi dùng Google Drive (nguồn gốc dữ liệu là Drive hay Postgres) — [[FRD-storage]].
 - Trang publish render ở SPA hay ở Go (HTML tĩnh, SEO) — [[FRD-publish]].
 - Command palette (antd không có sẵn) và bộ icon dùng chung.
