@@ -155,3 +155,4 @@ Rules:
 - Give the smallest relevant verification command for anything the user runs (tests, builds, generation).
 - Do not open Playwright or any browser automation to check changes unless the user asks for it in the current prompt.
 - Do not suppress lint, type, build, or test failures without explaining why.
+- CI (`.github/workflows/`) runs per folder: `go-nodus.yml` (format, vet, build, test, Swagger up to date), `go-nodus-migrate.yml` (only on schema changes), `next-nodus.yml` (lint, build). A change that would fail there is not done: fix the cause, do not edit the workflow to pass.

@@ -127,7 +127,7 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
   - Layout dùng được trên mobile (tối thiểu chế độ đọc).
 - Rủi ro của GORM — kém an toàn kiểu hơn sqlc, có bẫy (`Updates` bỏ qua giá trị rỗng, `Raw` không lọc soft delete, quên lọc `user_id`): ghi trong `CLAUDE.md`, lọc `user_id` qua một scope chung, test phân quyền; cân nhắc Row Level Security của Postgres sau.
 - Rủi ro của Atlas — một số tính năng nâng cao gắn với Atlas Cloud; phần dùng (`migrate diff/apply/status/hash`) là bản miễn phí.
-- Annotation swaggo có thể lệch code → CI chạy `swag init` rồi `git diff --exit-code`.
+- Annotation swaggo có thể lệch code → CI (`go-nodus.yml`) chạy `make swagger` rồi `git diff --exit-code -- internal/apidocs`. CI chạy theo từng thư mục (`go-nodus`, `next-nodus`) và có thêm bước kiểm tra migration khi đổi schema (`go-nodus-migrate.yml`).
 - `SPEC-v5` và các FRD đang nhắc file của `web-nodus`/Fiber → cập nhật dần khi làm từng FRD.
 
 ## 7. Kế hoạch chuyển đổi

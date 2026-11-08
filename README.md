@@ -67,6 +67,16 @@ bun install
 bun run dev              # http://localhost:3000
 ```
 
+## CI
+
+GitHub Actions in [.github/workflows/](.github/workflows/) run on pull requests and pushes to `dev` and `main`, only for the folder that changed:
+
+- `go-nodus.yml`: `gofmt`, `go vet`, `go build`, `go test`, and a check that `internal/apidocs/` matches the handler annotations (run `make swagger` if it fails).
+- `go-nodus-migrate.yml`: only when schema files change (`migrations/`, `internal/db/`, `atlas.hcl`, `Makefile`): applies every migration to an empty Postgres, then checks that `make migrate-diff` finds nothing to generate.
+- `next-nodus.yml`: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build` (includes the type check).
+
+The local git hooks in `.husky/` run the same checks before commit and push.
+
 ## Docs
 
 - [docs/BRD.md](docs/BRD.md): product direction
