@@ -1,6 +1,6 @@
 import type { ThemeConfig, theme as antdTheme } from "antd";
 
-// Single source of design tokens for antd (ConfigProvider) and Tailwind (via build-tokens.mts).
+// Single source of design tokens for antd (ConfigProvider) and Tailwind (via buildTokens.mts).
 // Palette: Slate & Blue (ADR-001 §5). antd derives hover/active shades from colorPrimary, so colors are hex.
 // Neutrals are set explicitly: deriving them from colorBgBase gives muddy results.
 
@@ -8,14 +8,19 @@ type AntdTheme = typeof antdTheme;
 type SeedToken = NonNullable<ThemeConfig["token"]>;
 type Algorithm = AntdTheme["darkAlgorithm"];
 
-export const THEME_MODES = ["light", "dark"] as const;
-export type ThemeMode = (typeof THEME_MODES)[number];
+export const THEME_MODE = { light: "light", dark: "dark" } as const;
+export type ThemeMode = (typeof THEME_MODE)[keyof typeof THEME_MODE];
+export const THEME_MODES = Object.values(THEME_MODE);
+export const DEFAULT_THEME_MODE: ThemeMode = THEME_MODE.light;
 
 // Stored in a cookie (not localStorage) so the server renders antd in the right mode — no flash on load.
 export const THEME_COOKIE = "nodus-theme";
 export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 export const isThemeMode = (value: unknown): value is ThemeMode => THEME_MODES.some((mode) => mode === value);
+
+export const getOppositeThemeMode = (mode: ThemeMode): ThemeMode =>
+  mode === THEME_MODE.dark ? THEME_MODE.light : THEME_MODE.dark;
 
 // Type and spacing: calm, roomy UI chrome at 14px; documents read at 16px with a heading scale smaller than
 // antd's defaults (38/30/24), which are too loud for long-form docs.
@@ -96,7 +101,7 @@ export const buildThemeConfig = (antd: AntdTheme, mode: ThemeMode): ThemeConfig 
   const colors = modeToken[mode];
   const token = { ...baseToken, ...colors, colorLink: colors.colorPrimary };
   const algorithm =
-    mode === "dark" ? [antd.darkAlgorithm, vividDarkPrimary(antd.defaultAlgorithm)] : antd.defaultAlgorithm;
+    mode === THEME_MODE.dark ? [antd.darkAlgorithm, vividDarkPrimary(antd.defaultAlgorithm)] : antd.defaultAlgorithm;
 
   // One CSS-variable scope per mode: the server-rendered light block (streamed into <body>) would otherwise
   // override the client-injected dark block, since both would use the same selector.

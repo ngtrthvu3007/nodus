@@ -2,18 +2,18 @@
 
 import { createContext, use, useCallback, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { flushSync } from "react-dom";
-import { THEME_COOKIE, THEME_COOKIE_MAX_AGE, isThemeMode, type ThemeMode } from "./tokens";
+import { DEFAULT_THEME_MODE, THEME_COOKIE, THEME_COOKIE_MAX_AGE, isThemeMode, type ThemeMode } from "./tokens";
 
-interface ThemeContextValue {
+type ThemeContextValue = {
   mode: ThemeMode;
   // `origin` (e.g. the toggle button) is where the new theme starts spreading from.
   setMode: (mode: ThemeMode, origin?: Element) => void;
-}
+};
 
-interface ThemeProviderProps {
+type ThemeProviderProps = {
   initialMode: ThemeMode;
   children: ReactNode;
-}
+};
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -36,7 +36,7 @@ const subscribe = (onChange: () => void) => {
 
 const getThemeMode = (): ThemeMode => {
   const { theme } = document.documentElement.dataset;
-  return isThemeMode(theme) ? theme : "light";
+  return isThemeMode(theme) ? theme : DEFAULT_THEME_MODE;
 };
 
 const storeThemeMode = (mode: ThemeMode) => {
