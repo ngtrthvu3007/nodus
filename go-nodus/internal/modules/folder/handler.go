@@ -90,5 +90,5 @@ func (handler *Handler) deleteFolder(ginContext *gin.Context) {
 		return
 	}
 
-	httpx.WriteOK(ginContext, http.StatusOK, httpx.MessageData{Message: "Delete success"})
+	ginContext.Status(http.StatusNoContent)
 }

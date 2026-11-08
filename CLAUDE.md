@@ -80,7 +80,7 @@ Rules:
 ### Database Migrations (Atlas)
 
 - `internal/db/models.go` is the schema source. Atlas compares it with `migrations/` and generates the SQL.
-- After a schema change is approved: edit the models; the user runs `make migrate-diff NAME=<name>`; review the generated SQL. Add what GORM tags cannot express (partial indexes, CHECK constraints) by hand, then the user runs `make migrate-hash`.
+- After a schema change is approved: edit the models; the user runs `make migrate-diff NAME=<name>`; review the generated SQL. Add what GORM tags cannot express (partial indexes, CHECK constraints) by hand and also add it to `internal/db/extra_schema.sql` (otherwise Atlas proposes dropping it), then the user runs `make migrate-hash`.
 - Never edit or delete a migration that has already been applied; add a new one.
 - Required order (user runs): `make migrate-diff NAME=<name>` → review SQL → `go vet ./...` → `make migrate-up`.
 - Undoing a change: once a migration is shared (pushed or deployed), roll forward — revert the models and generate a new migration. `make migrate-down-plan` / `make migrate-down` are for local databases only, and the plan is reviewed before running down.
