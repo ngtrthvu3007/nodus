@@ -13,9 +13,9 @@ import (
 
 const defaultProtocolVersion = "2025-06-18"
 
-const serverInstructions = `Nodus is a personal knowledge base. Notes live in folders (or at the root) and can have one level of child notes.
+const serverInstructions = `Nodus is a personal knowledge base. Notes and folders form one tree, at most 4 levels deep: a note sits at the root, in a folder or under another note; a folder sits at the root or in a folder.
 Reference other notes with [[Exact Title]] inside content: Nodus turns these into links and backlinks, but only for notes that already exist, so create the target note first.
-Tools take note/folder IDs; use search_notes to find an ID by title or content.`
+Tools take note/folder IDs; use search_notes to find an ID by title.`
 
 type rpcRequest struct {
 	ID     json.RawMessage `json:"id"`
@@ -36,7 +36,7 @@ type rpcResponse struct {
 }
 
 func main() {
-	tools := buildTools(newClient(apiBase()))
+	tools := buildTools(newClient(apiBase()), workspaceID())
 	dec := json.NewDecoder(os.Stdin)
 	enc := json.NewEncoder(os.Stdout)
 

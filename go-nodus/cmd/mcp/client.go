@@ -27,6 +27,16 @@ func apiBase() string {
 	return "http://localhost:8080"
 }
 
+// defaultWorkspaceID is the workspace seeded by the folder_doc_tree migration, used until accounts exist.
+const defaultWorkspaceID = "00000000-0000-0000-0000-000000000001"
+
+func workspaceID() string {
+	if id := os.Getenv("NODUS_WORKSPACE_ID"); id != "" {
+		return id
+	}
+	return defaultWorkspaceID
+}
+
 // do calls the Nodus API and unwraps its { success, data, error } envelope into out (skipped when out is nil).
 func (c *client) do(method, path string, body, out any) error {
 	var reader io.Reader
