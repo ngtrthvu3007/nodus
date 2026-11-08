@@ -19,6 +19,30 @@ services:
       timeout: 3s
       retries: 15
 
+  # --- Optional: the API itself, so the frontend can be developed without Go installed ---
+  # Not started by a plain `docker compose up`. Run it with:  docker compose --profile app up -d --build
+  # It listens on host port PORT (default 8080), so stop `make dev` first. Run `make migrate-up` once for the schema.
+  # DATABASE_URL is built here (not taken from .env): inside Docker the database is `postgres:5432`, not localhost.
+  api:
+    build: .
+    profiles: ["app"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      ALLOWED_ORIGIN: ${ALLOWED_ORIGIN}
+      PORT: "8080"
+      GIN_MODE: release
+    ports:
+      - "${PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   # --- Migration tooling: never started by `docker compose up`, only by `make migrate-*`, and stopped right after ---
 
   # Atlas CLI in a container, so nobody installs it. Official build (free, no login): it includes

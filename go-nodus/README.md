@@ -23,6 +23,7 @@ go-nodus/
 │   └── db/models.go       # GORM models — nguồn schema
 ├── migrations/            # SQL do Atlas sinh + atlas.sum
 ├── atlas.hcl
+├── Dockerfile             # image của API (docker compose --profile app)
 └── docker-compose.yml
 ```
 
@@ -45,6 +46,21 @@ make migrate-up
 make dev                 # http://localhost:8080
 curl localhost:8080/health
 ```
+
+### Chạy API bằng Docker (không cần cài Go)
+
+Dành cho người chỉ làm frontend, hoặc muốn chạy cả hệ thống bằng Docker:
+
+```bash
+docker compose up -d                     # Postgres
+make migrate-up                          # tạo schema (một lần)
+docker compose --profile app up -d --build   # build image và chạy API: http://localhost:8080
+```
+
+- `docker compose up -d` thường vẫn chỉ bật Postgres; API nằm trong profile `app`.
+- API trong container nối `postgres:5432` (compose tự dựng `DATABASE_URL`), không dùng `DATABASE_URL` trong `.env`. Cổng host lấy từ `PORT` (mặc định 8080), nên tắt `make dev` trước khi chạy.
+- Sửa code Go thì build lại: `docker compose --profile app up -d --build api`. Muốn hot reload khi sửa backend thì dùng `make dev`.
+- Xem log: `docker compose logs -f api`. Dừng: `docker compose --profile app stop api`.
 
 ## API docs (Swagger)
 
