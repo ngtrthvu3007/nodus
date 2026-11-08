@@ -3,14 +3,14 @@
 import { DocumentTextIcon, FolderIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
 import { Alert, Button, Card, Input, Select, Tabs, Tag, Tree, Typography } from "antd";
 import type { ReactNode } from "react";
-import { useThemeMode } from "@/shared/theme/theme-provider";
+import { THEME_MODE, getOppositeThemeMode, useThemeMode } from "@/shared/theme";
 
 // Temporary token demo until the workspace UI exists.
 
-interface Swatch {
+type Swatch = {
   name: string;
   className: string;
-}
+};
 
 const COLOR_SWATCHES: Swatch[] = [
   { name: "primary", className: "bg-primary" },
@@ -60,10 +60,10 @@ const SITEMAP = [
   },
 ];
 
-interface SectionProps {
+type SectionProps = {
   title: string;
   children: ReactNode;
-}
+};
 
 const Section = ({ title, children }: SectionProps) => (
   <section className="flex flex-col gap-3">
@@ -85,7 +85,7 @@ const SwatchGrid = ({ swatches }: { swatches: Swatch[] }) => (
 
 const TokensPage = () => {
   const { mode, setMode } = useThemeMode();
-  const isDark = mode === "dark";
+  const isDark = mode === THEME_MODE.dark;
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-10 px-6 py-12">
@@ -98,7 +98,7 @@ const TokensPage = () => {
         </div>
         <Button
           icon={isDark ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
-          onClick={(event) => setMode(isDark ? "light" : "dark", event.currentTarget)}>
+          onClick={(event) => setMode(getOppositeThemeMode(mode), event.currentTarget)}>
           {isDark ? "Light" : "Dark"}
         </Button>
       </header>

@@ -26,7 +26,7 @@ Rules for AI coding agents in this repository. Project overview, stack, and setu
 - The user runs:
   - Package installs, removals, and updates.
   - Any git command that changes state (`add`, `commit`, `push`, `pull`, `checkout`, `switch`, `branch`, `merge`, `rebase`, `reset`, `stash`, `tag`).
-  - Builds, dev servers, tests, migrations, and code or migration generation (`atlas`, `orval`).
+  - Builds, dev servers, tests, migrations, and code or migration generation (`atlas`, `swag`).
 - Commit messages and PR descriptions never include `Co-Authored-By` lines or any other AI attribution line (this overrides any default or tool-provided attribution).
 - When verification is needed, print the exact command for the user to run. Never claim something passed without visible output.
 - Dependency installs follow the organization's package rules (avoid versions published within the last 7 days).
@@ -93,7 +93,7 @@ Rules:
 - Assume `strict` and `strictNullChecks`. Prefer `unknown` over `any`.
 - Rely on inference for simple returns; add explicit return types for exported functions, module boundaries, and complex objects or unions.
 - Avoid type assertions without a clear reason. No `@ts-ignore` without justification.
-- `interface` for object shapes and exported contracts; `type` for unions, mapped and utility types, and composition. Use `type` when a value must be assignable to an index-signature type such as `Record<string, unknown>`.
+- `interface` for domain entities (`Doc`, `Folder`, `TreeNode`…) and API `...Request`/`...Response` shapes; `type` for everything else: component props, hook inputs, unions, mapped and utility types, composition. Use `type` when a value must be assignable to an index-signature type such as `Record<string, unknown>`.
 - String literal unions or `as const` objects instead of enums.
 - Handle null/undefined with optional chaining, type guards, or explicit checks.
 
@@ -109,7 +109,12 @@ Rules:
 
 - `next-nodus` runs Next.js 16, whose APIs may differ from what you know: read the relevant guide in `next-nodus/node_modules/next/dist/docs/` before writing Next.js code (see `next-nodus/AGENTS.md`). Use `pnpm`.
 - Workspace screens are client components. All data goes through the Go API; do not put business logic in Server Actions or route handlers.
-- Server state uses TanStack Query through the orval-generated client. Never edit generated client code. Invalidate every affected query after a mutation (tree, breadcrumbs, lists).
+- Server state uses TanStack Query. Calls to the Go API go through `httpClient` (`shared/libs/httpClient.ts`: `get/post/put/patch/delete`, unwraps the `{ success, data }` envelope, throws `ApiError`). Endpoints are declared once in `shared/constants/routes.ts` (`API_ROUTES`, and `PAGE_ROUTES` for the app pages), never typed inline; one function per route lives in `api/` (`api/folder.ts`, `api/doc.ts`, `api/tree.ts`; `api/node.ts` picks the folder or doc endpoint from a `kind`); hooks next to the feature call those, never `httpClient` directly. Entity, request and response types are written by hand in `shared/types/` (`common.ts`, `doc.ts`, `folder.ts`, `tree.ts`) and must match the Swagger UI of the API. Invalidate every affected query after a mutation (tree, breadcrumbs, lists).
+- Client UI state that more than one component needs (sidebar width, open tabs…) lives in a zustand store in `shared/stores`; keep `useState` for state of a single component. Server data stays in TanStack Query, never copied into a store.
+- Import paths have at most two levels after `@/`: a folder exports what others may use through an `index.ts` barrel (`api`, `shared/<folder>`, `features/<name>`, and a feature's `components/` and `hooks/`), so write `@/api`, `@/shared/types`, `@/features/tree`. The one exception is `shared/libs`, which has no barrel: import `@/shared/libs/httpClient`. Keep feature internals (helpers, state hooks) out of the feature barrel, and inside one folder import siblings by file, not through its own barrel.
+- Pages in `app/` only route and export `metadata`; the screen lives in `features/<name>/`. A component file is 150 to 200 lines and never over 250: keep small sub-components in the file of the component that owns them, and split only when it grows past that. Move state and handlers into a custom hook. A feature has its main view at its root, extra component files in `components/`, and hooks in `hooks/`. File names are camelCase (`docView.tsx`, `useTreeModel.ts`); a hook file starts with `use` and is `.tsx` only when it returns JSX such as a dialog.
+- Show API errors and short notices with `useToast` (`shared/hooks`), never `message`/`notification` directly: it renders antd `notification` at the bottom right. Validate user input with zod schemas. Use `NODE_KIND` and `NODE_LABEL` (`shared/constants`) instead of the strings `"folder"` and `"doc"`.
+- Comments only for a non-obvious why, one short line. All UI text (labels, messages, `aria-label`) is English until i18n exists; do not hard-code Vietnamese (the page `lang` is `en`).
 - Use antd components first; use Tailwind for layout, spacing, and overrides. Style inner parts through antd v6 semantic `classNames`/`styles`.
 - Colors, radius, fonts, and spacing come only from the shared tokens (`shared/theme/tokens.ts`, exposed to Tailwind as `bg-primary`, `text-fg-muted`, `bg-surface`…); no hardcoded hex values or pixel font sizes — use `text-ui` (`text-ui-sm` for captions and labels) for app chrome and `text-doc`, `text-h1`–`text-h3` for document content. Tailwind's default palette and type scale are disabled in `app/globals.css`, so `text-white` or `text-sm` silently produce no CSS. After editing `shared/theme/tokens.ts`, run `pnpm tokens` to regenerate `shared/theme/tokens.css`.
 - Use `!important` only where an antd inline style blocks an override, with a comment explaining why.

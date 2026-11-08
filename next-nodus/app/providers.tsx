@@ -4,13 +4,12 @@ import { AntdRegistry } from "@ant-design/nextjs-registry";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App, ConfigProvider, theme } from "antd";
 import { useMemo, useState, type ReactNode } from "react";
-import { ThemeProvider, useThemeMode } from "@/shared/theme/theme-provider";
-import { buildThemeConfig, type ThemeMode } from "@/shared/theme/tokens";
+import { ThemeProvider, buildThemeConfig, useThemeMode, type ThemeMode } from "@/shared/theme";
 
-interface ProvidersProps {
+type ProvidersProps = {
   initialMode: ThemeMode;
   children: ReactNode;
-}
+};
 
 const AntdProviders = ({ children }: { children: ReactNode }) => {
   const [queryClient] = useState(
@@ -25,8 +24,8 @@ const AntdProviders = ({ children }: { children: ReactNode }) => {
   return (
     // `layer` wraps antd styles in @layer antd (ordered in globals.css) so Tailwind utilities override them.
     <AntdRegistry layer>
-      <ConfigProvider theme={themeConfig}>
-        <App>
+      <ConfigProvider theme={themeConfig} modal={{ centered: true }}>
+        <App notification={{ placement: "bottomRight" }}>
           <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </App>
       </ConfigProvider>
