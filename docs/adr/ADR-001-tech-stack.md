@@ -19,7 +19,7 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Lớp | Chọn | Ghi chú |
 | --- | --- | --- |
 | Backend | **Go + Gin** | Chuẩn `net/http` — dùng chung được MCP Go SDK, `x/oauth2`, SSE |
-| Kiến trúc backend | **Một package `internal/api`**, mỗi domain một file (một handler struct); **`internal/app`** là composition root, DI bằng constructor viết tay | Handler đọc từ trên xuống: bind → kiểm tra quy tắc → GORM → response. `cmd/api/main.go` chỉ bootstrap; `internal/app` mở DB, dựng module, chạy server và tắt êm (graceful shutdown). Tách service khi cần dùng lại ngoài HTTP |
+| Kiến trúc backend | **Mỗi domain một package** (`internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`) gồm **handler + service**; `internal/httpx` chỉ giữ phần HTTP dùng chung (router, response, lỗi, middleware); **`cmd/api`** là composition root, DI bằng constructor viết tay. `tree` có thêm `Repository` (truy vấn tách khỏi quy tắc cây); module khác gọi GORM trong service | Handler chỉ bind → gọi service → response. Service kiểm tra quy tắc → GORM, nhận `ctx`, tự mở transaction. `cmd/api/main.go` đọc config và chạy; `app.go` mở DB, dựng module, chạy server và tắt êm (graceful shutdown); `modules.go` ghép dependency |
 | Tài liệu API | **swaggo** — **hoãn** | Bật lại khi `next-nodus` cần sinh client bằng **orval** |
 | Truy cập DB | **GORM** (driver Postgres/pgx) | Struct trong `internal/db/models.go` là nguồn schema duy nhất |
 | Migration | **Atlas** | `atlas migrate diff` sinh SQL từ model GORM (`atlas-provider-gorm`), người review, `atlas migrate apply`; DB tạm cho diff/rollback là Postgres trên RAM (service `atlas-dev-db`, tạo và xóa theo từng lệnh). Rollback: `atlas migrate down` tự tính SQL đảo ngược và chặn nếu làm mất dữ liệu; migration đã chia sẻ thì roll forward bằng migration mới. Giống `migration:generate` của TypeORM |
@@ -41,8 +41,8 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Huma | Chọn swaggo — quen thuộc, ít ràng buộc cách viết handler |
 | sqlc + golang-migrate (chọn rồi đổi, 2026-11-05) | Viết SQL cho từng query rồi generate; chậm hơn khi P1–P2 đổi schema nhiều lần |
 | GORM + SQL migration tự viết | Viết schema 2 lần (SQL + struct), dễ lệch |
-| handler → service → repository, mỗi module ~8 file | Quá nhiều lớp cho quy mô hiện tại, khó nắm |
-| DI framework (uber-go/fx, google/wire) | Thêm dependency (fx resolve lúc chạy bằng reflection, wire cần bước sinh code); wiring hiện chỉ vài dòng trong `internal/app/modules.go`, constructor viết tay đủ rõ |
+| handler → service → repository cho mọi module | Quá nhiều lớp cho quy mô hiện tại, khó nắm; chỉ `tree` dùng repository vì quy tắc của nó cần tách khỏi truy vấn |
+| DI framework (uber-go/fx, google/wire) | Thêm dependency (fx resolve lúc chạy bằng reflection, wire cần bước sinh code); wiring hiện chỉ vài dòng trong `cmd/api/modules.go`, constructor viết tay đủ rõ |
 | ent | Học nhiều, viết lại tầng dữ liệu; lợi ích (privacy, soft delete tự động) chưa đủ bù |
 | JWT cho trình duyệt | Thu hồi phức tạp (refresh rotation, `token_version`); token trong JS dễ lộ qua XSS khi Nodus hiển thị HTML/SVG người dùng viết |
 | Nuxt + Nuxt UI (giữ) | Chọn hệ sinh thái React + antd |
@@ -134,7 +134,7 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
 
 | Giai đoạn | Việc |
 | --- | --- |
-| 0 — Nền | Model GORM khớp schema hiện tại + migration baseline của Atlas; Fiber → Gin với kiến trúc `internal/api`; `Makefile`; giữ hợp đồng API trừ thay đổi đã duyệt |
+| 0 — Nền | Model GORM khớp schema hiện tại + migration baseline của Atlas; Fiber → Gin với kiến trúc module (handler + service); `Makefile`; giữ hợp đồng API trừ thay đổi đã duyệt |
 | 1 — Khung `next-nodus` | Next.js + antd v6 + Tailwind v4 (layer, token); TanStack Query + orval; layout (Layout + Splitter), cây (Tree), editor CodeMirror, preview unified/Shiki; autosave theo tiêu chí mục 6 |
 | 2 — P1 trên stack mới | [[FRD-editor-preview]], [[FRD-sitemap]], [[FRD-account]]; graph không port sang `next-nodus` (xem [[SPEC-v5]]) |
 | 3 — Gỡ `web-nodus` | Khi `next-nodus` đủ tính năng — cần duyệt xóa |

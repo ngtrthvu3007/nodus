@@ -9,17 +9,15 @@ Cần: Go, Docker, `make`.
 ```text
 go-nodus/
 ├── cmd/
-│   ├── api/main.go        # bootstrap
+│   ├── api/               # main.go, app.go (mở DB, router, graceful shutdown), modules.go (wiring)
 │   └── mcp/               # MCP server (stdio), gọi HTTP API
 ├── internal/
-│   ├── app/
-│   │   ├── app.go         # mở DB, dựng router + http.Server, graceful shutdown
-│   │   └── modules.go     # wiring dependency
-│   ├── api/
-│   │   ├── server.go      # NewRouter, Module, CORS, response, error, bind
-│   │   ├── notes.go       # NoteHandler — /notes
-│   │   ├── folders.go     # FolderHandler — /folders
-│   │   └── links.go       # LinkHandler — wiki-link, backlink, autocomplete
+│   ├── httpx/             # HTTP dùng chung: NewRouter, Module, CORS, response, lỗi, middleware
+│   ├── modules/           # module nghiệp vụ, mỗi module một package (handler, service, types)
+│   │   ├── tree/          # cây workspace + quy tắc dùng chung (rules)
+│   │   ├── folder/
+│   │   ├── doc/
+│   │   └── link/          # wiki-link, backlink, autocomplete
 │   ├── config/config.go   # env
 │   └── db/models.go       # GORM models — nguồn schema
 ├── migrations/            # SQL do Atlas sinh + atlas.sum
@@ -31,10 +29,9 @@ Routes: [docs/backend-map.md](../docs/backend-map.md) · Rules: [docs/frd/](../d
 
 ## Architecture
 
-- `main.go` chỉ bootstrap: `app.New(cfg).Run(ctx)`.
-- `internal/app` wiring mọi dependency bằng constructor (không DI framework).
-- `internal/api`: mỗi domain một handler struct, implement `api.Module`.
-- Handler: bind → check rules → GORM → response. Ghi nhiều bước dùng `db.Transaction`.
+- `cmd/api` wiring mọi dependency bằng constructor (không DI framework): `modules.go` ghép service vào handler.
+- Mỗi domain là một package: `Handler` (implement `httpx.Module`) → `Service` → GORM. Chỉ `tree` có `Repository`; các module khác gọi GORM trong service.
+- Handler: bind → gọi service → response. Service: check rules → GORM; ghi nhiều bước dùng `db.Transaction`.
 - Response: `{ "success": true, "data": … }` / `{ "success": false, "error": { "code", "message" } }`.
 
 ## Getting started
