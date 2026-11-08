@@ -64,7 +64,7 @@ Rules:
 - Pass the request context to GORM (`db.WithContext(ctx)`); wrap multi-step writes in `db.Transaction`.
 - Dependency injection is manual: dependencies are constructor parameters, wired only in `cmd/api/modules.go`. No DI framework, no package-level mutable state. A new domain is a package whose `Handler` implements `httpx.Module`, added to `modules.go`.
 - Shared rule helpers take the `*gorm.DB` (or the transaction) as a parameter, so they work inside `db.Transaction`.
-- API docs (swaggo) are postponed until `next-nodus` generates its API client.
+- API docs use swaggo: every route handler has a short annotation (`@Summary`, `@Tags`, `@Param`, `@Success`, `@Failure`, `@Router`). The user runs `make swagger` after changing a route, request or response type; `internal/apidocs/` is generated, never edit it. UI at `/swagger/index.html`.
 - Keep code `gofmt`-clean. Do not panic in the request path.
 
 ### GORM

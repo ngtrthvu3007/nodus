@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"time"
 
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
+	_ "go-nodus/internal/apidocs"
 	"go-nodus/internal/config"
 	"go-nodus/internal/httpx"
 )
@@ -33,6 +36,7 @@ func newApp(cfg config.Config) (*app, error) {
 	}
 
 	router := httpx.NewRouter(cfg.AllowedOrigin, modules(database)...)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return &app{
 		db: database,
@@ -48,6 +52,7 @@ func (application *app) run(ctx context.Context) error {
 	serveErr := make(chan error, 1)
 	go func() {
 		slog.Info("server listening", "addr", application.server.Addr)
+		slog.Info("api docs", "url", "http://localhost"+application.server.Addr+"/swagger/index.html")
 		serveErr <- application.server.ListenAndServe()
 	}()
 

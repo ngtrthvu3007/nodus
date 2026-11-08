@@ -13,7 +13,7 @@ define with_dev_db
 	$(1); status=$$?; $(COMPOSE) rm -sf atlas-dev-db >/dev/null 2>&1; exit $$status
 endef
 
-.PHONY: dev schema migrate-diff migrate-up migrate-status migrate-hash migrate-down-plan migrate-down migrate-clean
+.PHONY: dev schema swagger migrate-diff migrate-up migrate-status migrate-hash migrate-down-plan migrate-down migrate-clean
 
 # API with hot reload (Air, config in .air.toml).
 dev:
@@ -24,6 +24,10 @@ schema:
 	@mkdir -p .atlas
 	go tool atlas-provider-gorm load --path ./internal/db --dialect postgres > .atlas/schema.sql
 	cat internal/db/extra_schema.sql >> .atlas/schema.sql
+
+# Generate the Swagger docs (internal/apidocs) from the handler annotations. Served at /swagger/index.html.
+swagger:
+	go tool swag init -g cmd/api/main.go -o internal/apidocs --packageName apidocs --parseInternal
 
 # Generate the next migration from the GORM models: make migrate-diff NAME=add_note_position
 migrate-diff: schema
