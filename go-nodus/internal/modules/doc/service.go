@@ -91,8 +91,11 @@ func (service *Service) Move(ctx context.Context, id uuid.UUID, request tree.Mov
 			Name:        doc.Title,
 		}
 		moved, err = service.treeService.MoveItem(tx, item, request)
+		if err != nil {
+			return err
+		}
 
-		return err
+		return link.RelinkWorkspace(tx, doc.WorkspaceID)
 	})
 
 	return moved, err
@@ -115,7 +118,12 @@ func (service *Service) Delete(ctx context.Context, id uuid.UUID) error {
 
 		docIDs := index.CollectSubtree(doc.ID)
 
-		return tx.Delete(&db.Doc{}, "id IN ?", docIDs).Error
+		err = tx.Delete(&db.Doc{}, "id IN ?", docIDs).Error
+		if err != nil {
+			return err
+		}
+
+		return link.RelinkWorkspace(tx, doc.WorkspaceID)
 	})
 }
 
@@ -166,7 +174,7 @@ func (service *Service) insertDoc(tx *gorm.DB, workspaceID uuid.UUID, request cr
 		return db.Doc{}, err
 	}
 
-	return doc, link.RebuildLinks(tx, workspaceID, doc.ID, doc.Content)
+	return doc, link.RelinkWorkspace(tx, workspaceID)
 }
 
 func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequest) (*db.Doc, error) {
@@ -192,7 +200,7 @@ func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequ
 		return nil, err
 	}
 
-	err = link.RebuildLinks(tx, doc.WorkspaceID, doc.ID, request.Content)
+	err = link.RelinkWorkspace(tx, doc.WorkspaceID)
 	if err != nil {
 		return nil, err
 	}

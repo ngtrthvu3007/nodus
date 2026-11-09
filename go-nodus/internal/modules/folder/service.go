@@ -9,6 +9,7 @@ import (
 
 	"go-nodus/internal/db"
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/link"
 	"go-nodus/internal/modules/tree"
 )
 
@@ -110,8 +111,11 @@ func (service *Service) Move(ctx context.Context, id uuid.UUID, request tree.Mov
 			Name:        folder.Name,
 		}
 		moved, err = service.treeService.MoveItem(tx, item, request)
+		if err != nil {
+			return err
+		}
 
-		return err
+		return link.RelinkWorkspace(tx, folder.WorkspaceID)
 	})
 
 	return moved, err
@@ -127,7 +131,12 @@ func (service *Service) Delete(ctx context.Context, id uuid.UUID) error {
 			return err
 		}
 
-		return tx.Delete(&db.Folder{}, "id = ?", folder.ID).Error
+		err = tx.Delete(&db.Folder{}, "id = ?", folder.ID).Error
+		if err != nil {
+			return err
+		}
+
+		return link.RelinkWorkspace(tx, folder.WorkspaceID)
 	})
 }
 
@@ -197,6 +206,13 @@ func (service *Service) applyFolderUpdate(tx *gorm.DB, id uuid.UUID, request upd
 		Updates(changes).Error
 	if err != nil {
 		return nil, err
+	}
+
+	if request.Name != nil {
+		err = link.RelinkWorkspace(tx, folder.WorkspaceID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return httpx.FindByID[db.Folder](tx, folder.ID, errFolderNotFound)

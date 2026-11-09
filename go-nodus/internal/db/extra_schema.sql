@@ -9,3 +9,6 @@ ALTER TABLE "public"."docs" ADD CONSTRAINT "docs_one_parent" CHECK ("folder_id" 
 
 -- Unique doc title per parent among live docs, case-insensitive.
 CREATE UNIQUE INDEX "docs_unique_title" ON "public"."docs" ("workspace_id", coalesce("folder_id", '00000000-0000-0000-0000-000000000000'::uuid), coalesce("parent_doc_id", '00000000-0000-0000-0000-000000000000'::uuid), lower("title")) WHERE "deleted_at" IS NULL;
+
+-- One link per source doc and target ref, case-insensitive.
+CREATE UNIQUE INDEX "doc_links_unique_ref" ON "public"."doc_links" ("source_doc_id", lower("target_ref"));
