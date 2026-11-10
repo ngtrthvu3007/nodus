@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, ChevronRightIcon, EllipsisVerticalIcon } from "@heroicons/react/16/solid";
+import { ChevronDownIcon, ChevronRightIcon, EllipsisVerticalIcon } from "lucide-react";
 import { Skeleton, Tree, type TreeProps } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";

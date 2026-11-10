@@ -82,11 +82,218 @@
     color-scheme: dark;
   }
 
+  /* Background of code blocks, in the preview and in the editor. Light is the app background with a touch of the
+     text color; going deeper lowers the contrast of some syntax colors below 4.5:1. Dark goes darker than the
+     app background. */
+  :root {
+    --nodus-code-bg: color-mix(in srgb, var(--nodus-color-canvas) 94%, var(--nodus-color-fg));
+  }
+
+  [data-theme="dark"] {
+    --nodus-code-bg: color-mix(in srgb, var(--nodus-color-canvas) 70%, black);
+  }
+
+  /* Text color of inline code, in the editor and the preview: pink, apart from the link blue and the text. 4.95:1 on the
+     light background and 9.8:1 on the dark one (the old blue was 3.4:1). */
+  :root {
+    --nodus-code-text: #be185d;
+  }
+
+  [data-theme="dark"] {
+    --nodus-code-text: #f9a8d4;
+  }
+
   body {
     background-color: var(--nodus-color-canvas);
     color: var(--nodus-color-fg);
     font-family: var(--nodus-font-sans);
   }
+}
+
+/* Reading view of a doc (features/editor). The HTML comes from renderMarkdown, so it is styled by element and by
+   the `nodus-*` classes that renderer adds; users cannot write classes. Tailwind's preflight removes list markers,
+   table borders and heading sizes, so they are restored here from the tokens. */
+@layer components {
+  .markdown-body {
+    overflow-wrap: anywhere;
+  }
+
+  .markdown-body > :first-child {
+    margin-top: 0;
+  }
+
+  .markdown-body h1 {
+    @apply mt-8 mb-4 text-h1 font-semibold;
+  }
+
+  .markdown-body h2 {
+    @apply mt-8 mb-3 text-h2 font-semibold;
+  }
+
+  .markdown-body h3 {
+    @apply mt-6 mb-2 text-h3 font-semibold;
+  }
+
+  .markdown-body :is(h4, h5, h6) {
+    @apply mt-5 mb-2 text-doc font-semibold;
+  }
+
+  .markdown-body :is(p, ul, ol, blockquote, table, details) {
+    @apply my-4;
+  }
+
+  .markdown-body ul {
+    @apply list-disc ps-6;
+  }
+
+  .markdown-body ol {
+    @apply list-decimal ps-6;
+  }
+
+  .markdown-body li {
+    @apply my-1;
+  }
+
+  .markdown-body a {
+    @apply text-link underline;
+  }
+
+  .markdown-body blockquote {
+    @apply border-s-4 border-border ps-4 text-fg-muted;
+  }
+
+  .markdown-body hr {
+    @apply my-8 border-border-muted;
+  }
+
+  .markdown-body table {
+    @apply w-full border-collapse;
+  }
+
+  .markdown-body :is(th, td) {
+    @apply border border-border px-3 py-2 text-left align-top;
+  }
+
+  .markdown-body th {
+    @apply bg-fill font-semibold;
+  }
+
+  .markdown-body :not(pre) > code {
+    @apply rounded-sm border border-border px-1 font-mono;
+    background-color: var(--nodus-code-bg);
+    color: var(--nodus-code-text);
+    font-size: 0.9em;
+  }
+
+  .markdown-body kbd {
+    @apply rounded-sm border border-border bg-fill px-1 font-mono;
+    font-size: 0.85em;
+  }
+
+  .markdown-body :is(img, svg) {
+    @apply h-auto max-w-full;
+  }
+
+  .markdown-body summary {
+    @apply cursor-pointer;
+  }
+
+  .nodus-code {
+    @apply my-4 overflow-hidden rounded-md border border-border;
+    background-color: var(--nodus-code-bg);
+  }
+
+  .nodus-code figcaption {
+    @apply flex items-center gap-3 border-b border-border bg-fill px-3 py-1 text-ui-sm text-fg-muted;
+  }
+
+  .nodus-code-title {
+    @apply flex-1 truncate text-fg;
+  }
+
+  .nodus-code button {
+    @apply cursor-pointer rounded-sm px-2 text-fg-muted hover:text-primary;
+  }
+
+  .nodus-code pre {
+    @apply m-0 overflow-x-auto p-3 font-mono text-ui;
+  }
+
+  /* Shiki writes two colors per token as variables; the theme mode picks one. */
+  .nodus-code .shiki span {
+    color: var(--shiki-light);
+  }
+
+  [data-theme="dark"] .nodus-code .shiki span {
+    color: var(--shiki-dark);
+  }
+
+  /* Slim scrollbar for the editor and the preview, drawn only while the pointer or the keyboard is in the panel. */
+  .cm-scroller,
+  .nodus-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .cm-scroller:is(:hover, :focus-within),
+  .nodus-scroll:is(:hover, :focus-within) {
+    scrollbar-color: var(--nodus-color-border) transparent;
+  }
+
+  /* Collapsing the preview is a little slower than antd's 0.3s, so the eye can follow it. */
+  .nodus-doc-splitter > .ant-splitter-panel-transition {
+    transition-duration: 450ms;
+  }
+
+  /* The section being read in the "On this page" menu is marked like in the side list of the full screen view: a bar on
+     the left and the primary color, not antd's filled background. */
+  .nodus-outline-menu .ant-dropdown-menu-item-selected {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: inset 2px 0 0 var(--nodus-color-primary);
+    color: var(--nodus-color-primary);
+    font-weight: 500;
+  }
+
+  .nodus-diagram {
+    @apply relative my-4;
+  }
+
+  .nodus-diagram button {
+    @apply absolute top-1 right-1 z-10 cursor-pointer rounded-sm border border-border bg-surface px-2 text-ui-sm text-fg-muted hover:text-primary;
+  }
+
+  .nodus-mermaid {
+    @apply flex justify-center overflow-x-auto font-mono text-ui;
+  }
+
+  .nodus-zoomed svg {
+    @apply mx-auto h-auto max-h-[75vh] w-full;
+  }
+}
+
+/* Long names are cut with an ellipsis instead of stretching the row, and with it the sidebar. */
+.ant-tree .ant-tree-node-content-wrapper {
+  min-width: 0;
+}
+
+.ant-tree .ant-tree-title {
+  display: block;
+  min-width: 0;
+}
+
+/* One step per level (antd's is 26px). The chevron box has the same width, and the guide line stays in the middle. */
+.ant-tree {
+  --nodus-tree-indent: 18px;
+}
+
+.ant-tree .ant-tree-indent-unit,
+.ant-tree .ant-tree-switcher {
+  width: var(--nodus-tree-indent);
+}
+
+.ant-tree-show-line .ant-tree-indent-unit::before {
+  inset-inline-end: calc(var(--nodus-tree-indent) / 2);
 }
 
 /* Tree guides at every depth: antd skips the guide under a last child, and its leaf elbows are redundant. */

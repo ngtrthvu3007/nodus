@@ -1,7 +1,13 @@
 "use client";
 
-import { DocumentTextIcon, FolderIcon } from "@heroicons/react/20/solid";
-import { DocumentPlusIcon, EllipsisHorizontalIcon, FolderOpenIcon, FolderPlusIcon } from "@heroicons/react/24/outline";
+import {
+  EllipsisIcon,
+  FilePlusIcon,
+  FileTextIcon,
+  FolderClosedIcon,
+  FolderOpenIcon,
+  FolderPlusIcon,
+} from "lucide-react";
 import { Button, Dropdown, Input, type MenuProps } from "antd";
 import { NODE_KIND, NODE_LABEL, type NodeKind } from "@/shared/constants";
 import { DRAFT_MODE, useTreeDraftStore } from "@/shared/stores";
@@ -16,9 +22,9 @@ type NodeIconProps = {
 
 // Closed folders are filled, open ones are outlined, so the open branch stands out; docs stay a quiet gray.
 export const NodeIcon = ({ kind, expanded = false, className = "size-5" }: NodeIconProps) => {
-  if (kind === NODE_KIND.doc) return <DocumentTextIcon className={`shrink-0 text-fg-subtle ${className}`} />;
+  if (kind === NODE_KIND.doc) return <FileTextIcon className={`shrink-0 text-fg-subtle ${className}`} />;
 
-  const Icon = expanded ? FolderOpenIcon : FolderIcon;
+  const Icon = expanded ? FolderOpenIcon : FolderClosedIcon;
   return <Icon className={`shrink-0 text-primary ${className}`} />;
 };
 
@@ -73,7 +79,7 @@ const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete }: Tree
   const newDoc = {
     key: "create-doc",
     label: node.kind === NODE_KIND.folder ? "New doc" : "New child doc",
-    icon: <DocumentPlusIcon className="size-4" />,
+    icon: <FilePlusIcon className="size-4" />,
     onClick: () => openCreate(NODE_KIND.doc, node.id),
   };
 
@@ -119,7 +125,7 @@ export const TreeNodeTitle = ({ node, expanded, actions, onRename }: TreeNodeTit
             type="text"
             aria-label="Actions"
             className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
-            icon={<EllipsisHorizontalIcon className="size-4" />}
+            icon={<EllipsisIcon className="size-4" />}
             onClick={(event) => event.stopPropagation()}
           />
         </Dropdown>

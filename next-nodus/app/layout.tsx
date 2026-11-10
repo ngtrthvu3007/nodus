@@ -35,7 +35,7 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
     <head>
       <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
     </head>
-    <body className="flex min-h-full flex-col">
+    <body className="flex min-h-full flex-col overflow-hidden">
       {/* Runtime data (theme cookie, antd's random cache id) must render inside Suspense with cacheComponents */}
       <Suspense fallback={null}>
         <ThemedProviders>

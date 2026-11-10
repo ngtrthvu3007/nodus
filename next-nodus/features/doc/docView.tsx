@@ -1,14 +1,16 @@
 "use client";
 
-import { ArrowLeftIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { Result, Skeleton } from "antd";
 import Link from "next/link";
-import { use } from "react";
+import { use, useState } from "react";
 import { NodeBreadcrumb } from "@/features/tree";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
 import { ApiError } from "@/shared/libs/httpClient";
+import { useSidebarStore } from "@/shared/stores";
 import type { DocDetail, DocRef } from "@/shared/types";
+import { DocWorkspace } from "./components";
 import { useDoc } from "./hooks";
 
 const CARD_CLASS =
@@ -43,23 +45,33 @@ const DocNeighborLink = ({ doc, direction }: DocNeighborLinkProps) => {
   );
 };
 
+// The screen is as tall as the window: title on top, editor and preview below, each scrolling on its own.
 const DocContent = ({ doc }: { doc: DocDetail }) => {
-  const bodyClass = doc.content ? "" : "text-fg-subtle";
+  // Edits live only here until the autosave story saves them.
+  const [content, setContent] = useState(doc.content);
+  // The button that opens a collapsed sidebar floats over the top left corner; the header makes room for it.
+  const isSidebarCollapsed = useSidebarStore((state) => state.width === 0);
+
+  const neighbors = (
+    <nav aria-label="Document navigation" className="mt-10 grid grid-cols-2 gap-4 border-t border-border-muted pt-6">
+      <DocNeighborLink doc={doc.prev} direction="prev" />
+      <DocNeighborLink doc={doc.next} direction="next" />
+    </nav>
+  );
 
   return (
-    <div className="mx-auto max-w-3xl px-8 py-10">
-      <NodeBreadcrumb id={doc.id} />
+    <div className="flex h-screen flex-col overflow-hidden">
+      <header
+        className={`shrink-0 bg-surface pt-5 pr-8 pb-4 transition-[padding] duration-300 motion-reduce:transition-none ${
+          isSidebarCollapsed ? "pl-16" : "pl-8"
+        }`}>
+        <NodeBreadcrumb id={doc.id} />
+        <h1 title={doc.title} className="mt-1 truncate text-h2 leading-tight font-semibold">
+          {doc.title}
+        </h1>
+      </header>
 
-      <h1 className="mt-4 text-h1 font-semibold">{doc.title}</h1>
-
-      <div className={`mt-6 whitespace-pre-wrap text-doc ${bodyClass}`}>
-        {doc.content || "This doc has no content yet."}
-      </div>
-
-      <nav aria-label="Document navigation" className="mt-10 grid grid-cols-2 gap-4 border-t border-border-muted pt-6">
-        <DocNeighborLink doc={doc.prev} direction="prev" />
-        <DocNeighborLink doc={doc.next} direction="next" />
-      </nav>
+      <DocWorkspace title={doc.title} content={content} onChange={setContent} footer={neighbors} />
     </div>
   );
 };
@@ -78,5 +90,5 @@ export const DocView = ({ params }: DocViewProps) => {
 
   if (!data) return <LoadError title="Could not load the doc" onRetry={refetch} className="m-8" />;
 
-  return <DocContent doc={data} />;
+  return <DocContent key={data.id} doc={data} />;
 };
