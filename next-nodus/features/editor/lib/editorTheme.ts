@@ -88,6 +88,23 @@ export const editorTheme = EditorView.theme({
     borderRadius: "var(--nodus-radius-sm)",
     padding: "0 0.35em",
   },
+  // The [[ suggestions: CodeMirror's own list is light and monospace, which is unreadable in the dark mode.
+  ".cm-tooltip.cm-tooltip-autocomplete": {
+    backgroundColor: color("elevated"),
+    border: `1px solid ${color("border")}`,
+    borderRadius: "var(--nodus-radius-md)",
+    overflow: "hidden",
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete > ul": {
+    fontFamily: "var(--nodus-font-sans)",
+    fontSize: "var(--nodus-font-size)",
+  },
+  ".cm-tooltip.cm-tooltip-autocomplete > ul > li": { color: color("fg"), padding: "2px calc(var(--spacing) * 3)" },
+  ".cm-tooltip.cm-tooltip-autocomplete > ul > li[aria-selected]": {
+    backgroundColor: color("primary-soft"),
+    color: color("fg"),
+  },
+  ".cm-completionDetail": { color: color("fg-subtle"), marginLeft: "calc(var(--spacing) * 2)" },
   ".cm-cursor": { borderLeftColor: color("fg") },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground": {
     backgroundColor: color("primary-soft"),

@@ -1,3 +1,4 @@
+import { autocompletion } from "@codemirror/autocomplete";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { LanguageDescription, syntaxHighlighting } from "@codemirror/language";
 import { languages } from "@codemirror/language-data";
@@ -8,6 +9,7 @@ import { codeBlockLines, inlineCodeMarks } from "../lib/editorMarks";
 import { editorHighlight, editorTheme } from "../lib/editorTheme";
 import { formatMarkdown, getFormattedCaret } from "../lib/formatMarkdown";
 import { mermaidDescription } from "../lib/mermaidLanguage";
+import { wikiCompletion, type WikiFetchers } from "../lib/wikiCompletion";
 
 // language-data has no "svg" (it is xml) and no "mermaid".
 const CODE_LANGUAGES = [...languages, mermaidDescription];
@@ -47,20 +49,27 @@ type UseCodeMirrorInput = {
   hostRef: RefObject<HTMLElement | null>;
   value: string;
   onChange: (value: string) => void;
+  wikiFetchers: WikiFetchers;
 };
 
 // `value` is the starting text and `onChange` receives every edit. The text is not replaced from outside yet:
 // the Autosave story adds that when it needs "take the server version". minimalSetup has no folding or
-// autocomplete, which this editor does not want by default; the line numbers are added here.
-export const useCodeMirror = ({ hostRef, value, onChange }: UseCodeMirrorInput) => {
-  const initialValueRef = useRef(value);
+// autocomplete, which this editor does not want by default; the line numbers are added here, and the only
+// suggestions are the wiki-links ([[ and [[Doc#).
+export const useCodeMirror = ({ hostRef, value, onChange, wikiFetchers }: UseCodeMirrorInput) => {
+  const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
+  const wikiFetchersRef = useRef(wikiFetchers);
   const viewRef = useRef<EditorView | null>(null);
 
-  // The editor is built once; this keeps its listener calling the latest handler.
+  // The editor is built once; this keeps its listeners calling the latest handlers. The latest value is kept too:
+  // Next hides a page you left (effects clean up, the view is destroyed) and shows it again with its state, so the
+  // rebuilt editor must start from the current text, not the first one.
   useEffect(() => {
+    valueRef.current = value;
     onChangeRef.current = onChange;
-  }, [onChange]);
+    wikiFetchersRef.current = wikiFetchers;
+  }, [value, onChange, wikiFetchers]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -68,7 +77,7 @@ export const useCodeMirror = ({ hostRef, value, onChange }: UseCodeMirrorInput) 
 
     const view = new EditorView({
       parent: host,
-      doc: initialValueRef.current,
+      doc: valueRef.current,
       extensions: [
         minimalSetup,
         lineNumbers(),
@@ -78,6 +87,7 @@ export const useCodeMirror = ({ hostRef, value, onChange }: UseCodeMirrorInput) 
         codeBlockLines,
         inlineCodeMarks,
         editorTheme,
+        autocompletion({ override: [wikiCompletion(wikiFetchersRef)] }),
         keymap.of([
           {
             key: "Shift-Alt-f",

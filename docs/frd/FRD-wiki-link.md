@@ -18,6 +18,7 @@ Cho phép tài liệu trỏ tới nhau bằng `[[...]]`, và từ 1 tài liệu 
 - Mỗi đoạn là **title doc hoặc tên folder**, không phân biệt hoa thường. Đoạn cha có thể là folder hoặc doc.
 - Không dùng slug: gõ đúng tên như thấy ở sidebar.
 - Khoảng trắng hai đầu mỗi đoạn bị bỏ; `[[ ]]` rỗng bị bỏ qua.
+- `[[...]]` nằm trong code (cặp backtick hoặc khối ` ``` `/`~~~`) **không phải link**: không render thành link và không được tính vào backlink/outgoing. Cùng một quy tắc ở BE và preview.
 - Title doc và tên folder **không được chứa** `/`, `#`, `|`, `[`, `]` (đã là ký tự của cú pháp; xem [[FRD-doc]], [[FRD-folder]]).
 
 ## Yêu cầu
@@ -39,14 +40,14 @@ Cho phép tài liệu trỏ tới nhau bằng `[[...]]`, và từ 1 tài liệu 
 
 ### Gợi ý khi gõ
 
-- Gõ `[[` → gợi ý tối đa 10 doc khớp **chứa chữ** đã gõ (gõ "RDS" ra "AWS RDS"), không phân biệt hoa thường; mỗi gợi ý hiện đường dẫn để phân biệt doc cùng tên. Chọn → chèn đường dẫn ngắn nhất đủ để chỉ đúng doc đó.
+- Gõ `[[` → gợi ý tối đa 10 doc khớp **chứa chữ** đã gõ (gõ "RDS" ra "AWS RDS"), không phân biệt hoa thường; mỗi gợi ý hiện đường dẫn để phân biệt doc cùng tên. Chọn → chèn đường dẫn ngắn nhất đủ để chỉ đúng doc đó. Đóng danh sách rồi muốn mở lại: phím **Ctrl+Space** khi con trỏ đang sau `[[...`.
 - Gõ `[[Tên#` → gợi ý danh sách heading của doc (BE trả chữ heading, FE tính slug bằng bộ render — [[FRD-editor-preview]]).
 
 ### Backlink
 
 - Doc tự link tới chính nó: vẫn render thành link trong preview, nhưng **không** tính là backlink của chính nó.
-- **Backlinks** (tab Links của panel phải, cùng danh sách Outgoing): doc đang trỏ tới doc hiện tại, bấm để mở trong app. Outgoing hiện cả link broken. Đây là cách duy nhất Nodus hỗ trợ "xem chỗ liên quan" — Nodus **không** tự theo dõi hay đề xuất chỗ cần sửa ([[BRD]] mục 5).
-- Backlink tính theo doc: `[[A#Mục 2]]` vẫn là 1 link tới doc A.
+- **Backlinks** (tab Links của panel phải, cùng danh sách Outgoing): doc đang trỏ tới doc hiện tại, bấm để mở trong app. Outgoing hiện **một dòng cho mỗi doc đích** (tên doc đích), dù nội dung trỏ tới nó bằng nhiều cách viết (`[[Tên]]`, `[[Folder/Tên]]`); link broken không có doc đích nên mỗi chữ gốc một dòng. API `/docs/:id/links` vẫn trả từng `ref`, việc gộp làm ở phía hiển thị. Đây là cách duy nhất Nodus hỗ trợ "xem chỗ liên quan" — Nodus **không** tự theo dõi hay đề xuất chỗ cần sửa ([[BRD]] mục 5).
+- Backlink tính theo doc: `[[A#Mục 2]]` vẫn là 1 link tới doc A, và một doc nguồn trỏ tới đây bằng nhiều cách viết (`[[A]]`, `[[Folder/A]]`) chỉ hiện **một** backlink.
 
 ### Link tới heading `[[Tên#Heading]]`
 

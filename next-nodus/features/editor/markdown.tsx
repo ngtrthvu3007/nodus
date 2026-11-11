@@ -5,16 +5,18 @@ import { useEffect, useRef } from "react";
 import { LoadError } from "@/shared/components";
 import { useMarkdownClicks, useMarkdownEnhance, useMarkdownHtml } from "./hooks";
 import type { OutlineItem } from "./lib/headings";
+import type { WikiResolver } from "./lib/wikiLinks";
 
 type MarkdownProps = {
   source: string;
+  resolveWikiLink: WikiResolver;
   // The h2-h3 headings of the rendered text, for MarkdownOutline.
   onOutlineChange?: (outline: OutlineItem[]) => void;
 };
 
-export const Markdown = ({ source, onOutlineChange }: MarkdownProps) => {
+export const Markdown = ({ source, resolveWikiLink, onOutlineChange }: MarkdownProps) => {
   const bodyRef = useRef<HTMLDivElement>(null);
-  const { rendered, failed, retry } = useMarkdownHtml(source);
+  const { rendered, failed, retry } = useMarkdownHtml(source, resolveWikiLink);
   const { onClick, zoomModal } = useMarkdownClicks();
   useMarkdownEnhance(bodyRef, rendered?.html);
 

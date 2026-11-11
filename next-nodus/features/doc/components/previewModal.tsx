@@ -1,17 +1,18 @@
 import { Modal } from "antd";
 import { useRef, useState } from "react";
-import { Markdown, MarkdownOutline, MarkdownOutlineNav, type OutlineItem } from "@/features/editor";
+import { Markdown, MarkdownOutline, MarkdownOutlineNav, type OutlineItem, type WikiResolver } from "@/features/editor";
 
 type PreviewModalProps = {
   open: boolean;
   title: string;
   source: string;
+  resolveWikiLink: WikiResolver;
   onClose: () => void;
 };
 
 // The preview full screen, for reading: the text is one column and the outline stays in view on its right (a menu in
 // the title bar on a narrow screen); the two sit side by side in the middle of the screen.
-export const PreviewModal = ({ open, title, source, onClose }: PreviewModalProps) => {
+export const PreviewModal = ({ open, title, source, resolveWikiLink, onClose }: PreviewModalProps) => {
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const textRef = useRef<HTMLDivElement>(null);
 
@@ -33,7 +34,7 @@ export const PreviewModal = ({ open, title, source, onClose }: PreviewModalProps
       <div className="mx-auto flex w-fit max-w-full gap-40 px-6 pb-8">
         <div ref={textRef} className="w-[72ch] max-w-full min-w-0 text-doc">
           {source ? (
-            <Markdown source={source} onOutlineChange={setOutline} />
+            <Markdown source={source} resolveWikiLink={resolveWikiLink} onOutlineChange={setOutline} />
           ) : (
             <p className="text-doc text-fg-subtle">This doc has no content yet.</p>
           )}

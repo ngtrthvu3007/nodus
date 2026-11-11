@@ -10,6 +10,10 @@ export const API_ROUTES = {
   docs: (workspaceId: string) => `/workspaces/${workspaceId}/docs`,
   doc: (id: string) => `/docs/${id}`,
   docMove: (id: string) => `/docs/${id}/move`,
+  docLinks: (id: string) => `/docs/${id}/links`,
+  docHeadings: (id: string) => `/docs/${id}/headings`,
+  docAutocomplete: (workspaceId: string, query: string) =>
+    `/workspaces/${workspaceId}/docs/autocomplete?q=${encodeURIComponent(query)}`,
 };
 
 const NODE_PAGES = {
