@@ -4,6 +4,7 @@ import { EditorPanel } from "./editorPanel";
 import { PreviewPanel } from "./previewPanel";
 
 type DocWorkspaceProps = {
+  docId: string;
   title: string;
   content: string;
   onChange: (content: string) => void;
@@ -24,7 +25,7 @@ const isCollapsed = (size: PanelSize | undefined) => Number.parseFloat(String(si
 // scrollbar changes the width the content wraps in, which can make the scrollbars flicker.
 // A collapsed preview is only clipped, its content is still laid out: the min-w classes keep it from being squeezed to
 // zero width. It stays mounted for the animation; inert keeps the keyboard out of it.
-export const DocWorkspace = ({ title, content, onChange, footer }: DocWorkspaceProps) => {
+export const DocWorkspace = ({ docId, title, content, onChange, footer }: DocWorkspaceProps) => {
   const [sizes, setSizes] = useState<PanelSize[]>(DEFAULT_SIZES);
   // The sizes before the preview was collapsed, to bring it back to the same width.
   const expandedSizesRef = useRef<PanelSize[]>(DEFAULT_SIZES);
@@ -56,6 +57,7 @@ export const DocWorkspace = ({ title, content, onChange, footer }: DocWorkspaceP
         resizable={!isPreviewCollapsed}
         className="overflow-hidden bg-surface">
         <PreviewPanel
+          docId={docId}
           title={title}
           content={content}
           footer={footer}

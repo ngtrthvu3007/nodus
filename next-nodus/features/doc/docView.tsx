@@ -71,7 +71,7 @@ const DocContent = ({ doc }: { doc: DocDetail }) => {
         </h1>
       </header>
 
-      <DocWorkspace title={doc.title} content={content} onChange={setContent} footer={neighbors} />
+      <DocWorkspace docId={doc.id} title={doc.title} content={content} onChange={setContent} footer={neighbors} />
     </div>
   );
 };

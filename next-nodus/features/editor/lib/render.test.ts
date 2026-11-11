@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { slugify } from "./headings";
 import { renderMarkdown } from "./render";
+import { parseWikiLinks, WIKI_BROKEN_CLASS, WIKI_LINK_CLASS, type WikiResolver } from "./wikiLinks";
 
-const render = async (source: string) => (await renderMarkdown(source)).html;
+const resolveNothing: WikiResolver = () => null;
+
+const render = async (source: string, resolveWikiLink: WikiResolver = resolveNothing) =>
+  (await renderMarkdown(source, resolveWikiLink)).html;
 
 describe("XSS payloads", () => {
   const svgScript = `<svg onload="alert(1)"><script>alert(1)</script><foreignObject><div>x</div></foreignObject><circle r="1" onclick="alert(1)"/></svg>`;
@@ -75,7 +79,7 @@ describe("headings and table of contents", () => {
   ].join("\n\n");
 
   it("lists h2-h3 only, numbers duplicates, skips code blocks", async () => {
-    const { outline, html } = await renderMarkdown(source);
+    const { outline, html } = await renderMarkdown(source, resolveNothing);
 
     expect(outline).toEqual([
       { level: 2, text: "Kiến trúc", slug: "kien-truc" },
@@ -121,6 +125,50 @@ describe("code blocks", () => {
 
     expect(html).toContain("nodus-diagram");
     expect(html).toContain("data-zoom");
+  });
+});
+
+describe("wiki-links", () => {
+  const resolveAws: WikiResolver = ({ ref, heading }) =>
+    ref === "AWS" ? `/docs/aws${heading ? `#${heading}` : ""}` : null;
+
+  it("turns a resolved link into a link and an unresolved one into a broken mark", async () => {
+    const html = await render("See [[AWS]] and [[Missing]].", resolveAws);
+
+    expect(html).toContain(`<a href="/docs/aws" class="${WIKI_LINK_CLASS}">AWS</a>`);
+    expect(html).toContain(`class="${WIKI_BROKEN_CLASS}"`);
+    expect(html).not.toContain("[[");
+  });
+
+  it("passes the path and the heading to the resolver", async () => {
+    const links: unknown[] = [];
+    await render("[[A/B/AWS#Setup]]", (link) => {
+      links.push(link);
+      return null;
+    });
+
+    expect(links).toEqual([{ ref: "A/B/AWS", heading: "Setup" }]);
+  });
+
+  it("leaves code and empty links as written", async () => {
+    const html = await render("`[[AWS]]` and [[ ]] and [[#only heading]]\n\n```\n[[AWS]]\n```", resolveAws);
+
+    expect(html).not.toContain(WIKI_LINK_CLASS);
+    expect(html).not.toContain(WIKI_BROKEN_CLASS);
+    expect(html).toContain("[[ ]]");
+  });
+
+  it("does not let users write the wiki-link classes", async () => {
+    const html = await render(`<span class="${WIKI_BROKEN_CLASS}">x</span>`);
+
+    expect(html).not.toContain(WIKI_BROKEN_CLASS);
+  });
+
+  it("lists the links of a text", () => {
+    expect(parseWikiLinks("[[A]] [[ b / C # H ]] [[ ]]")).toEqual([
+      { ref: "A", heading: null },
+      { ref: "b / C", heading: "H" },
+    ]);
   });
 });
 

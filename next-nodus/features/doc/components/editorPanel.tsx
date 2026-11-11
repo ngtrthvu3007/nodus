@@ -1,7 +1,11 @@
 import { Button, Tabs } from "antd";
 import { PanelRightOpenIcon, WandSparklesIcon } from "lucide-react";
 import { useRef } from "react";
-import { MarkdownEditor, type MarkdownEditorHandle } from "@/features/editor";
+import { getDocHeadings, suggestDocs } from "@/api";
+import { MarkdownEditor, type MarkdownEditorHandle, type WikiFetchers } from "@/features/editor";
+
+// Module level, so the editor always gets the same object.
+const WIKI_FETCHERS: WikiFetchers = { suggest: suggestDocs, getHeadings: getDocHeadings };
 
 type EditorPanelProps = {
   content: string;
@@ -46,7 +50,13 @@ export const EditorPanel = ({ content, onChange, isPreviewCollapsed, onExpandPre
         className="shrink-0 px-6"
       />
 
-      <MarkdownEditor ref={editorRef} value={content} onChange={onChange} className="min-h-0 flex-1" />
+      <MarkdownEditor
+        ref={editorRef}
+        value={content}
+        onChange={onChange}
+        wikiFetchers={WIKI_FETCHERS}
+        className="min-h-0 flex-1"
+      />
     </div>
   );
 };

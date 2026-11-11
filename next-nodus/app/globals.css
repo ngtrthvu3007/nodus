@@ -103,6 +103,13 @@
     --nodus-code-text: #f9a8d4;
   }
 
+  /* One slim, themed scrollbar everywhere (scrollbar-width is not inherited, hence the *). The editor and the preview
+     hide theirs until hover; those rules are in the components layer, so they win over this one. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--nodus-color-border) transparent;
+  }
+
   body {
     background-color: var(--nodus-color-canvas);
     color: var(--nodus-color-fg);
@@ -156,6 +163,11 @@
 
   .markdown-body a {
     @apply text-link underline;
+  }
+
+  /* A [[wiki-link]] with no target; the class comes from features/editor/lib/wikiLinks.ts. Also used in the Links tab. */
+  .nodus-wiki-broken {
+    @apply cursor-help text-error underline decoration-dotted;
   }
 
   .markdown-body blockquote {
@@ -290,6 +302,18 @@
 .ant-tree .ant-tree-indent-unit,
 .ant-tree .ant-tree-switcher {
   width: var(--nodus-tree-indent);
+}
+
+/* The hover box stays 24px but is centered on the narrower (18px) switcher, so the chevron sits in the middle of it. */
+.ant-tree .ant-tree-switcher {
+  margin-inline-end: 11px;
+}
+
+.ant-tree .ant-tree-switcher::before {
+  left: 50%;
+  width: 24px;
+  height: 100%;
+  transform: translateX(-50%);
 }
 
 .ant-tree-show-line .ant-tree-indent-unit::before {
