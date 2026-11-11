@@ -60,7 +60,7 @@ const DocContent = ({ doc }: { doc: DocDetail }) => {
   );
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       <header
         className={`shrink-0 bg-surface pt-5 pr-8 pb-4 transition-[padding] duration-300 motion-reduce:transition-none ${
           isSidebarCollapsed ? "pl-16" : "pl-8"

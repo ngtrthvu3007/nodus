@@ -10,17 +10,19 @@ const WIKI_FETCHERS: WikiFetchers = { suggest: suggestDocs, getHeadings: getDocH
 type EditorPanelProps = {
   content: string;
   onChange: (content: string) => void;
+  // True on a phone while the preview is shown instead; it stays mounted, and inert keeps the keyboard out of it.
+  isHidden: boolean;
   isPreviewCollapsed: boolean;
   onExpandPreview: () => void;
 };
 
 // The left panel; it is never hidden. Its tab bar mirrors the preview's, so the two panels share one top line. It
 // holds the Format button and, while the preview is collapsed, the button that brings the preview back.
-export const EditorPanel = ({ content, onChange, isPreviewCollapsed, onExpandPreview }: EditorPanelProps) => {
+export const EditorPanel = ({ content, onChange, isHidden, isPreviewCollapsed, onExpandPreview }: EditorPanelProps) => {
   const editorRef = useRef<MarkdownEditorHandle>(null);
 
   return (
-    <div className="flex h-full min-w-80 flex-col">
+    <div inert={isHidden} className="flex h-full min-w-80 flex-col">
       <Tabs
         size="small"
         activeKey="markdown"

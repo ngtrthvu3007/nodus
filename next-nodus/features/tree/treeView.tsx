@@ -6,7 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
-import { DRAFT_MODE, useTreeDraftStore } from "@/shared/stores";
+import { useIsNarrowScreen } from "@/shared/hooks";
+import { DRAFT_MODE, useSidebarStore, useTreeDraftStore } from "@/shared/stores";
 import { NewNodeMenu, NodeNameInput, TreeNodeTitle } from "./components";
 import { DRAFT_ID, useTree, useTreeActions, useTreeDrag, useTreeExpansion, useTreeModel } from "./hooks";
 
@@ -37,6 +38,8 @@ const renderSwitcherIcon =({ expanded }: { expanded?: boolean }) => (
 
 export const TreeView = () => {
   const router = useRouter();
+  const isNarrow = useIsNarrowScreen();
+  const closeSidebar = useSidebarStore((state) => state.close);
   const { id: selectedId = null } = useParams<{ id?: string }>(); //Both doc and folder name their dynamic segment `id`.
   const { data, isPending, isError, refetch } = useTree();
   const draft = useTreeDraftStore((state) => state.draft);
@@ -50,7 +53,7 @@ export const TreeView = () => {
     selectedId,
     forcedOpenId: draft?.mode === DRAFT_MODE.create ? draft.parentId : null,
   });
-  const { actions, submitDraft } = useTreeActions({ model, selectedId, onExpand: expand });
+  const { actions, submitDraft } = useTreeActions({ model, onExpand: expand });
   const drag = useTreeDrag({ model, onExpand: expand, onBlockDoc: setBlockedDocId });
 
   if (isPending) return <TreeSkeleton />;
@@ -67,6 +70,8 @@ export const TreeView = () => {
   const selectNode: TreeProps["onSelect"] = (_keys, { node }) => {
     const item = model.nodesById.get(String(node.key));
     if (item) router.push(PAGE_ROUTES.node(item.kind, item.id));
+    // Tapping the page that is already open changes no URL, so AppShell would leave the phone menu open.
+    if (isNarrow) closeSidebar();
   };
 
   const renderTitle: TreeProps["titleRender"] = (node) => {

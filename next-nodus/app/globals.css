@@ -267,6 +267,60 @@
     font-weight: 500;
   }
 
+  /* Document tabs: the close button only shows on the tab you hover or focus, and on the one you are on, so a row of
+     tabs stays quiet. It is hidden with opacity, not display, so the keyboard can still reach it. */
+  .nodus-tab-bar .ant-tabs-tab:not(:hover, :focus-within) .ant-tabs-tab-remove {
+    opacity: 0;
+  }
+
+  .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active .ant-tabs-tab-remove {
+    opacity: 1;
+  }
+
+  /* The x is 12px wide: too small to tap. The padding makes the hit area 24px and the negative margin keeps the tab as
+     big as before. */
+  .nodus-tab-bar .ant-tabs-tab-remove {
+    padding: 6px;
+    margin: -6px -6px -6px 2px;
+    transition: opacity 150ms;
+  }
+
+  /* A tab is a shape. A tab you are not on is a soft chip (a tint and a hairline), so it reads as a tab without
+     hovering it; the active one takes the page's surface color with a primary line on top, so it reads as part of the
+     page below it. antd's own card look is flattened by our tokens. */
+  .nodus-tab-bar .ant-tabs-tab {
+    min-height: 36px;
+    padding-inline: 12px;
+    border: 0;
+    border-radius: var(--nodus-radius-md) var(--nodus-radius-md) 0 0;
+    background: color-mix(in srgb, var(--nodus-color-fg) 5%, transparent);
+    box-shadow: inset 0 0 0 1px var(--nodus-color-border-muted);
+  }
+
+  .nodus-tab-bar .ant-tabs-tab:hover {
+    background: color-mix(in srgb, var(--nodus-color-fg) 10%, transparent);
+  }
+
+  .nodus-tab-bar .ant-tabs-tab .ant-tabs-tab-btn {
+    color: var(--nodus-color-fg-muted);
+  }
+
+  .nodus-tab-bar .ant-tabs-tab:hover .ant-tabs-tab-btn {
+    color: var(--nodus-color-fg);
+  }
+
+  /* antd always marks one tab active; on the home page no doc is open (TabBar adds nodus-tab-bar-idle), so only a bar
+     with a real active tab gets this look. These rules come after the hover ones and have the same specificity, so
+     they win. The weight is not changed on purpose: a bolder label is wider and would shift the tabs next to it. */
+  .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active {
+    background: var(--nodus-color-surface);
+    box-shadow: inset 0 3px 0 var(--nodus-color-primary);
+  }
+
+  .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: var(--nodus-color-fg);
+  }
+
   .nodus-diagram {
     @apply relative my-4;
   }

@@ -7,6 +7,8 @@ export const useTree = () =>
   useQuery({
     queryKey: ["tree", WORKSPACE_ID],
     queryFn: ({ signal }) => getTree(signal),
+    // Docs deleted or renamed elsewhere (another tab, MCP, a teammate) reach the sidebar and the tabs on return.
+    refetchOnWindowFocus: true,
   });
 
 const TREE_QUERY_KEYS = ["tree", NODE_KIND.folder, NODE_KIND.doc, DOC_LINKS_KEY, DOC_HEADINGS_KEY];

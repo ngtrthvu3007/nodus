@@ -10,6 +10,7 @@ type SidebarState = {
   resize: (width: number) => void;
   toggle: () => void;
   open: () => void;
+  close: () => void;
 };
 
 const isCollapsed = ({ width }: SidebarState) => width === 0;
@@ -20,4 +21,5 @@ export const useSidebarStore = create<SidebarState>((set) => ({
   resize: (width) => set(width > 0 ? { width, openWidth: width } : { width }),
   toggle: () => set((state) => ({ width: isCollapsed(state) ? state.openWidth : 0 })),
   open: () => set((state) => (isCollapsed(state) ? { width: state.openWidth } : {})),
+  close: () => set({ width: 0 }),
 }));
