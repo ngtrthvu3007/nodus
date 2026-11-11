@@ -130,29 +130,54 @@ definitions:
       message:
         type: string
     type: object
+  link.backlink:
+    properties:
+      id:
+        type: string
+      path:
+        type: string
+      title:
+        type: string
+    type: object
   link.docLinks:
     properties:
       backlinks:
         items:
-          $ref: '#/definitions/link.linkedDoc'
+          $ref: '#/definitions/link.backlink'
         type: array
       outgoing:
         items:
-          $ref: '#/definitions/link.linkedDoc'
+          $ref: '#/definitions/link.outgoingLink'
         type: array
     type: object
-  link.linkedDoc:
+  link.heading:
     properties:
-      createdAt:
+      level:
+        type: integer
+      text:
         type: string
+    type: object
+  link.linkTarget:
+    properties:
       id:
         type: string
       title:
         type: string
     type: object
+  link.outgoingLink:
+    properties:
+      doc:
+        $ref: '#/definitions/link.linkTarget'
+      ref:
+        type: string
+    type: object
   link.titleSuggestion:
     properties:
       id:
+        type: string
+      path:
+        type: string
+      ref:
         type: string
       title:
         type: string
@@ -274,6 +299,34 @@ paths:
       summary: Replace the title and content of a doc
       tags:
       - doc
+  /docs/{id}/headings:
+    get:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/link.heading'
+                  type: array
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: List the headings of a doc
+      tags:
+      - link
   /docs/{id}/links:
     get:
       parameters:
@@ -512,7 +565,7 @@ paths:
         name: workspaceId
         required: true
         type: string
-      - description: Title prefix or part
+      - description: Text contained in the title
         in: query
         name: q
         type: string

@@ -51,13 +51,16 @@ type Doc struct {
 	ParentDoc *Doc    `gorm:"constraint:OnDelete:CASCADE"`
 }
 
-// DocLink is a [[wiki-link]] from one doc's content to another doc, rebuilt on every save.
+// DocLink is a [[wiki-link]] in a doc's content, rebuilt for the whole workspace on every write.
+// TargetDocID nil = broken link (no doc matches TargetRef yet).
+// The migration adds the unique (source_doc_id, lower(target_ref)) index by hand.
 type DocLink struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
-	SourceDocID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_doc_links_source_target,priority:1"`
-	TargetDocID uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_doc_links_source_target,priority:2;index"`
-	CreatedAt   time.Time `gorm:"not null;default:now()"`
+	ID          uuid.UUID  `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	SourceDocID uuid.UUID  `gorm:"type:uuid;not null"`
+	TargetRef   string     `gorm:"not null"`
+	TargetDocID *uuid.UUID `gorm:"type:uuid;index"`
+	CreatedAt   time.Time  `gorm:"not null;default:now()"`
 
 	SourceDoc *Doc `gorm:"foreignKey:SourceDocID;constraint:OnDelete:CASCADE"`
-	TargetDoc *Doc `gorm:"foreignKey:TargetDocID;constraint:OnDelete:CASCADE"`
+	TargetDoc *Doc `gorm:"foreignKey:TargetDocID;constraint:OnDelete:SET NULL"`
 }

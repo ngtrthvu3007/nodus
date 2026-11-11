@@ -23,9 +23,9 @@ go-nodus/
 │   │   │   ├── repository.go  # truy vấn GORM của tree (nhận tx của caller)
 │   │   │   ├── logic.go       # phần thuần, không đụng DB: Index (cây nạp sẵn) và quy tắc độ sâu, tên duy nhất, vị trí
 │   │   │   └── types.go       # Node, Item, MoveRequest, Moved
-│   │   ├── folder/        # /folders
-│   │   ├── doc/           # /docs (ghi doc gọi link.RebuildLinks)
-│   │   └── link/          # wiki-link: backlink, autocomplete, RebuildLinks
+│   │   ├── folder/        # /folders (đổi tên, move, xóa gọi link.RelinkWorkspace)
+│   │   ├── doc/           # /docs (tạo, sửa, move, xóa gọi link.RelinkWorkspace)
+│   │   └── link/          # wiki-link: backlink, autocomplete, headings, RelinkWorkspace
 │   ├── apidocs/           # Swagger do `make swagger` sinh từ annotation (không sửa tay)
 │   ├── config/config.go   # biến môi trường
 │   └── db/
@@ -51,7 +51,7 @@ flowchart LR
 
 - `main.go` chỉ đọc config và chạy; wiring nằm ở `cmd/api/modules.go`.
 - Mỗi domain có `Handler` implement `httpx.Module` (có `RegisterRoutes`), nhận `Service` qua constructor; `Service` nhận `*gorm.DB`. Không có biến toàn cục giữ DB. Chỉ `tree` có `Repository` (truy vấn tách khỏi quy tắc); `folder`, `doc`, `link` gọi GORM trực tiếp trong service.
-- `folder` và `doc` nhận `*tree.Service` qua constructor (quy tắc cây dùng chung, truyền `tx` của mình vào); `doc` import thêm `link` (`link.RebuildLinks` khi ghi doc). `tree` và `link` không import ngược lại.
+- `folder` và `doc` nhận `*tree.Service` qua constructor (quy tắc cây dùng chung, truyền `tx` của mình vào); `folder` và `doc` import thêm `link` (`link.RelinkWorkspace` khi ghi cây hoặc nội dung). `tree` không import ngược lại; `link` chỉ import `tree` để dùng `GetDocParent`/`GetParentID`.
 - Tắt êm: ngừng nhận kết nối mới, chờ request đang chạy xong (tối đa 10 giây), rồi đóng pool DB.
 
 ## Thêm domain mới
@@ -71,14 +71,14 @@ flowchart LR
     Parse --> H[Handler<br/>gọi service với ctx]
     H --> S[Service<br/>kiểm tra quy tắc → GORM]
     S --> Tx{Ghi nhiều bước?}
-    Tx -- có --> Trans["db.Transaction<br/>khóa workspace → kiểm tra → ghi → RebuildLinks"]
+    Tx -- có --> Trans["db.Transaction<br/>khóa workspace → kiểm tra → ghi → RelinkWorkspace"]
     Tx -- không --> Query[GORM]
     Trans --> Res[httpx.WriteOK / c.Error]
     Query --> Res
 ```
 
 - Handler chỉ bind, gọi một method của service, trả response. Lỗi thì `_ = c.Error(err)` rồi return; middleware `handleErrors` trả response lỗi.
-- Quy tắc cây (`tree.PlaceNew`, `tree.MoveItem`, `tree.CheckNameFree`…) và `link.RebuildLinks` nhận `*gorm.DB` làm tham số nên chạy trong transaction của `folder`/`doc`.
+- Quy tắc cây (`tree.PlaceNew`, `tree.MoveItem`, `tree.CheckNameFree`…) và `link.RelinkWorkspace` nhận `*gorm.DB` làm tham số nên chạy trong transaction của `folder`/`doc`.
 - Mọi ghi vào cây (tạo, đổi tên, move, xóa) chạy trong transaction và khóa dòng workspace (`FOR UPDATE`), nên các kiểm tra độ sâu và trùng tên không bị race. Cây nạp cả workspace mỗi lần ghi (xem chú thích `ponytail:` trong `tree/logic.go`).
 - Response: `{ "success": true, "data": … }` (DELETE trả `204` không body); lỗi: `{ "success": false, "error": { "code", "message" } }`.
 - Lỗi quy tắc là `httpx.Error` (status + `code` ổn định, vd. `folder_not_found`, `max_depth_exceeded`, `name_conflict`); lỗi khác ghi log và trả 500 chung, không lộ chi tiết DB.
@@ -97,8 +97,9 @@ flowchart LR
 | POST | `/workspaces/:workspaceId/docs` | `doc` | Tạo doc + dựng wiki-link **trong 1 transaction** — [[FRD-doc]] |
 | GET, PUT, DELETE | `/docs/:id` | `doc` | GET kèm `prev`/`next` theo thứ tự đọc; PUT sửa title + content và dựng lại wiki-link; DELETE soft delete cả doc con |
 | PATCH | `/docs/:id/move` | `doc` | Như move folder — [[FRD-move]] |
-| GET | `/docs/:id/links` | `link` | Backlinks (không tính self-link) + outgoing, mới nhất trước — [[FRD-wiki-link]] |
-| GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 title khớp tiền tố |
+| GET | `/docs/:id/links` | `link` | `backlinks` (`id`, `title`, `path`; mỗi doc nguồn một dòng, không tính self-link) + `outgoing` (`ref`, `doc` hoặc `null` nếu broken), sắp theo chữ — [[FRD-wiki-link]] |
+| GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 doc có title chứa `q`, kèm `path` và `ref` ngắn nhất để chèn |
+| GET | `/docs/:id/headings` | `link` | Heading ATX (`level`, `text`), bỏ heading trong code fence |
 
 ## API docs
 
@@ -109,6 +110,7 @@ flowchart LR
 ## Dữ liệu
 
 - Bảng: `workspaces`, `folders`, `docs`, `doc_links`. Doc nằm ở gốc, trong folder (`folder_id`) hoặc trong doc khác (`parent_doc_id`), không bao giờ cả hai (CHECK `docs_one_parent`).
+- `doc_links`: `source_doc_id`, `target_ref` (chữ trong `[[...]]`, bỏ `#heading`; `[[...]]` trong code span/code fence không tính), `target_doc_id` (NULL = broken link, FK `SET NULL`). Unique `(source_doc_id, lower(target_ref))` viết tay trong migration. Mỗi lần ghi cây hoặc nội dung, `link.RelinkWorkspace` xóa và dựng lại link của cả workspace trong cùng transaction (xem `ponytail:` trong `link/relink.go`).
 - Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration, khai báo thêm ở `internal/db/extra_schema.sql` để Atlas không đề nghị xóa.
 - GORM tự lọc soft delete (`deleted_at`) với mọi query qua model, kể cả `Preload`; không còn câu SQL thô nào phải tự thêm `deleted_at IS NULL`.
 - Đổi schema: sửa `internal/db/models.go` → `make migrate-diff NAME=…` → review SQL → `make migrate-up`. Rollback local: `make migrate-down-plan` rồi `make migrate-down`; migration đã chia sẻ thì roll forward.

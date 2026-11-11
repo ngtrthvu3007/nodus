@@ -3,6 +3,7 @@ package link
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -12,7 +13,9 @@ import (
 	"go-nodus/internal/httpx"
 )
 
-var wikiLinkPattern = regexp.MustCompile(`\[\[([^\[\]]+)\]\]`)
+const maxSuggestions = 10
+
+var headingPattern = regexp.MustCompile(`^(#{1,6})[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$`)
 
 type Service struct {
 	db *gorm.DB
@@ -22,61 +25,59 @@ func NewService(database *gorm.DB) *Service {
 	return &Service{db: database}
 }
 
-// Newest first. Preload skips deleted docs, so links to them are left out.
 func (service *Service) GetDocLinks(ctx context.Context, docID uuid.UUID) (docLinks, error) {
-	links := docLinks{Backlinks: []linkedDoc{}, Outgoing: []linkedDoc{}}
+	links := docLinks{Backlinks: []backlink{}, Outgoing: []outgoingLink{}}
 	database := service.db.WithContext(ctx)
 
-	_, err := httpx.FindByID[db.Doc](database, docID, httpx.ErrDocNotFound)
+	doc, err := httpx.FindByID[db.Doc](database, docID, httpx.ErrDocNotFound)
 	if err != nil {
 		return links, err
 	}
 
-	var backlinks []db.DocLink
-	err = database.Preload("SourceDoc", selectIDAndTitle).
-		Where("target_doc_id = ? AND source_doc_id <> ?", docID, docID).
-		Order("created_at DESC").Find(&backlinks).Error
+	loaded, err := loadWorkspace(database, doc.WorkspaceID)
+	if err != nil {
+		return links, err
+	}
+
+	var rows []db.DocLink
+	err = database.Where("source_doc_id = ? OR (target_doc_id = ? AND source_doc_id <> ?)", docID, docID, docID).
+		Find(&rows).Error
 
 	if err != nil {
 		return links, err
 	}
 
-	for _, backlink := range backlinks {
-		source := backlink.SourceDoc
-		if source != nil {
-			links.Backlinks = append(links.Backlinks, linkedDoc{
-				ID:        source.ID,
-				Title:     source.Title,
-				CreatedAt: backlink.CreatedAt,
+	hasBacklink := map[uuid.UUID]bool{}
+
+	for _, row := range rows {
+		if row.SourceDocID == docID {
+			target := loaded.findTarget(row.TargetDocID)
+			links.Outgoing = append(links.Outgoing, outgoingLink{Ref: row.TargetRef, Doc: target})
+
+			continue
+		}
+
+		// A doc can point here with several refs (`[[A]]`, `[[A#Heading]]`); it is one backlink.
+		source := loaded.entries[row.SourceDocID]
+		if source != nil && !hasBacklink[row.SourceDocID] {
+			hasBacklink[row.SourceDocID] = true
+
+			links.Backlinks = append(links.Backlinks, backlink{
+				ID:    source.id,
+				Title: source.name,
+				Path:  loaded.buildPath(source),
 			})
 		}
 	}
 
-	var outgoing []db.DocLink
-	err = database.Preload("TargetDoc", selectIDAndTitle).
-		Where("source_doc_id = ?", docID).
-		Order("created_at DESC").Find(&outgoing).Error
-
-	if err != nil {
-		return links, err
-	}
-
-	for _, outgoingLink := range outgoing {
-		target := outgoingLink.TargetDoc
-		if target != nil {
-			links.Outgoing = append(links.Outgoing, linkedDoc{
-				ID:        target.ID,
-				Title:     target.Title,
-				CreatedAt: outgoingLink.CreatedAt,
-			})
-		}
-	}
+	slices.SortFunc(links.Backlinks, func(left, right backlink) int {
+		return strings.Compare(strings.ToLower(left.Title), strings.ToLower(right.Title))
+	})
+	slices.SortFunc(links.Outgoing, func(left, right outgoingLink) int {
+		return strings.Compare(strings.ToLower(left.Ref), strings.ToLower(right.Ref))
+	})
 
 	return links, nil
-}
-
-func selectIDAndTitle(database *gorm.DB) *gorm.DB {
-	return database.Select("id", "title")
 }
 
 func (service *Service) AutocompleteTitles(
@@ -84,79 +85,62 @@ func (service *Service) AutocompleteTitles(
 	workspaceID uuid.UUID,
 	query string,
 ) ([]titleSuggestion, error) {
+	database := service.db.WithContext(ctx)
+
+	_, err := httpx.FindByID[db.Workspace](database, workspaceID, httpx.ErrWorkspaceNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	loaded, err := loadWorkspace(database, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	needle := strings.ToLower(strings.TrimSpace(query))
+	docs := slices.Clone(loaded.docs)
+	slices.SortStableFunc(docs, func(left, right *entry) int {
+		return strings.Compare(left.key, right.key)
+	})
+
 	suggestions := []titleSuggestion{}
-	titlePrefix := buildLikePattern(query) + "%"
-
-	err := service.db.WithContext(ctx).Model(&db.Doc{}).
-		Select("id", "title").
-		Where("workspace_id = ? AND title ILIKE ?", workspaceID, titlePrefix).
-		Order("title ASC").Limit(10).
-		Find(&suggestions).Error
-
-	return suggestions, err
-}
-
-// Replaces the outgoing links of a doc with the [[titles]] in its content.
-// Titles that match no doc are skipped.
-func RebuildLinks(tx *gorm.DB, workspaceID uuid.UUID, sourceID uuid.UUID, content string) error {
-	err := tx.Where("source_doc_id = ?", sourceID).Delete(&db.DocLink{}).Error
-	if err != nil {
-		return err
-	}
-
-	titles := parseLinkedTitles(content)
-	if len(titles) == 0 {
-		return nil
-	}
-
-	var targets []db.Doc
-	err = tx.Select("id", "title").
-		Where("workspace_id = ? AND title IN ?", workspaceID, titles).
-		Order("created_at ASC").Find(&targets).Error
-
-	if err != nil {
-		return err
-	}
-
-	// Titles are unique per parent only, so link to the oldest doc of each title.
-	linked := map[string]bool{}
-	links := []db.DocLink{}
-	for _, target := range targets {
-		if linked[target.Title] {
-			continue
+	for _, doc := range docs {
+		if len(suggestions) == maxSuggestions {
+			break
 		}
 
-		linked[target.Title] = true
-		links = append(links, db.DocLink{
-			SourceDocID: sourceID,
-			TargetDocID: target.ID,
-		})
-	}
-
-	if len(links) == 0 {
-		return nil
-	}
-
-	return tx.Create(&links).Error
-}
-
-func parseLinkedTitles(content string) []string {
-	seen := map[string]bool{}
-	titles := []string{}
-
-	for _, match := range wikiLinkPattern.FindAllStringSubmatch(content, -1) {
-		title := strings.TrimSpace(match[1])
-		if title == "" || seen[title] {
-			continue
+		if strings.Contains(doc.key, needle) {
+			suggestions = append(suggestions, titleSuggestion{
+				ID:    doc.id,
+				Title: doc.name,
+				Path:  loaded.buildPath(doc),
+				Ref:   loaded.buildShortestRef(doc),
+			})
 		}
-
-		seen[title] = true
-		titles = append(titles, title)
 	}
 
-	return titles
+	return suggestions, nil
 }
 
-func buildLikePattern(value string) string {
-	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(value)
+func (service *Service) GetHeadings(ctx context.Context, docID uuid.UUID) ([]heading, error) {
+	doc, err := httpx.FindByID[db.Doc](service.db.WithContext(ctx), docID, httpx.ErrDocNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseHeadings(doc.Content), nil
+}
+
+// ATX headings only; lines inside ``` or ~~~ fences are skipped.
+func parseHeadings(content string) []heading {
+	headings := []heading{}
+
+	for _, line := range outsideFences(content) {
+		match := headingPattern.FindStringSubmatch(line)
+		if match != nil {
+			headings = append(headings, heading{Level: len(match[1]), Text: match[2]})
+		}
+	}
+
+	return headings
 }

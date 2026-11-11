@@ -149,6 +149,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/docs/{id}/headings": {
+            "get": {
+                "tags": [
+                    "link"
+                ],
+                "summary": "List the headings of a doc",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Doc ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httpx.SuccessBody"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/link.heading"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    }
+                }
+            }
+        },
         "/docs/{id}/links": {
             "get": {
                 "tags": [
@@ -539,7 +586,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Title prefix or part",
+                        "description": "Text contained in the title",
                         "name": "q",
                         "in": "query"
                     }
@@ -890,29 +937,51 @@ const docTemplate = `{
                 }
             }
         },
+        "link.backlink": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "link.docLinks": {
             "type": "object",
             "properties": {
                 "backlinks": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/link.linkedDoc"
+                        "$ref": "#/definitions/link.backlink"
                     }
                 },
                 "outgoing": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/link.linkedDoc"
+                        "$ref": "#/definitions/link.outgoingLink"
                     }
                 }
             }
         },
-        "link.linkedDoc": {
+        "link.heading": {
             "type": "object",
             "properties": {
-                "createdAt": {
-                    "type": "string"
+                "level": {
+                    "type": "integer"
                 },
+                "text": {
+                    "type": "string"
+                }
+            }
+        },
+        "link.linkTarget": {
+            "type": "object",
+            "properties": {
                 "id": {
                     "type": "string"
                 },
@@ -921,10 +990,27 @@ const docTemplate = `{
                 }
             }
         },
+        "link.outgoingLink": {
+            "type": "object",
+            "properties": {
+                "doc": {
+                    "$ref": "#/definitions/link.linkTarget"
+                },
+                "ref": {
+                    "type": "string"
+                }
+            }
+        },
         "link.titleSuggestion": {
             "type": "object",
             "properties": {
                 "id": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "ref": {
                     "type": "string"
                 },
                 "title": {
