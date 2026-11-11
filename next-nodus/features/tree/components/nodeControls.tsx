@@ -1,6 +1,6 @@
 "use client";
 
-import { DocumentPlusIcon, FolderPlusIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { FilePlusIcon, FolderPlusIcon, PlusIcon } from "lucide-react";
 import { Breadcrumb, Button, Dropdown, type ButtonProps } from "antd";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -9,7 +9,7 @@ import { useTreeDraftStore } from "@/shared/stores";
 import { useTree, useTreeModel } from "../hooks";
 
 const NEW_ITEMS: { kind: NodeKind; label: string; icon: ReactNode }[] = [
-  { kind: NODE_KIND.doc, label: "New doc", icon: <DocumentPlusIcon className="size-4" /> },
+  { kind: NODE_KIND.doc, label: "New doc", icon: <FilePlusIcon className="size-4" /> },
   { kind: NODE_KIND.folder, label: "New folder", icon: <FolderPlusIcon className="size-4" /> },
 ];
 
@@ -40,7 +40,8 @@ export const NewNodeMenu = ({ parentId, type, size = "small", block }: NewNodeMe
   );
 };
 
-// Names come from the tree, so a rename shows up at once.
+// The ancestors only: the screen's own title already names the current node. Names come from the tree, so a
+// rename shows up at once.
 export const NodeBreadcrumb = ({ id }: { id: string }) => {
   const { data } = useTree();
   const { getPath } = useTreeModel(data);
@@ -54,8 +55,7 @@ export const NodeBreadcrumb = ({ id }: { id: string }) => {
   }));
 
   const workspaceItem = { title: <Link href={PAGE_ROUTES.home}>Workspace</Link> };
-  const currentItem = { title: current.name };
-  const items = [workspaceItem, ...parentItems, currentItem];
+  const items = [workspaceItem, ...parentItems];
 
-  return <Breadcrumb items={items} />;
+  return <Breadcrumb items={items} classNames={{ root: "text-ui-sm [&_a]:text-fg-muted [&_a:hover]:text-primary [&_li]:text-fg-muted" }} />;
 };

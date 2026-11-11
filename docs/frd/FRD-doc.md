@@ -35,7 +35,8 @@ Doc là đơn vị tài liệu: có title và nội dung markdown. Đây là FRD
 ### Hiển thị
 
 - Trang doc hiện title, nội dung, đường dẫn (breadcrumb) và hai liên kết **Previous/Next** theo thứ tự đọc của [[FRD-sitemap]]; doc đầu hoặc cuối cây thì thiếu liên kết tương ứng.
-- Doc chưa có nội dung hiện câu báo trống, không hiện vùng soạn thảo.
+- Đường dẫn (breadcrumb) chỉ liệt kê các thư mục cha; tên của chính doc nằm ở tiêu đề (rút gọn bằng "…" nếu dài). Khi sidebar đóng, nút mở sidebar không đè lên đường dẫn và tiêu đề.
+- Doc chưa có nội dung: editor hiện chữ gợi ý để bắt đầu viết, preview hiện câu báo trống; nút Format và toàn màn hình bị khóa cho tới khi có chữ ([[FRD-editor-preview]]).
 
 ### Xóa doc
 

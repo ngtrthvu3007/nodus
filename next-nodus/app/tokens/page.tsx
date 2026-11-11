@@ -1,6 +1,6 @@
 "use client";
 
-import { DocumentTextIcon, FolderIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { FileTextIcon, FolderIcon, MoonIcon, SunIcon } from "lucide-react";
 import { Alert, Button, Card, Input, Select, Tabs, Tag, Tree, Typography } from "antd";
 import type { ReactNode } from "react";
 import { THEME_MODE, getOppositeThemeMode, useThemeMode } from "@/shared/theme";
@@ -46,14 +46,14 @@ const SITEMAP = [
     title: "Nodus",
     icon: <FolderIcon className="size-4" />,
     children: [
-      { key: "overview", title: "1. Tổng quan", icon: <DocumentTextIcon className="size-4" />, isLeaf: true },
+      { key: "overview", title: "1. Tổng quan", icon: <FileTextIcon className="size-4" />, isLeaf: true },
       {
         key: "backend",
         title: "2. Kiến trúc backend",
-        icon: <DocumentTextIcon className="size-4" />,
+        icon: <FileTextIcon className="size-4" />,
         children: [
-          { key: "note", title: "2.1 Module note", icon: <DocumentTextIcon className="size-4" />, isLeaf: true },
-          { key: "notelink", title: "2.2 Module notelink", icon: <DocumentTextIcon className="size-4" />, isLeaf: true },
+          { key: "note", title: "2.1 Module note", icon: <FileTextIcon className="size-4" />, isLeaf: true },
+          { key: "notelink", title: "2.2 Module notelink", icon: <FileTextIcon className="size-4" />, isLeaf: true },
         ],
       },
     ],

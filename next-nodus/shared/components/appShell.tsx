@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDoubleLeftIcon, ChevronDoubleRightIcon, MoonIcon, SunIcon } from "@heroicons/react/24/outline";
+import { MoonIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, SunIcon } from "lucide-react";
 import { Button, Splitter } from "antd";
 import type { ReactNode } from "react";
 import { useSidebarStore } from "@/shared/stores";
@@ -50,7 +50,7 @@ export const AppShell = ({ sidebar, children }: AppShellProps) => {
               size="small"
               type="text"
               aria-label="Collapse sidebar"
-              icon={<ChevronDoubleLeftIcon className="size-4" />}
+              icon={<PanelLeftCloseIcon className="size-4" />}
               onClick={toggle}
             />
           </div>
@@ -66,7 +66,7 @@ export const AppShell = ({ sidebar, children }: AppShellProps) => {
           aria-label="Open sidebar"
           aria-hidden={!collapsed}
           tabIndex={collapsed ? 0 : -1}
-          icon={<ChevronDoubleRightIcon className="size-4" />}
+          icon={<PanelLeftOpenIcon className="size-4" />}
           onClick={toggle}
           className={`absolute top-3 left-3 z-10 border-border-muted bg-surface shadow-sm transition-opacity duration-300 motion-reduce:transition-none ${
             collapsed ? "opacity-100" : "pointer-events-none opacity-0"

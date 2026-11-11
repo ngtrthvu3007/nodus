@@ -23,6 +23,7 @@ Hai loại node: **folder** (chỗ chứa) và **doc** (nội dung). Mỗi works
 
 - Folder và doc cùng cha nằm trong **một danh sách có thứ tự chung**, hiển thị xen kẽ đúng thứ tự (root cũng là một danh sách).
 - **Kéo thả** đổi thứ tự trong cùng cha, hoặc kéo sang cha khác = **move** → đi qua đúng quy tắc [[FRD-move]], không có đường tắt.
+- Cây trên sidebar thụt gọn mỗi cấp (18px) và tên dài bị rút gọn bằng "…", không làm sidebar có thanh cuộn ngang.
 - Node mới tạo nằm cuối danh sách cùng cha. Trên sidebar, node mới hiện ngay ở vị trí đó dưới dạng ô nhập tên; tạo xong thì mở trang của node mới.
 - **Trang trước / trang sau** khi đọc một doc: duyệt cây từ trên xuống, chỉ tính **doc** (bỏ qua folder, vì folder không có nội dung): doc → các doc con của nó → doc kế tiếp cùng cấp → … Ở view share và trang publish, trang trước/sau chỉ tính trong phạm vi được xem ([[FRD-share]], [[FRD-publish]]).
 

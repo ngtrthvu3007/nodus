@@ -30,6 +30,7 @@ Mục tiêu khi chọn stack: **tốc độ phát triển**, **UI/UX tốt cho n
 | Gọi dữ liệu | **TanStack Query** + hàm gọi API trong `api/` dựa trên `httpClient`, hook viết tay, type viết tay đối chiếu Swagger | Cache/invalidate thống nhất |
 | State UI phía client | **zustand** (`shared/stores`) | Chia sẻ state giữa component (độ rộng sidebar, tab); dữ liệu server vẫn ở TanStack Query |
 | Kiểm tra dữ liệu nhập | **zod** | Schema khai báo một lần cho ô nhập (ví dụ tên node); server vẫn là bên quyết định, client chỉ báo lỗi sớm |
+| Icon | **lucide-react** (chốt 2026-11-10, thay `@heroicons/react`) | Một bộ icon dùng chung cho cả app; có sẵn icon cho panel (thu gọn/mở), thư mục, file |
 | Editor | **CodeMirror 6** (giữ) | Lưu markdown thuần |
 | Render markdown | **unified** (remark-gfm, rehype-sanitize) + **Shiki** + `@tailwindcss/typography` | Một pipeline cho preview và publish; lọc HTML/SVG sẵn |
 | Repo | Một repo: `go-nodus/`, `next-nodus/` (`web-nodus/` giữ tới khi thay xong) | Hợp đồng FE↔BE đối chiếu qua Swagger |
@@ -92,8 +93,8 @@ Style inline do antd tự đặt (style attribute luôn thắng mọi layer): k�
 | | Người viết (workspace) | Người đọc (preview, publish) |
 | --- | --- | --- |
 | Cảm giác | Viết tài liệu, gọn, không nặng IDE | Tài liệu chuyên nghiệp, dễ đọc |
-| Editor / nội dung | Font sans cho văn bản, mono chỉ trong code block; heading hiện đúng cấp; ký hiệu markdown dịu; tắt số dòng mặc định; cột viết ~75 ký tự; title là H1 lớn | Body 16px, line-height ~1.7, dòng ≤ ~72 ký tự; heading có thứ bậc; chữ trung tính, link màu thương hiệu, chữ đậm không đổi màu; bảng có viền; code có nhãn ngôn ngữ + nút copy |
-| Chế độ | Viết / Đọc / Chia đôi (mặc định Viết) | — |
+| Editor / nội dung | Font sans cho văn bản, mono chỉ trong code block; heading hiện đúng cấp; ký hiệu markdown dịu; hiện số dòng; cột viết ~80 ký tự, căn giữa; title là H1 lớn | Body 16px, line-height ~1.7, dòng ≤ ~72 ký tự; heading có thứ bậc; chữ trung tính, link màu thương hiệu, chữ đậm không đổi màu; bảng có viền; code có nhãn ngôn ngữ + nút copy |
+| Bố cục | Editor bên trái, panel phải (tab Preview, Links) kéo đổi độ rộng; chỉ preview thu gọn được (có hiệu ứng) và có nút xem toàn màn hình | — |
 | Theme | Light/Dark cho app; theme màu code chọn riêng | Theme đọc cố định, đạt WCAG AA |
 
 Chỉ có 2 theme: **light** và **dark** (theo `data-theme` trên `<html>`, mặc định theo hệ điều hành). Bảng màu chốt: **Slate & Blue** (chọn qua demo `next-nodus`, thay bảng màu daisyUI cũ).
@@ -146,5 +147,5 @@ Thang chữ và khoảng cách (token trong `shared/theme/tokens.ts`, class Tail
 - Hợp đồng `PATCH /notes/:id/move`: giữ `folderId`/`parentNoteId` (bắt buộc có key, cho phép null) hay đổi sang `targetType`/`targetId` (Swagger 2.0 không mô tả được nullable).
 - Mô hình lưu trữ khi dùng Google Drive (nguồn gốc dữ liệu là Drive hay Postgres) — [[FRD-storage]].
 - Trang publish render ở SPA hay ở Go (HTML tĩnh, SEO) — [[FRD-publish]].
-- Command palette (antd không có sẵn) và bộ icon dùng chung.
+- Command palette (antd không có sẵn).
 - Thuật ngữ trên giao diện: "note" hay "doc"/"page".

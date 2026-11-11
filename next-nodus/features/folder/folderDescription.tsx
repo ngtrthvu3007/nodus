@@ -1,6 +1,6 @@
 "use client";
 
-import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import { SquarePenIcon } from "lucide-react";
 import { Button, Input } from "antd";
 import { useState, type KeyboardEvent } from "react";
 import { useToast } from "@/shared/hooks";
@@ -43,7 +43,7 @@ const DescriptionReader = ({ description, onEdit }: DescriptionReaderProps) => {
       onKeyDown={onKeyDown}
       className={READER_CLASS}>
       <p className={`min-w-0 flex-1 whitespace-pre-wrap text-doc ${textClass}`}>{description || "Add a description"}</p>
-      <PencilSquareIcon className={PENCIL_CLASS} />
+      <SquarePenIcon className={PENCIL_CLASS} />
     </div>
   );
 };
