@@ -2,13 +2,16 @@
 
 import { MoonIcon, PanelLeftCloseIcon, PanelLeftOpenIcon, SunIcon } from "lucide-react";
 import { Button, Splitter } from "antd";
-import type { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
+import { useIsNarrowScreen } from "@/shared/hooks";
 import { useSidebarStore } from "@/shared/stores";
 import { THEME_MODE, getOppositeThemeMode, useThemeMode } from "@/shared/theme";
 import { NodusLogo } from "./logo";
 
 type AppShellProps = {
   sidebar?: ReactNode;
+  tabs?: ReactNode;
   children: ReactNode;
 };
 
@@ -26,18 +29,31 @@ const ThemeToggle = () => {
 };
 
 // App frame: resizable sidebar on the left, page content on the right. Width 0 means collapsed.
-export const AppShell = ({ sidebar, children }: AppShellProps) => {
+// On a phone the sidebar is a full-width menu: it opens over the whole screen, and choosing a page closes it.
+export const AppShell = ({ sidebar, tabs, children }: AppShellProps) => {
+  const pathname = usePathname();
+  const isNarrow = useIsNarrowScreen();
   const width = useSidebarStore((state) => state.width);
   const resize = useSidebarStore((state) => state.resize);
   const toggle = useSidebarStore((state) => state.toggle);
+  const close = useSidebarStore((state) => state.close);
   const collapsed = width === 0;
 
+  // Starts closed on a phone, and closes again each time a page is opened from it.
+  useEffect(() => {
+    if (isNarrow) close();
+  }, [isNarrow, pathname, close]);
+
   return (
-    <Splitter className="h-screen bg-canvas" collapsible={{ motion: true }} onResize={([next]) => resize(next)}>
+    <Splitter
+      className="h-screen overflow-hidden bg-canvas"
+      collapsible={{ motion: true }}
+      onResize={([next]) => resize(next)}>
       <Splitter.Panel
-        size={width}
+        size={isNarrow && !collapsed ? "100%" : width}
+        resizable={!isNarrow}
         min={200}
-        max={480}
+        max={isNarrow ? undefined : 480}
         collapsible={{ start: true, showCollapsibleIcon: false }}
         className="bg-surface">
         <div className="flex h-full flex-col border-r border-border-muted">
@@ -72,7 +88,10 @@ export const AppShell = ({ sidebar, children }: AppShellProps) => {
             collapsed ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />
-        {children}
+        <div className="flex h-full min-h-0 flex-col">
+          {tabs}
+          <div className="min-h-0 flex-1">{children}</div>
+        </div>
       </Splitter.Panel>
     </Splitter>
   );

@@ -17,11 +17,10 @@ export type TreeActions = {
 
 type UseTreeActionsInput = {
   model: TreeModel;
-  selectedId: string | null;
   onExpand: (id: string) => void;
 };
 
-export const useTreeActions = ({ model, selectedId, onExpand }: UseTreeActionsInput) => {
+export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
   const { modal } = App.useApp();
   const toast = useToast();
   const router = useRouter();
@@ -70,10 +69,10 @@ export const useTreeActions = ({ model, selectedId, onExpand }: UseTreeActionsIn
       okText: "Delete",
       okButtonProps: { danger: true },
       cancelText: "Cancel",
+      // The open tabs move the page when the one on screen is deleted (to the tab next to it, or home).
       onOk: async () => {
         try {
           await deleteNode.mutateAsync({ kind: node.kind, id: node.id });
-          if (selectedId && removedIds.includes(selectedId)) router.push(PAGE_ROUTES.home);
         } catch (error) {
           toast.error(error);
         }
