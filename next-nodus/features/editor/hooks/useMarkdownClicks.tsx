@@ -1,9 +1,12 @@
 import { Modal } from "antd";
+import { useRouter } from "next/navigation";
 import { useState, type MouseEvent } from "react";
-import { copyCodeFromClick, getZoomedDiagram } from "../lib/markdownDom";
+import { copyCodeFromClick, getWikiLinkHref, getZoomedDiagram } from "../lib/markdownDom";
 
-// One click handler for the HTML body (Copy and Zoom buttons) and the modal that shows a zoomed diagram.
+// One click handler for the HTML body (Copy and Zoom buttons, wiki-links) and the modal that shows a zoomed diagram.
+// A wiki-link opens through the router, so the page keeps its state (the text not saved yet).
 export const useMarkdownClicks = () => {
+  const router = useRouter();
   const [zoomed, setZoomed] = useState<string | null>(null);
 
   const onClick = (event: MouseEvent<HTMLElement>) => {
@@ -11,6 +14,12 @@ export const useMarkdownClicks = () => {
 
     const diagram = getZoomedDiagram(event);
     if (diagram) setZoomed(diagram);
+
+    const href = getWikiLinkHref(event);
+    if (href) {
+      event.preventDefault();
+      router.push(href);
+    }
   };
 
   const zoomModal = (

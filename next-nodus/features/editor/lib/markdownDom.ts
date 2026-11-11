@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { THEME_MODE, type ThemeMode } from "@/shared/theme";
 import { HEADING_ID_PREFIX } from "./headings";
+import { WIKI_LINK_CLASS } from "./wikiLinks";
 
 const SCROLL_MS = 650;
 
@@ -50,6 +51,16 @@ export const scrollToHash = (container: ParentNode) => {
   } catch {
     // decodeURIComponent throws on a broken escape such as %E0%A4%A.
   }
+};
+
+// The href of a wiki-link that was clicked, or null for any other click. A modifier key or a middle click is left to
+// the browser (open in a new tab); a plain click on this HTML would reload the whole page and lose the unsaved text.
+export const getWikiLinkHref = (event: MouseEvent<HTMLElement>) => {
+  const isPlainClick = event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+  const target = event.target instanceof Element ? event.target : null;
+  const anchor = target?.closest<HTMLAnchorElement>(`a.${WIKI_LINK_CLASS}`);
+
+  return isPlainClick && anchor ? anchor.getAttribute("href") : null;
 };
 
 // One click handler on the container serves every Copy button, since the HTML is not React.
