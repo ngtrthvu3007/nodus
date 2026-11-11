@@ -54,6 +54,11 @@ func TestParseRefs(t *testing.T) {
 	if len(refs) != 2 || refs[0] != "AWS" || refs[1] != "A/B/C" {
 		t.Fatalf("refs = %v", refs)
 	}
+
+	refs = parseRefs("`[[a]]` [[b]]\n```md\n[[c]]\n```\n~~~\n[[d]]\n~~~\n[[e]]")
+	if len(refs) != 2 || refs[0] != "b" || refs[1] != "e" {
+		t.Fatalf("refs without code = %v", refs)
+	}
 }
 
 func TestParseHeadings(t *testing.T) {

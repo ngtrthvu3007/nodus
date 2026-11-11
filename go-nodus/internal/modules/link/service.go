@@ -47,6 +47,8 @@ func (service *Service) GetDocLinks(ctx context.Context, docID uuid.UUID) (docLi
 		return links, err
 	}
 
+	hasBacklink := map[uuid.UUID]bool{}
+
 	for _, row := range rows {
 		if row.SourceDocID == docID {
 			target := loaded.findTarget(row.TargetDocID)
@@ -55,8 +57,11 @@ func (service *Service) GetDocLinks(ctx context.Context, docID uuid.UUID) (docLi
 			continue
 		}
 
+		// A doc can point here with several refs (`[[A]]`, `[[A#Heading]]`); it is one backlink.
 		source := loaded.entries[row.SourceDocID]
-		if source != nil {
+		if source != nil && !hasBacklink[row.SourceDocID] {
+			hasBacklink[row.SourceDocID] = true
+
 			links.Backlinks = append(links.Backlinks, backlink{
 				ID:    source.id,
 				Title: source.name,
@@ -129,28 +134,10 @@ func (service *Service) GetHeadings(ctx context.Context, docID uuid.UUID) ([]hea
 // ATX headings only; lines inside ``` or ~~~ fences are skipped.
 func parseHeadings(content string) []heading {
 	headings := []heading{}
-	fence := ""
 
-	for _, line := range strings.Split(content, "\n") {
-		line = strings.TrimRight(line, "\r")
-
-		trimmed := strings.TrimSpace(line)
-
-		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
-			marker := trimmed[:3]
-
-			switch fence {
-			case "":
-				fence = marker
-			case marker:
-				fence = ""
-			}
-
-			continue
-		}
-
+	for _, line := range outsideFences(content) {
 		match := headingPattern.FindStringSubmatch(line)
-		if fence == "" && match != nil {
+		if match != nil {
 			headings = append(headings, heading{Level: len(match[1]), Text: match[2]})
 		}
 	}

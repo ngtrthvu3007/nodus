@@ -97,7 +97,7 @@ flowchart LR
 | POST | `/workspaces/:workspaceId/docs` | `doc` | Tạo doc + dựng wiki-link **trong 1 transaction** — [[FRD-doc]] |
 | GET, PUT, DELETE | `/docs/:id` | `doc` | GET kèm `prev`/`next` theo thứ tự đọc; PUT sửa title + content và dựng lại wiki-link; DELETE soft delete cả doc con |
 | PATCH | `/docs/:id/move` | `doc` | Như move folder — [[FRD-move]] |
-| GET | `/docs/:id/links` | `link` | `backlinks` (`id`, `title`, `path`; không tính self-link) + `outgoing` (`ref`, `doc` hoặc `null` nếu broken), sắp theo chữ — [[FRD-wiki-link]] |
+| GET | `/docs/:id/links` | `link` | `backlinks` (`id`, `title`, `path`; mỗi doc nguồn một dòng, không tính self-link) + `outgoing` (`ref`, `doc` hoặc `null` nếu broken), sắp theo chữ — [[FRD-wiki-link]] |
 | GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 doc có title chứa `q`, kèm `path` và `ref` ngắn nhất để chèn |
 | GET | `/docs/:id/headings` | `link` | Heading ATX (`level`, `text`), bỏ heading trong code fence |
 
@@ -110,7 +110,7 @@ flowchart LR
 ## Dữ liệu
 
 - Bảng: `workspaces`, `folders`, `docs`, `doc_links`. Doc nằm ở gốc, trong folder (`folder_id`) hoặc trong doc khác (`parent_doc_id`), không bao giờ cả hai (CHECK `docs_one_parent`).
-- `doc_links`: `source_doc_id`, `target_ref` (chữ trong `[[...]]`, bỏ `#heading`), `target_doc_id` (NULL = broken link, FK `SET NULL`). Unique `(source_doc_id, lower(target_ref))` viết tay trong migration. Mỗi lần ghi cây hoặc nội dung, `link.RelinkWorkspace` xóa và dựng lại link của cả workspace trong cùng transaction (xem `ponytail:` trong `link/relink.go`).
+- `doc_links`: `source_doc_id`, `target_ref` (chữ trong `[[...]]`, bỏ `#heading`; `[[...]]` trong code span/code fence không tính), `target_doc_id` (NULL = broken link, FK `SET NULL`). Unique `(source_doc_id, lower(target_ref))` viết tay trong migration. Mỗi lần ghi cây hoặc nội dung, `link.RelinkWorkspace` xóa và dựng lại link của cả workspace trong cùng transaction (xem `ponytail:` trong `link/relink.go`).
 - Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration, khai báo thêm ở `internal/db/extra_schema.sql` để Atlas không đề nghị xóa.
 - GORM tự lọc soft delete (`deleted_at`) với mọi query qua model, kể cả `Preload`; không còn câu SQL thô nào phải tự thêm `deleted_at IS NULL`.
 - Đổi schema: sửa `internal/db/models.go` → `make migrate-diff NAME=…` → review SQL → `make migrate-up`. Rollback local: `make migrate-down-plan` rồi `make migrate-down`; migration đã chia sẻ thì roll forward.

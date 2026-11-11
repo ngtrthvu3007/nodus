@@ -11,6 +11,7 @@ import (
 )
 
 var wikiLinkPattern = regexp.MustCompile(`\[\[([^\[\]]+)\]\]`)
+var codeSpanPattern = regexp.MustCompile("`[^`]*`")
 
 // RelinkWorkspace rebuilds every link of the workspace from the current content and tree.
 // Call it inside the transaction of any write that changes a doc's content, title or place,
@@ -58,12 +59,13 @@ func RelinkWorkspace(tx *gorm.DB, workspaceID uuid.UUID) error {
 	return tx.CreateInBatches(&links, 500).Error
 }
 
-// Refs are trimmed, without #heading, one per case-insensitive target.
+// Refs are trimmed, without #heading, one per case-insensitive target. Code is not text: like the preview, a `[[x]]`
+// in a code span or a fenced block is not a link.
 func parseRefs(content string) []string {
 	seen := map[string]bool{}
 	refs := []string{}
 
-	for _, match := range wikiLinkPattern.FindAllStringSubmatch(content, -1) {
+	for _, match := range wikiLinkPattern.FindAllStringSubmatch(removeCode(content), -1) {
 		ref, _, _ := strings.Cut(match[1], "#")
 		ref = strings.TrimSpace(ref)
 		key := strings.ToLower(ref)
@@ -77,6 +79,46 @@ func parseRefs(content string) []string {
 	}
 
 	return refs
+}
+
+func removeCode(content string) string {
+	lines := outsideFences(content)
+
+	for i, line := range lines {
+		lines[i] = codeSpanPattern.ReplaceAllString(line, "")
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+// The lines that are not inside a ``` or ~~~ fence; the fence lines are left out too.
+func outsideFences(content string) []string {
+	lines := []string{}
+	fence := ""
+
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimRight(line, "\r")
+		trimmed := strings.TrimSpace(line)
+
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			marker := trimmed[:3]
+
+			switch fence {
+			case "":
+				fence = marker
+			case marker:
+				fence = ""
+			}
+
+			continue
+		}
+
+		if fence == "" {
+			lines = append(lines, line)
+		}
+	}
+
+	return lines
 }
 
 // Returns nil for an empty segment or a path deeper than the tree.
