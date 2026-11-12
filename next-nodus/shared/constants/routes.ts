@@ -9,6 +9,7 @@ export const API_ROUTES = {
 
   docs: (workspaceId: string) => `/workspaces/${workspaceId}/docs`,
   doc: (id: string) => `/docs/${id}`,
+  docTitle: (id: string) => `/docs/${id}/title`,
   docMove: (id: string) => `/docs/${id}/move`,
   docLinks: (id: string) => `/docs/${id}/links`,
   docHeadings: (id: string) => `/docs/${id}/headings`,

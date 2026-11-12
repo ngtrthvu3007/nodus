@@ -52,10 +52,9 @@ type UseCodeMirrorInput = {
   wikiFetchers: WikiFetchers;
 };
 
-// `value` is the starting text and `onChange` receives every edit. The text is not replaced from outside yet:
-// the Autosave story adds that when it needs "take the server version". minimalSetup has no folding or
-// autocomplete, which this editor does not want by default; the line numbers are added here, and the only
-// suggestions are the wiki-links ([[ and [[Doc#).
+// `value` is the starting text and `onChange` receives every edit, including the ones made by `replaceText`.
+// minimalSetup has no folding or autocomplete, which this editor does not want by default; the line numbers are
+// added here, and the only suggestions are the wiki-links ([[ and [[Doc#).
 export const useCodeMirror = ({ hostRef, value, onChange, wikiFetchers }: UseCodeMirrorInput) => {
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
@@ -121,5 +120,13 @@ export const useCodeMirror = ({ hostRef, value, onChange, wikiFetchers }: UseCod
     if (viewRef.current) formatView(viewRef.current);
   }, []);
 
-  return { format };
+  // One undo step, so undo brings back the text that was replaced.
+  const replaceText = useCallback((text: string) => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text }, scrollIntoView: true });
+  }, []);
+
+  return { format, replaceText };
 };

@@ -1,20 +1,24 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8080";
 
 // Envelope of every Go API response; httpClient unwraps it.
-type ApiResponse<T> = { success: true; data: T } | { success: false; error: { code: string; message: string } };
+type ApiErrorBody = { code: string; message: string; data?: unknown };
+type ApiResponse<T> = { success: true; data: T } | { success: false; error: ApiErrorBody };
 
-// signal: lets the client cancel the request; not sent to the API.
-type RequestOptions = { signal?: AbortSignal };
+// signal: lets the client cancel the request; keepalive: lets it finish after the page is closed. Neither is sent to the API.
+type RequestOptions = { signal?: AbortSignal; keepalive?: boolean };
 
 export class ApiError extends Error {
   readonly code: string;
   readonly status: number;
+  // Extra detail some errors carry (the server's copy of a doc on a version conflict); validate it before use.
+  readonly data: unknown;
 
-  constructor({ code, message, status }: { code: string; message: string; status: number }) {
+  constructor({ code, message, status, data }: ApiErrorBody & { status: number }) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -31,6 +35,7 @@ const send = async <T>({ method, path, body, options }: SendInput): Promise<T> =
     headers: body === undefined ? undefined : { "Content-Type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: options?.signal,
+    keepalive: options?.keepalive,
   });
 
   // 204 (DELETE) has no body.
@@ -49,6 +54,7 @@ const send = async <T>({ method, path, body, options }: SendInput): Promise<T> =
     code: error?.code ?? "UNKNOWN",
     message: error?.message ?? response.statusText,
     status: response.status,
+    data: error?.data,
   });
 };
 

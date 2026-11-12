@@ -3,15 +3,16 @@
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { Result, Skeleton } from "antd";
 import Link from "next/link";
-import { use, useState } from "react";
+import { use, useRef, useState } from "react";
+import type { MarkdownEditorHandle } from "@/features/editor";
 import { NodeBreadcrumb } from "@/features/tree";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
 import { ApiError } from "@/shared/libs/httpClient";
 import { useSidebarStore } from "@/shared/stores";
 import type { DocDetail, DocRef } from "@/shared/types";
-import { DocWorkspace } from "./components";
-import { useDoc } from "./hooks";
+import { ConflictDialog, DocWorkspace, SaveIndicator } from "./components";
+import { useAutosave, useDoc } from "./hooks";
 
 const CARD_CLASS =
   "flex min-w-0 flex-col gap-1 rounded-md border border-border-muted bg-surface px-4 py-3 " +
@@ -47,8 +48,15 @@ const DocNeighborLink = ({ doc, direction }: DocNeighborLinkProps) => {
 
 // The screen is as tall as the window: title on top, editor and preview below, each scrolling on its own.
 const DocContent = ({ doc }: { doc: DocDetail }) => {
-  // Edits live only here until the autosave story saves them.
+  // The text being edited, for the preview; useAutosave keeps its own copy to save.
   const [content, setContent] = useState(doc.content);
+  const editorRef = useRef<MarkdownEditorHandle>(null);
+  const autosave = useAutosave({ doc });
+
+  const handleChange = (text: string) => {
+    setContent(text);
+    autosave.change(text);
+  };
   // The button that opens a collapsed sidebar floats over the top left corner; the header makes room for it.
   const isSidebarCollapsed = useSidebarStore((state) => state.width === 0);
 
@@ -71,7 +79,22 @@ const DocContent = ({ doc }: { doc: DocDetail }) => {
         </h1>
       </header>
 
-      <DocWorkspace docId={doc.id} title={doc.title} content={content} onChange={setContent} footer={neighbors} />
+      <DocWorkspace
+        docId={doc.id}
+        title={doc.title}
+        content={content}
+        onChange={handleChange}
+        editorRef={editorRef}
+        saveIndicator={<SaveIndicator status={autosave.status} nextSaveAt={autosave.nextSaveAt} />}
+        footer={neighbors}
+      />
+
+      <ConflictDialog
+        conflict={autosave.conflict}
+        content={content}
+        onKeepMine={autosave.keepMine}
+        onTakeServer={() => autosave.takeServer((text) => editorRef.current?.replaceText(text))}
+      />
     </div>
   );
 };
@@ -84,7 +107,8 @@ export const DocView = ({ params }: DocViewProps) => {
 
   if (isPending && !error) return <Skeleton active className="mx-auto max-w-3xl px-8 py-10" />;
 
-  if (error instanceof ApiError && error.status === 404) {
+  // With data, a refetch that fails with 404 must not replace the editor: its unsaved text would be lost.
+  if (!data && error instanceof ApiError && error.status === 404) {
     return <Result status="404" title="Doc not found" subTitle="This doc does not exist or was deleted." />;
   }
 
