@@ -86,6 +86,7 @@ type noteData struct {
 	ID       uuid.UUID  `json:"id"`
 	Title    string     `json:"title"`
 	Content  string     `json:"content"`
+	Version  int        `json:"version"`
 	ParentID *uuid.UUID `json:"parentId"`
 	Prev     *noteRef   `json:"prev"`
 	Next     *noteRef   `json:"next"`
@@ -254,17 +255,18 @@ func (t *toolset) updateNote(args updateNoteArgs) (any, error) {
 		return nil, err
 	}
 
-	title := existing.Title
-	if args.Title != nil {
-		title = *args.Title
+	if args.Title != nil && *args.Title != existing.Title {
+		renamed, err := t.raw(http.MethodPatch, notePath(args.ID)+"/title", map[string]string{"title": *args.Title})
+		if err != nil || args.Content == nil {
+			return renamed, err
+		}
 	}
 
-	content := existing.Content
-	if args.Content != nil {
-		content = *args.Content
+	if args.Content == nil {
+		return existing, nil
 	}
 
-	return t.saveNote(args.ID, title, content)
+	return t.saveNote(args.ID, *args.Content, existing.Version)
 }
 
 func (t *toolset) appendToNote(args appendNoteArgs) (any, error) {
@@ -278,7 +280,7 @@ func (t *toolset) appendToNote(args appendNoteArgs) (any, error) {
 		content += "\n\n"
 	}
 
-	return t.saveNote(args.ID, existing.Title, content+args.Text)
+	return t.saveNote(args.ID, content+args.Text, existing.Version)
 }
 
 func (t *toolset) moveNote(args moveNoteArgs) (any, error) {
@@ -348,8 +350,8 @@ func (t *toolset) fetchNote(id uuid.UUID) (*noteData, error) {
 	return &found, nil
 }
 
-func (t *toolset) saveNote(id uuid.UUID, title, content string) (any, error) {
-	body := map[string]string{"title": title, "content": content}
+func (t *toolset) saveNote(id uuid.UUID, content string, version int) (any, error) {
+	body := map[string]any{"content": content, "version": version}
 	return t.raw(http.MethodPut, notePath(id), body)
 }
 

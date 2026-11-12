@@ -40,6 +40,7 @@ type Doc struct {
 	ParentDocID *uuid.UUID     `gorm:"type:uuid;index:idx_docs_parent_position,priority:2"`
 	Title       string         `gorm:"not null"`
 	Content     string         `gorm:"not null;default:''"`
+	Version     int            `gorm:"not null;default:1"`
 	Position    int64          `gorm:"not null;index:idx_docs_folder_position,priority:3;index:idx_docs_parent_position,priority:3"`
 	CreatedAt   time.Time      `gorm:"not null;default:now()"`
 	UpdatedAt   time.Time      `gorm:"not null;default:now()"`

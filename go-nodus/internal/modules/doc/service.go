@@ -2,6 +2,7 @@ package doc
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -64,6 +65,22 @@ func (service *Service) Update(ctx context.Context, id uuid.UUID, request update
 	var saved *db.Doc
 	err := database.Transaction(func(tx *gorm.DB) (err error) {
 		saved, err = service.saveDoc(tx, id, request)
+		return err
+	})
+
+	if err != nil {
+		return docDetail{}, err
+	}
+
+	return service.buildDocDetail(database, saved)
+}
+
+func (service *Service) Rename(ctx context.Context, id uuid.UUID, request renameDocRequest) (docDetail, error) {
+	database := service.db.WithContext(ctx)
+
+	var saved *db.Doc
+	err := database.Transaction(func(tx *gorm.DB) (err error) {
+		saved, err = service.applyDocRename(tx, id, request)
 		return err
 	})
 
@@ -139,6 +156,7 @@ func (service *Service) buildDocDetail(tx *gorm.DB, doc *db.Doc) (docDetail, err
 		ID:       doc.ID,
 		Title:    doc.Title,
 		Content:  doc.Content,
+		Version:  doc.Version,
 		ParentID: tree.GetParentID(tree.GetDocParent(doc)),
 		Prev:     prev,
 		Next:     next,
@@ -183,6 +201,33 @@ func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequ
 		return nil, err
 	}
 
+	if doc.Version != request.Version {
+		return nil, buildVersionConflict(doc)
+	}
+
+	changes := map[string]any{"content": request.Content, "version": gorm.Expr("version + 1")}
+
+	err = tx.Model(&db.Doc{}).Where("id = ?", doc.ID).Updates(changes).Error
+	if err != nil {
+		return nil, err
+	}
+
+	if doc.Content != request.Content {
+		err = link.RelinkWorkspace(tx, doc.WorkspaceID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return httpx.FindByID[db.Doc](tx, doc.ID, httpx.ErrDocNotFound)
+}
+
+func (service *Service) applyDocRename(tx *gorm.DB, id uuid.UUID, request renameDocRequest) (*db.Doc, error) {
+	doc, err := service.lockDoc(tx, id)
+	if err != nil {
+		return nil, err
+	}
+
 	title, err := tree.ValidateName(request.Title)
 	if err != nil {
 		return nil, err
@@ -193,9 +238,7 @@ func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequ
 		return nil, err
 	}
 
-	changes := map[string]any{"title": title, "content": request.Content}
-
-	err = tx.Model(&db.Doc{}).Where("id = ?", doc.ID).Updates(changes).Error
+	err = tx.Model(&db.Doc{}).Where("id = ?", doc.ID).Update("title", title).Error
 	if err != nil {
 		return nil, err
 	}
@@ -206,6 +249,13 @@ func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequ
 	}
 
 	return httpx.FindByID[db.Doc](tx, doc.ID, httpx.ErrDocNotFound)
+}
+
+func buildVersionConflict(doc *db.Doc) *httpx.Error {
+	apiErr := httpx.NewError(http.StatusConflict, "version_conflict", "Doc was changed by someone else")
+	apiErr.Data = docConflictDetail{Title: doc.Title, Content: doc.Content, Version: doc.Version}
+
+	return apiErr
 }
 
 // Reading order is depth-first with folders skipped.

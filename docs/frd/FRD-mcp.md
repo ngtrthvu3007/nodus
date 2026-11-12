@@ -42,7 +42,7 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 
 - Mọi tool chạy với quyền của 1 tài khoản cụ thể, không có đường vào dữ liệu của tài khoản khác.
 - MCP local xác thực bằng **personal access token** (PAT) có phạm vi quyền (`docs:read`, `docs:write`) — [[FRD-account]].
-- `update_note`/`append_to_note` gửi kèm `version` của tài liệu; tài liệu đã bị sửa ở nơi khác → báo xung đột, không ghi đè (tiêu chí ở [[ADR-001-tech-stack]] mục 6).
+- `update_note`/`append_to_note` gửi kèm `version` của tài liệu; tài liệu đã bị sửa ở nơi khác → báo xung đột, không ghi đè (tiêu chí ở [[ADR-001-tech-stack]] mục 6, chi tiết ở [[FRD-autosave]]). `update_note` đổi `title` đi qua route đổi tên riêng, không cần `version`.
 - Bộ tool là dùng chung với chat AI trong app ([[FRD-ai-chat]]).
 
 ## Chưa chốt / để sau

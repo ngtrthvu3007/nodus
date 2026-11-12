@@ -58,14 +58,15 @@ type ErrorBody struct {
 type errorField struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 func WriteOK(ginContext *gin.Context, status int, data any) {
 	ginContext.JSON(status, SuccessBody{Success: true, Data: data})
 }
 
-func writeErrorResponse(ginContext *gin.Context, status int, code string, message string) {
-	body := ErrorBody{Error: errorField{Code: code, Message: message}}
+func writeErrorResponse(ginContext *gin.Context, status int, code string, message string, data any) {
+	body := ErrorBody{Error: errorField{Code: code, Message: message, Data: data}}
 	ginContext.AbortWithStatusJSON(status, body)
 }
 
@@ -73,6 +74,7 @@ type Error struct {
 	Status  int
 	Code    string
 	Message string
+	Data    any
 }
 
 func NewError(status int, code string, message string) *Error {
@@ -101,7 +103,7 @@ func handleErrors() gin.HandlerFunc {
 
 		var apiErr *Error
 		if errors.As(err, &apiErr) {
-			writeErrorResponse(ginContext, apiErr.Status, apiErr.Code, apiErr.Message)
+			writeErrorResponse(ginContext, apiErr.Status, apiErr.Code, apiErr.Message, apiErr.Data)
 			return
 		}
 
@@ -113,7 +115,7 @@ func handleErrors() gin.HandlerFunc {
 			"err", err,
 		)
 
-		writeErrorResponse(ginContext, http.StatusInternalServerError, "internal", "Internal error")
+		writeErrorResponse(ginContext, http.StatusInternalServerError, "internal", "Internal error", nil)
 	}
 }
 

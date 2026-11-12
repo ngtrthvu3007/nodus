@@ -25,6 +25,8 @@ definitions:
         $ref: '#/definitions/doc.docRef'
       title:
         type: string
+      version:
+        type: integer
     type: object
   doc.docRef:
     properties:
@@ -46,14 +48,21 @@ definitions:
       title:
         type: string
     type: object
-  doc.updateDocRequest:
+  doc.renameDocRequest:
     properties:
-      content:
-        type: string
       title:
         type: string
     required:
     - title
+    type: object
+  doc.updateDocRequest:
+    properties:
+      content:
+        type: string
+      version:
+        type: integer
+    required:
+    - version
     type: object
   folder.childNode:
     properties:
@@ -127,6 +136,7 @@ definitions:
     properties:
       code:
         type: string
+      data: {}
       message:
         type: string
     type: object
@@ -268,7 +278,7 @@ paths:
         name: id
         required: true
         type: string
-      - description: Title and content
+      - description: Content and the version being edited
         in: body
         name: body
         required: true
@@ -296,7 +306,8 @@ paths:
           description: Conflict
           schema:
             $ref: '#/definitions/httpx.ErrorBody'
-      summary: Replace the title and content of a doc
+      summary: Replace the content of a doc; 409 version_conflict if the version is
+        stale
       tags:
       - doc
   /docs/{id}/headings:
@@ -391,6 +402,46 @@ paths:
           schema:
             $ref: '#/definitions/httpx.ErrorBody'
       summary: Move a doc into a folder, under another doc, or to the root
+      tags:
+      - doc
+  /docs/{id}/title:
+    patch:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Title
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/doc.renameDocRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.docDetail'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Rename a doc
       tags:
       - doc
   /folders/{id}:
