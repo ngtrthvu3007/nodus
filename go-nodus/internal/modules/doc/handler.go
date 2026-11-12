@@ -24,6 +24,7 @@ func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	doc := router.Group("/docs/:id", httpx.ParseResourceID(httpx.ErrDocNotFound))
 	doc.GET("", handler.getDoc)
 	doc.PUT("", httpx.ParseJSONBody[updateDocRequest](), handler.updateDoc)
+	doc.PATCH("/title", httpx.ParseJSONBody[renameDocRequest](), handler.renameDoc)
 	doc.PATCH("/move", httpx.ParseJSONBodyRequiringKeys[tree.MoveRequest]("parentId", "afterId"), handler.moveDoc)
 	doc.DELETE("", handler.deleteDoc)
 }
@@ -66,10 +67,10 @@ func (handler *Handler) getDoc(ginContext *gin.Context) {
 	httpx.WriteOK(ginContext, http.StatusOK, doc)
 }
 
-// @Summary	Replace the title and content of a doc
+// @Summary	Replace the content of a doc; 409 version_conflict if the version is stale
 // @Tags		doc
 // @Param		id			path		string				true	"Doc ID"	format(uuid)
-// @Param		body		body		updateDocRequest	true	"Title and content"
+// @Param		body		body		updateDocRequest	true	"Content and the version being edited"
 // @Success	200			{object}	httpx.SuccessBody{data=docDetail}
 // @Failure	400,404,409	{object}	httpx.ErrorBody
 // @Router		/docs/{id} [put]
@@ -78,6 +79,28 @@ func (handler *Handler) updateDoc(ginContext *gin.Context) {
 		ginContext.Request.Context(),
 		httpx.GetResourceID(ginContext),
 		httpx.GetBody[updateDocRequest](ginContext),
+	)
+
+	if err != nil {
+		_ = ginContext.Error(err)
+		return
+	}
+
+	httpx.WriteOK(ginContext, http.StatusOK, doc)
+}
+
+// @Summary	Rename a doc
+// @Tags		doc
+// @Param		id			path		string				true	"Doc ID"	format(uuid)
+// @Param		body		body		renameDocRequest	true	"Title"
+// @Success	200			{object}	httpx.SuccessBody{data=docDetail}
+// @Failure	400,404,409	{object}	httpx.ErrorBody
+// @Router		/docs/{id}/title [patch]
+func (handler *Handler) renameDoc(ginContext *gin.Context) {
+	doc, err := handler.service.Rename(
+		ginContext.Request.Context(),
+		httpx.GetResourceID(ginContext),
+		httpx.GetBody[renameDocRequest](ginContext),
 	)
 
 	if err != nil {

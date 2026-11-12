@@ -95,7 +95,8 @@ flowchart LR
 | GET, PATCH, DELETE | `/folders/:id` | `folder` | GET kèm `children`; PATCH đổi `name`/`description`; DELETE xóa cứng, FK cascade |
 | PATCH | `/folders/:id/move` | `folder` | Bắt buộc gửi đủ `parentId`, `afterId` (cho phép null) — [[FRD-move]] |
 | POST | `/workspaces/:workspaceId/docs` | `doc` | Tạo doc + dựng wiki-link **trong 1 transaction** — [[FRD-doc]] |
-| GET, PUT, DELETE | `/docs/:id` | `doc` | GET kèm `prev`/`next` theo thứ tự đọc; PUT sửa title + content và dựng lại wiki-link; DELETE soft delete cả doc con |
+| GET, PUT, DELETE | `/docs/:id` | `doc` | GET kèm `prev`/`next` theo thứ tự đọc và `version`; PUT sửa `content` kèm `version` (sai → `409 version_conflict`) và dựng lại wiki-link — [[FRD-autosave]]; DELETE soft delete cả doc con |
+| PATCH | `/docs/:id/title` | `doc` | Đổi tên doc, không cần `version`, dựng lại wiki-link — [[FRD-doc]] |
 | PATCH | `/docs/:id/move` | `doc` | Như move folder — [[FRD-move]] |
 | GET | `/docs/:id/links` | `link` | `backlinks` (`id`, `title`, `path`; mỗi doc nguồn một dòng, không tính self-link) + `outgoing` (`ref`, `doc` hoặc `null` nếu broken), sắp theo chữ — [[FRD-wiki-link]] |
 | GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 doc có title chứa `q`, kèm `path` và `ref` ngắn nhất để chèn |

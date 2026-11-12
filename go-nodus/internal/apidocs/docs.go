@@ -62,7 +62,7 @@ const docTemplate = `{
                 "tags": [
                     "doc"
                 ],
-                "summary": "Replace the title and content of a doc",
+                "summary": "Replace the content of a doc; 409 version_conflict if the version is stale",
                 "parameters": [
                     {
                         "type": "string",
@@ -73,7 +73,7 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Title and content",
+                        "description": "Content and the version being edited",
                         "name": "body",
                         "in": "body",
                         "required": true,
@@ -278,6 +278,71 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/tree.Moved"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    }
+                }
+            }
+        },
+        "/docs/{id}/title": {
+            "patch": {
+                "tags": [
+                    "doc"
+                ],
+                "summary": "Rename a doc",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Doc ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Title",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/doc.renameDocRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httpx.SuccessBody"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/doc.docDetail"
                                         }
                                     }
                                 }
@@ -773,6 +838,9 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                },
+                "version": {
+                    "type": "integer"
                 }
             }
         },
@@ -807,17 +875,28 @@ const docTemplate = `{
                 }
             }
         },
-        "doc.updateDocRequest": {
+        "doc.renameDocRequest": {
             "type": "object",
             "required": [
                 "title"
             ],
             "properties": {
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "doc.updateDocRequest": {
+            "type": "object",
+            "required": [
+                "version"
+            ],
+            "properties": {
                 "content": {
                     "type": "string"
                 },
-                "title": {
-                    "type": "string"
+                "version": {
+                    "type": "integer"
                 }
             }
         },
@@ -932,6 +1011,7 @@ const docTemplate = `{
                 "code": {
                     "type": "string"
                 },
+                "data": {},
                 "message": {
                     "type": "string"
                 }

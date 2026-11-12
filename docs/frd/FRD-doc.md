@@ -28,9 +28,9 @@ Doc là đơn vị tài liệu: có title và nội dung markdown. Đây là FRD
 
 ### Sửa doc
 
-- `PUT /docs/:id` chỉ sửa `title`/`content`, không đổi vị trí (đổi vị trí xem [[FRD-move]]).
-- Lưu kèm `version`, sai version → `409 version_conflict` — xem [[FRD-autosave]].
-- Mỗi lần ghi nội dung, link `[[...]]` được dựng lại cùng transaction ([[FRD-wiki-link]]).
+- `PUT /docs/:id` chỉ sửa `content`, không đổi vị trí (đổi vị trí xem [[FRD-move]]). Lưu kèm `version`, sai version → `409 version_conflict` — xem [[FRD-autosave]].
+- `PATCH /docs/:id/title` đổi tên doc, theo cùng quy tắc tên như lúc tạo (1–200 ký tự, không chứa `/ # | [ ]`, không trùng tên cùng cha); không cần `version`.
+- Mỗi lần ghi nội dung hoặc đổi tên, link `[[...]]` được dựng lại cùng transaction ([[FRD-wiki-link]]).
 
 ### Hiển thị
 
