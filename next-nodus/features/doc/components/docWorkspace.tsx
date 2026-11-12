@@ -1,5 +1,6 @@
 import { Splitter } from "antd";
-import { useRef, useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode, type RefObject } from "react";
+import type { MarkdownEditorHandle } from "@/features/editor";
 import { useIsNarrowScreen } from "@/shared/hooks";
 import { useDocViewStore } from "@/shared/stores";
 import { EditorPanel } from "./editorPanel";
@@ -10,6 +11,9 @@ type DocWorkspaceProps = {
   title: string;
   content: string;
   onChange: (content: string) => void;
+  editorRef: RefObject<MarkdownEditorHandle | null>;
+  // Shown in the editor's tab bar, next to the Format button.
+  saveIndicator: ReactNode;
   footer?: ReactNode;
 };
 
@@ -36,7 +40,15 @@ const getInitialSizes = (isNarrow: boolean, isPreviewShown: boolean) => {
 // zero width. It stays mounted for the animation; inert keeps the keyboard out of it.
 // On a phone the two panels cannot sit side by side: it shows the editor, and the preview button swaps it for the
 // preview at full width (and back), with no minimum widths.
-export const DocWorkspace = ({ docId, title, content, onChange, footer }: DocWorkspaceProps) => {
+export const DocWorkspace = ({
+  docId,
+  title,
+  content,
+  onChange,
+  editorRef,
+  saveIndicator,
+  footer,
+}: DocWorkspaceProps) => {
   const isNarrow = useIsNarrowScreen();
   const isPreviewShown = useDocViewStore((state) => state.isPreviewShown);
   const setPreviewShown = useDocViewStore((state) => state.setPreviewShown);
@@ -68,10 +80,13 @@ export const DocWorkspace = ({ docId, title, content, onChange, footer }: DocWor
       collapsible={COLLAPSIBLE}
       onResize={setSizes}
       className="nodus-doc-splitter min-h-0 flex-1 overflow-hidden border-t border-border-muted">
-      <Splitter.Panel size={editorSize} min={isNarrow ? 0 : 320} className="overflow-hidden bg-surface">
+      {/* @container: the save status in the tab bar sizes itself by this panel's width. */}
+      <Splitter.Panel size={editorSize} min={isNarrow ? 0 : 320} className="@container overflow-hidden bg-surface">
         <EditorPanel
           content={content}
           onChange={onChange}
+          editorRef={editorRef}
+          saveIndicator={saveIndicator}
           isHidden={isEditorHidden}
           isPreviewCollapsed={isPreviewCollapsed}
           onExpandPreview={expandPreview}

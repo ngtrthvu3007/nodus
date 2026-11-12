@@ -7,14 +7,12 @@ export const getDoc = (id: string, signal?: AbortSignal) => httpClient.get<DocDe
 
 export const createDoc = (request: CreateDocRequest) => httpClient.post<Doc>(API_ROUTES.docs(WORKSPACE_ID), request);
 
-export const updateDoc = (id: string, request: UpdateDocRequest) =>
-  httpClient.put<DocDetail>(API_ROUTES.doc(id), request);
+// keepalive: lets the save finish after the page is closed.
+export const updateDoc = (id: string, request: UpdateDocRequest, keepalive?: boolean) =>
+  httpClient.put<DocDetail>(API_ROUTES.doc(id), request, { keepalive });
 
-// PUT replaces title and content together, so the current content is sent back.
-export const renameDoc = async (id: string, title: string) => {
-  const current = await getDoc(id);
-  return updateDoc(id, { title, content: current.content });
-};
+export const renameDoc = (id: string, title: string) =>
+  httpClient.patch<DocDetail>(API_ROUTES.docTitle(id), { title });
 
 export const moveDoc = (id: string, request: MoveRequest) =>
   httpClient.patch<MoveResponse>(API_ROUTES.docMove(id), request);
