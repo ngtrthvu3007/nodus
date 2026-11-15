@@ -8,7 +8,7 @@ import (
 	"go-nodus/internal/httpx"
 )
 
-var errInvalidSearch = httpx.NewError(http.StatusBadRequest, "invalid_params", "Invalid limit or offset")
+var errInvalidSearch = httpx.NewError(http.StatusBadRequest, "invalid_params", "Invalid search parameters")
 
 // @Summary	Search docs by title and content
 // @Tags		doc

@@ -1,8 +1,6 @@
 package doc
 
 import (
-	"strings"
-
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
@@ -26,16 +24,16 @@ WITH RECURSIVE chain AS (
 	) parent ON parent.id = chain.node_id
 	WHERE chain.depth < 4
 )
-SELECT chain.doc_id, COALESCE(folders.name, docs.title) AS name
+SELECT chain.doc_id, string_agg(COALESCE(folders.name, docs.title), ' / ' ORDER BY chain.depth DESC) AS path
 FROM chain
 LEFT JOIN folders ON folders.id = chain.node_id
 LEFT JOIN docs ON docs.id = chain.node_id AND docs.deleted_at IS NULL
 WHERE chain.node_id IS NOT NULL
-ORDER BY chain.doc_id, chain.depth DESC`
+GROUP BY chain.doc_id`
 
 type pathRow struct {
 	DocID uuid.UUID
-	Name  string
+	Path  string
 }
 
 // Returns doc id -> "Project / Backend"; a doc at the root has no entry.
@@ -54,14 +52,9 @@ func loadPaths(database *gorm.DB, docs []db.Doc) (map[uuid.UUID]string, error) {
 		return nil, err
 	}
 
-	names := map[uuid.UUID][]string{}
+	paths := make(map[uuid.UUID]string, len(rows))
 	for _, row := range rows {
-		names[row.DocID] = append(names[row.DocID], row.Name)
-	}
-
-	paths := make(map[uuid.UUID]string, len(names))
-	for docID, parts := range names {
-		paths[docID] = strings.Join(parts, " / ")
+		paths[row.DocID] = row.Path
 	}
 
 	return paths, nil

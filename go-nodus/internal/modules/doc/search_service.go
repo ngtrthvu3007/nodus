@@ -3,6 +3,7 @@ package doc
 import (
 	"context"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 
@@ -17,6 +18,11 @@ func (service *Service) Search(
 	workspaceID uuid.UUID,
 	request searchDocsRequest,
 ) (searchDocsResponse, error) {
+	keyword := strings.TrimSpace(request.Query)
+	if err := checkKeyword(keyword); err != nil {
+		return searchDocsResponse{}, err
+	}
+
 	database := service.db.WithContext(ctx)
 
 	_, err := httpx.FindByID[db.Workspace](database, workspaceID, httpx.ErrWorkspaceNotFound)
@@ -25,7 +31,6 @@ func (service *Service) Search(
 	}
 
 	limit := min(request.Limit, maxSearchLimit)
-	keyword := strings.TrimSpace(request.Query)
 
 	query := database.Where("workspace_id = ?", workspaceID)
 	if keyword != "" {
@@ -62,6 +67,15 @@ func (service *Service) Search(
 	}
 
 	return searchDocsResponse{Items: items, Limit: limit, Offset: request.Offset, HasMore: hasMore}, nil
+}
+
+// Postgres rejects a NUL byte and invalid UTF-8 in text, which would surface as a 500.
+func checkKeyword(keyword string) error {
+	if !utf8.ValidString(keyword) || strings.ContainsRune(keyword, 0) {
+		return errInvalidSearch
+	}
+
+	return nil
 }
 
 // `\` is Postgres' default LIKE escape character.

@@ -45,3 +45,17 @@ func TestEscapeLike(t *testing.T) {
 		t.Errorf("got %q", got)
 	}
 }
+
+func TestCheckKeyword(t *testing.T) {
+	for _, keyword := range []string{"", "auth", "tổng quan", `100%_\`} {
+		if err := checkKeyword(keyword); err != nil {
+			t.Errorf("%q should be accepted, got %v", keyword, err)
+		}
+	}
+
+	for _, keyword := range []string{"a\x00b", "\xff\xfe", "\xed\xa0\x80"} {
+		if err := checkKeyword(keyword); err == nil {
+			t.Errorf("%q should be rejected", keyword)
+		}
+	}
+}

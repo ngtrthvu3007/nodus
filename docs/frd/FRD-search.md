@@ -17,7 +17,9 @@ Tìm doc theo title và nội dung — cho người dùng và cho AI qua MCP —
 - **Có phân trang**: `limit` (mặc định 20, tối đa 100) và `offset`; response có `hasMore`. Từ khóa rỗng cũng bị giới hạn như vậy, không trả toàn bộ kho.
 - Chỉ trả doc đang hiện hữu (không gồm doc đã xóa) trong workspace; chỉ member của workspace tìm được. Người xem qua share không dùng tìm kiếm ([[FRD-share]]).
 - Tool `search_notes` của [[FRD-mcp]] (giữ tên hiện có) dùng chung quy tắc này, có tham số `limit`/`offset`.
-- Lỗi: `workspace_not_found` (404), `invalid_params` (400, `limit`/`offset` không phải số hoặc âm). `limit` lớn hơn 100 thì cắt còn 100, không báo lỗi.
+- Giao diện: ô tìm kiếm ở sidebar, trên cây sitemap. Có chữ thì kết quả (title, `path`, `snippet`) thay cho cây; xóa chữ thì cây hiện lại. Từ khóa được đợi một lúc sau lần gõ cuối rồi mới gọi API. Nút "Load more" nối trang kế tiếp khi `hasMore`. Bấm kết quả mở doc thành tab ([[FRD-tabs]]). Kết quả được làm mới khi doc đổi (tạo, đổi tên, move, xóa, lưu nội dung).
+- Lỗi: `workspace_not_found` (404), `invalid_params` (400: `limit`/`offset` không phải số hoặc âm; từ khóa chứa byte NUL hoặc không phải UTF-8 hợp lệ). `limit` lớn hơn 100 thì cắt còn 100, không báo lỗi.
+- Từ khóa gõ ở giao diện được chuẩn hóa NFC trước khi gửi, vì chữ có dấu gõ hoặc dán ở dạng tổ hợp sẽ không khớp nội dung lưu dạng dựng sẵn. Máy chủ so khớp đúng từng ký tự, không chuẩn hóa nội dung đã lưu.
 
 ## Chỉ mục
 

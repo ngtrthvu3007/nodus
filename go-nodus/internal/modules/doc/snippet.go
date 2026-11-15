@@ -3,7 +3,6 @@ package doc
 import (
 	"regexp"
 	"strings"
-	"unicode"
 )
 
 const (
@@ -43,23 +42,14 @@ func buildSnippet(content string, keyword string) string {
 
 // Matches by rune, so the offset stays valid for Vietnamese text; -1 when not found.
 func indexFold(text []rune, needle []rune) int {
+	wanted := string(needle)
 	for index := 0; len(needle) > 0 && index+len(needle) <= len(text); index++ {
-		if equalFold(text[index:index+len(needle)], needle) {
+		if strings.EqualFold(string(text[index:index+len(needle)]), wanted) {
 			return index
 		}
 	}
 
 	return -1
-}
-
-func equalFold(left []rune, right []rune) bool {
-	for index := range left {
-		if unicode.ToLower(left[index]) != unicode.ToLower(right[index]) {
-			return false
-		}
-	}
-
-	return true
 }
 
 func cleanMarkdown(text string) string {
