@@ -32,11 +32,12 @@ Billing, chat AI, ảnh, mẫu tài liệu để sau. **Mọi dữ liệu lưu t
 | 12 | [[FRD-share]] | Mới | P2 | Auth |
 | 13 | [[FRD-publish]] | Mới; miễn phí, chưa kiểm tra gói | P2 | API |
 | 14 | [[FRD-export]] | Mới | P2 | API |
-| 15 | [[FRD-image]] | Mới | Xa | Schema/lưu trữ |
-| 16 | [[FRD-storage]] | Mới (Google Drive) | Xa | ADR riêng |
-| 17 | [[FRD-billing]] | Mới | Xa | Thanh toán |
-| 18 | [[FRD-ai-chat]] | Mới | Xa | Bảo mật key |
-| 19 | [[FRD-template]] | Mới | Xa | — |
+| 15 | [[FRD-import]] | Mới (chỉ nhập file `.md` thành doc) | P2 | API |
+| 16 | [[FRD-image]] | Mới | Xa | Schema/lưu trữ |
+| 17 | [[FRD-storage]] | Mới (Google Drive) | Xa | ADR riêng |
+| 18 | [[FRD-billing]] | Mới | Xa | Thanh toán |
+| 19 | [[FRD-ai-chat]] | Mới | Xa | Bảo mật key |
+| 20 | [[FRD-template]] | Mới | Xa | — |
 
 - **P1**: lõi theo hướng mới. **P2**: chia sẻ, publish, export. **Xa**: làm sau khi có người dùng thật.
 

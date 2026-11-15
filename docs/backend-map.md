@@ -25,7 +25,8 @@ go-nodus/
 │   │   │   └── types.go       # Node, Item, MoveRequest, Moved
 │   │   ├── folder/        # /folders (đổi tên, move, xóa gọi link.RelinkWorkspace)
 │   │   ├── doc/           # /docs (tạo, sửa, move, xóa gọi link.RelinkWorkspace)
-│   │   └── link/          # wiki-link: backlink, autocomplete, headings, RelinkWorkspace
+│   │   ├── link/          # wiki-link: backlink, autocomplete, headings, RelinkWorkspace
+│   │   └── export/        # tải doc, nhiều doc, folder về file markdown (layout, đặt tên, ghi zip streaming)
 │   ├── apidocs/           # Swagger do `make swagger` sinh từ annotation (không sửa tay)
 │   ├── config/config.go   # biến môi trường
 │   └── db/
@@ -102,6 +103,9 @@ flowchart LR
 | GET | `/workspaces/:workspaceId/docs?q=&limit=&offset=` | `doc` | Tìm theo title/nội dung, phân trang, kèm `path` và `snippet` — [[FRD-search]] |
 | GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 doc có title chứa `q`, kèm `path` và `ref` ngắn nhất để chèn |
 | GET | `/docs/:id/headings` | `link` | Heading ATX (`level`, `text`), bỏ heading trong code fence |
+| GET | `/docs/:id/export` | `export` | File `.md` chỉ chứa chính doc (không kèm con); response là file, lỗi vẫn là JSON — [[FRD-export]] |
+| POST | `/workspaces/:workspaceId/docs/export` | `export` | Body `{ "ids": [...] }` (1–200) → `.zip` phẳng; id không phải doc đang tồn tại trong workspace → `404 doc_not_found`, không trả file |
+| GET | `/folders/:id/export` | `export` | `.zip` giữ cây (tiền tố số theo thứ tự sitemap, doc có con → thư mục chứa `00-Tên.md`) |
 
 ## API docs
 
