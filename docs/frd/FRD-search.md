@@ -22,7 +22,7 @@ Tìm doc theo title và nội dung — cho người dùng và cho AI qua MCP —
 ## Chỉ mục
 
 - Bật extension `pg_trgm`; đánh GIN `gin_trgm_ops` trên `docs.title` và `docs.content`, chỉ doc chưa xóa (`WHERE deleted_at IS NULL`), để `ILIKE '%…%'` không quét toàn bảng. Từ khóa dưới 3 ký tự không dùng được chỉ mục (quét tuần tự, `limit` dừng sớm).
-- Migration viết tay và khai báo thêm ở `internal/db/extra_schema.sql` ([[backend-map]]).
+- Chỉ có trong migration viết tay, không khai báo ở `extra_schema.sql` (Atlas bản miễn phí không khai báo được extension); cách xử lý khi `migrate-diff` đề nghị xóa chúng xem [[backend-map]].
 
 ## Chưa chốt
 
