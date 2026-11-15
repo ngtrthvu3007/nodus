@@ -55,6 +55,32 @@ definitions:
     required:
     - title
     type: object
+  doc.searchDocResult:
+    properties:
+      id:
+        type: string
+      path:
+        type: string
+      snippet:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  doc.searchDocsResponse:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/doc.searchDocResult'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+    type: object
   doc.updateDocRequest:
     properties:
       content:
@@ -568,6 +594,47 @@ paths:
       tags:
       - folder
   /workspaces/{workspaceId}/docs:
+    get:
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Text to find in title or content
+        in: query
+        name: q
+        type: string
+      - description: Page size, default 20, max 100
+        in: query
+        name: limit
+        type: integer
+      - description: Results to skip, default 0
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.searchDocsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Search docs by title and content
+      tags:
+      - doc
     post:
       parameters:
       - description: Workspace ID

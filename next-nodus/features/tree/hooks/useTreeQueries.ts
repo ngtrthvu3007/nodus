@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { createNode, deleteNode, getTree, moveNode, renameNode } from "@/api";
 import { DOC_HEADINGS_KEY, DOC_LINKS_KEY } from "@/features/link";
+import { SEARCH_KEY } from "@/features/search";
 import { NODE_KIND, WORKSPACE_ID } from "@/shared/constants";
 
 export const useTree = () =>
@@ -11,9 +12,9 @@ export const useTree = () =>
     refetchOnWindowFocus: true,
   });
 
-const TREE_QUERY_KEYS = ["tree", NODE_KIND.folder, NODE_KIND.doc, DOC_LINKS_KEY, DOC_HEADINGS_KEY];
+const TREE_QUERY_KEYS = ["tree", NODE_KIND.folder, NODE_KIND.doc, DOC_LINKS_KEY, DOC_HEADINGS_KEY, SEARCH_KEY];
 
-// A tree change can also change a folder's children, a doc's prev/next, and which wiki-links resolve.
+// A tree change can also change a folder's children, a doc's prev/next, which wiki-links resolve, and search results.
 const invalidateTree = (queryClient: QueryClient) =>
   Promise.all(TREE_QUERY_KEYS.map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
 

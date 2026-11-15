@@ -12,3 +12,8 @@ CREATE UNIQUE INDEX "docs_unique_title" ON "public"."docs" ("workspace_id", coal
 
 -- One link per source doc and target ref, case-insensitive.
 CREATE UNIQUE INDEX "doc_links_unique_ref" ON "public"."doc_links" ("source_doc_id", lower("target_ref"));
+
+-- Trigram indexes for substring search on live docs. The extension itself is created by the migration
+-- (20261115140000) and, for Atlas, by atlas-dev-init.sql: free Atlas rejects CREATE EXTENSION in a schema file.
+CREATE INDEX "docs_title_trgm" ON "public"."docs" USING gin ("title" gin_trgm_ops) WHERE "deleted_at" IS NULL;
+CREATE INDEX "docs_content_trgm" ON "public"."docs" USING gin ("content" gin_trgm_ops) WHERE "deleted_at" IS NULL;

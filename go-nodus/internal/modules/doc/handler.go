@@ -21,6 +21,8 @@ func NewHandler(service *Service) *Handler {
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	router.POST("/workspaces/:workspaceId/docs", httpx.ParseWorkspaceID(), httpx.ParseJSONBody[createDocRequest](), handler.createDoc)
 
+	router.GET("/workspaces/:workspaceId/docs", httpx.ParseWorkspaceID(), handler.searchDocs)
+
 	doc := router.Group("/docs/:id", httpx.ParseResourceID(httpx.ErrDocNotFound))
 	doc.GET("", handler.getDoc)
 	doc.PUT("", httpx.ParseJSONBody[updateDocRequest](), handler.updateDoc)

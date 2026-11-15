@@ -66,6 +66,8 @@ services:
     profiles: ["tools"]
     environment:
       POSTGRES_PASSWORD: dev
+    volumes:
+      - ./atlas-dev-init.sql:/docker-entrypoint-initdb.d/01-pg-trgm.sql:ro
     tmpfs:
       - /var/lib/postgresql/data
     healthcheck:

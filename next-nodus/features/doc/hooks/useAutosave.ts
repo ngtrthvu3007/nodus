@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { updateDoc } from "@/api";
 import { DOC_HEADINGS_KEY, DOC_LINKS_KEY } from "@/features/link";
+import { SEARCH_KEY } from "@/features/search";
 import { NODE_KIND } from "@/shared/constants";
 import type { DocConflict, DocDetail } from "@/shared/types";
 import {
@@ -108,7 +109,10 @@ export const useAutosave = ({ doc }: UseAutosaveInput) => {
       state.retries = 0;
       setStatus(SAVE_STATUS.saved);
       // A save rebuilds the links of the whole workspace: backlinks, outgoing links and headings may all change.
-      await Promise.all([DOC_LINKS_KEY, DOC_HEADINGS_KEY].map((key) => queryClient.invalidateQueries({ queryKey: [key] })));
+      // The new content can also match a different search.
+      await Promise.all(
+        [DOC_LINKS_KEY, DOC_HEADINGS_KEY, SEARCH_KEY].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
+      );
     },
     [doc.id, queryClient, schedule],
   );

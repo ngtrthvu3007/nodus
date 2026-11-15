@@ -18,7 +18,7 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 
 | Tool | Tham số | Việc |
 | --- | --- | --- |
-| `search_notes` | `query?` | Tìm theo title/content (substring, không phân biệt hoa thường), mới cập nhật lên trước, chỉ trả preview. `query` rỗng → trả **mọi** note |
+| `search_notes` | `query?`, `limit?`, `offset?` | Tìm theo title/content theo [[FRD-search]]: có phân trang (`limit` mặc định 20, tối đa 100), kết quả có `path` và `snippet`, kèm `hasMore`. `query` rỗng → trang đầu theo mới cập nhật |
 | `get_note` | `id` | Nội dung đầy đủ + `outgoing` và `backlinks` |
 | `create_note` | `title`, `content?`, `folderId?`, `parentNoteId?` | Tạo note; có `parentNoteId` thì kế thừa folder của cha |
 | `update_note` | `id`, `title?`, `content?` | Thay title/content; `content` thay **toàn bộ** nội dung |
@@ -35,7 +35,6 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 
 - Chỉ chạy **local** (stdio), phải build binary và cấu hình trong client.
 - **Không có auth**: ai chạy binary và trỏ tới API là đọc/sửa/xóa được mọi dữ liệu (cùng hạn chế với API, xem [[FRD-account]]).
-- `search_notes` với `query` rỗng trả toàn bộ note, không có `limit` hay lọc theo thời gian — kho lớn sẽ làm ngập ngữ cảnh của AI.
 - Chưa có MCP prompts, resources.
 
 ## Yêu cầu khi có tài khoản
@@ -50,5 +49,5 @@ Cho AI agent bên ngoài (Claude Code, Claude Desktop, Cursor…) đọc và ghi
 - **Remote MCP** qua HTTP, xác thực OAuth 2.1 theo đặc tả MCP: dùng được từ máy khác hoặc Claude web mà không cần chạy Nodus local.
 - Tool ghi của MCP hiện áp dụng ngay, không qua bước duyệt trong Nodus như [[FRD-ai-chat]] — có cần cơ chế duyệt ([[BRD]] mục 7) hay dựa vào xác nhận của client MCP.
 - **MCP prompts** (mẫu lệnh có sẵn trong client).
-- Thêm `limit`/lọc theo thời gian cho `search_notes` (đổi API contract `GET /notes` → cần duyệt).
+- Lọc theo thời gian cho `search_notes` (`limit`/`offset` đã có, xem [[FRD-search]]).
 - Đổi `instructions` khi các hạn chế của [[FRD-wiki-link]] được xử lý (ví dụ cho phép link tới note chưa tồn tại).

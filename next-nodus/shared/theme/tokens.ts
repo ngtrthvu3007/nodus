@@ -105,5 +105,9 @@ export const buildThemeConfig = (antd: AntdTheme, mode: ThemeMode): ThemeConfig 
 
   // One CSS-variable scope per mode: the server-rendered light block (streamed into <body>) would otherwise
   // override the client-injected dark block, since both would use the same selector.
-  return { token, algorithm, components, cssVar: { key: `nodus-${mode}` } };
+  // The dark colorTextLightSolid is dark, for text on the bright brand fills; a tooltip's gray bubble needs light text.
+  const themed =
+    mode === THEME_MODE.dark ? { ...components, Tooltip: { colorTextLightSolid: colors.colorTextBase } } : components;
+
+  return { token, algorithm, components: themed, cssVar: { key: `nodus-${mode}` } };
 };

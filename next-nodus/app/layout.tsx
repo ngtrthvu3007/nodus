@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Suspense, type ReactNode } from "react";
+import { SearchPanel } from "@/features/search";
 import { TabBar } from "@/features/tabs";
 import { TreeView } from "@/features/tree";
 import { AppShell } from "@/shared/components";
@@ -40,7 +41,13 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
       {/* Runtime data (theme cookie, antd's random cache id) must render inside Suspense with cacheComponents */}
       <Suspense fallback={null}>
         <ThemedProviders>
-          <AppShell sidebar={<TreeView />} tabs={<TabBar />}>
+          <AppShell
+            sidebar={
+              <SearchPanel>
+                <TreeView />
+              </SearchPanel>
+            }
+            tabs={<TabBar />}>
             {children}
           </AppShell>
         </ThemedProviders>

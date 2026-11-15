@@ -1,5 +1,14 @@
 import { httpClient } from "@/shared/libs/httpClient";
-import type { CreateDocRequest, Doc, DocDetail, MoveRequest, MoveResponse, UpdateDocRequest } from "@/shared/types";
+import type {
+  CreateDocRequest,
+  Doc,
+  DocDetail,
+  MoveRequest,
+  MoveResponse,
+  SearchDocsRequest,
+  SearchDocsResponse,
+  UpdateDocRequest,
+} from "@/shared/types";
 import { API_ROUTES, WORKSPACE_ID } from "@/shared/constants";
 
 // signal: lets the client cancel the request; not an API parameter.
@@ -18,3 +27,6 @@ export const moveDoc = (id: string, request: MoveRequest) =>
   httpClient.patch<MoveResponse>(API_ROUTES.docMove(id), request);
 
 export const deleteDoc = (id: string) => httpClient.delete(API_ROUTES.doc(id));
+
+export const searchDocs = (request: SearchDocsRequest, signal?: AbortSignal) =>
+  httpClient.get<SearchDocsResponse>(API_ROUTES.docSearch(WORKSPACE_ID, request), { signal });

@@ -570,6 +570,72 @@ const docTemplate = `{
             }
         },
         "/workspaces/{workspaceId}/docs": {
+            "get": {
+                "tags": [
+                    "doc"
+                ],
+                "summary": "Search docs by title and content",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Text to find in title or content",
+                        "name": "q",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, default 20, max 100",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Results to skip, default 0",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httpx.SuccessBody"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/doc.searchDocsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    }
+                }
+            },
             "post": {
                 "tags": [
                     "doc"
@@ -883,6 +949,46 @@ const docTemplate = `{
             "properties": {
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "doc.searchDocResult": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "path": {
+                    "type": "string"
+                },
+                "snippet": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "doc.searchDocsResponse": {
+            "type": "object",
+            "properties": {
+                "hasMore": {
+                    "type": "boolean"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/doc.searchDocResult"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
                 }
             }
         },
