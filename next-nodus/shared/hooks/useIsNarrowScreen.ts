@@ -1,3 +1,5 @@
+"use client";
+
 import { useSyncExternalStore } from "react";
 
 // Below Tailwind's `md` breakpoint: a phone, where the sidebar and the page cannot sit side by side.

@@ -1,3 +1,4 @@
+import type { SearchDocsRequest } from "@/shared/types";
 import type { NodeKind } from "./nodeKind";
 
 export const API_ROUTES = {
@@ -8,6 +9,8 @@ export const API_ROUTES = {
   folderMove: (id: string) => `/folders/${id}/move`,
 
   docs: (workspaceId: string) => `/workspaces/${workspaceId}/docs`,
+  docSearch: (workspaceId: string, { query, offset }: SearchDocsRequest) =>
+    `/workspaces/${workspaceId}/docs?${new URLSearchParams({ q: query, offset: String(offset) })}`,
   doc: (id: string) => `/docs/${id}`,
   docTitle: (id: string) => `/docs/${id}/title`,
   docMove: (id: string) => `/docs/${id}/move`,

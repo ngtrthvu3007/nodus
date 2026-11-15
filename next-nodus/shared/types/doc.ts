@@ -32,6 +32,26 @@ export interface UpdateDocRequest {
   version: number;
 }
 
+export interface DocSearchResult {
+  id: string;
+  title: string;
+  path: string;
+  snippet: string;
+  updatedAt: string;
+}
+
+export interface SearchDocsRequest {
+  query: string;
+  offset: number;
+}
+
+export interface SearchDocsResponse {
+  items: DocSearchResult[];
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
 // The server's copy of a doc, sent in `error.data` of a `version_conflict`.
 export interface DocConflict {
   title: string;
