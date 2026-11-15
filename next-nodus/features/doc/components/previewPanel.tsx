@@ -1,10 +1,11 @@
-import { Maximize2Icon, PanelRightCloseIcon } from "lucide-react";
+import { Maximize2Icon, PanelRightCloseIcon, PrinterIcon } from "lucide-react";
 import { Button, Tabs } from "antd";
 import { useDeferredValue, useRef, useState, type ReactNode } from "react";
 import { Markdown, MarkdownOutline, type OutlineItem } from "@/features/editor";
 import { useWikiResolver } from "../hooks";
 import { LinksPanel } from "./linksPanel";
 import { PreviewModal } from "./previewModal";
+import { PrintDoc } from "./printDoc";
 
 const PREVIEW_TAB = "preview";
 const LINKS_TAB = "links";
@@ -45,6 +46,14 @@ export const PreviewPanel = ({ docId, title, content, footer, isHidden, onCollap
         tabBarExtraContent={
           <div className="flex items-center gap-1">
             <MarkdownOutline outline={source && activeTab === PREVIEW_TAB ? outline : []} containerRef={scrollRef} />
+            <Button
+              size="small"
+              type="text"
+              aria-label="Print or save as PDF"
+              disabled={!content.trim()}
+              icon={<PrinterIcon className="size-4" />}
+              onClick={() => window.print()}
+            />
             <Button
               size="small"
               type="text"
@@ -91,6 +100,8 @@ export const PreviewPanel = ({ docId, title, content, footer, isHidden, onCollap
         resolveWikiLink={resolveWikiLink}
         onClose={() => setIsFullScreen(false)}
       />
+
+      <PrintDoc title={title} source={source} resolveWikiLink={resolveWikiLink} />
     </div>
   );
 };

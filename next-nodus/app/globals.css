@@ -338,6 +338,50 @@
   }
 }
 
+/* Print copy of a doc (features/doc/components/printDoc.tsx): hidden on screen; when printing it is the only thing
+   left in <body>. The page is light while printing (features/doc/hooks/usePrintLight.ts). */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  /* !important: antd portals (modals, dropdowns) set their own inline display. */
+  body > :not(.nodus-print-root) {
+    display: none !important;
+  }
+
+  .nodus-print-root {
+    print-color-adjust: exact; /* keeps code and table backgrounds */
+  }
+
+  /* A [[wiki-link]] prints as plain text. */
+  .nodus-print-root a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .nodus-print-root :is(.nodus-code button, .nodus-diagram button) {
+    display: none;
+  }
+
+  .nodus-print-root pre {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+
+  .nodus-print-root .nodus-mermaid {
+    overflow: visible;
+  }
+
+  .nodus-print-root :is(.nodus-code, .nodus-diagram, tr, img) {
+    break-inside: avoid;
+  }
+
+  .nodus-print-root :is(h1, h2, h3, h4) {
+    break-after: avoid;
+  }
+}
+
 /* Long names are cut with an ellipsis instead of stretching the row, and with it the sidebar. */
 .ant-tree .ant-tree-node-content-wrapper {
   min-width: 0;
