@@ -1,3 +1,4 @@
+export { useDocSelection } from "./useDocSelection";
 export { useNodeNameInput } from "./useNodeNameInput";
 export { useTreeActions, type TreeActions } from "./useTreeActions";
 export { useTreeDrag } from "./useTreeDrag";

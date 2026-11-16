@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { createNode, deleteNode, getTree, moveNode, renameNode } from "@/api";
+import { createNode, deleteNode, exportDocs, exportNode, getTree, moveNode, renameNode } from "@/api";
 import { DOC_HEADINGS_KEY, DOC_LINKS_KEY } from "@/features/link";
 import { SEARCH_KEY } from "@/features/search";
 import { NODE_KIND, WORKSPACE_ID } from "@/shared/constants";
+import { saveFile } from "@/shared/libs/saveFile";
 
 export const useTree = () =>
   useQuery({
@@ -44,6 +45,11 @@ export const useMoveNode = () => {
     onSuccess: () => invalidateTree(queryClient),
   });
 };
+
+// An export changes nothing on the server, so nothing is invalidated: the file goes straight to the browser.
+export const useExportNode = () => useMutation({ mutationFn: exportNode, onSuccess: saveFile });
+
+export const useExportDocs = () => useMutation({ mutationFn: exportDocs, onSuccess: saveFile });
 
 export const useDeleteNode = () => {
   const queryClient = useQueryClient();

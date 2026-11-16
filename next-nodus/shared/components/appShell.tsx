@@ -84,7 +84,8 @@ export const AppShell = ({ sidebar, tabs, children }: AppShellProps) => {
           tabIndex={collapsed ? 0 : -1}
           icon={<PanelLeftOpenIcon className="size-4" />}
           onClick={toggle}
-          className={`absolute top-3 left-3 z-10 border-border-muted bg-surface shadow-sm transition-opacity duration-300 motion-reduce:transition-none ${
+          // size-9 and top-2 match the tab row (36px tall, 8px of padding above it), so the button lines up with the tabs.
+          className={`absolute top-2 left-3 z-10 size-9 border-border-muted bg-surface shadow-sm transition-opacity duration-300 motion-reduce:transition-none ${
             collapsed ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />

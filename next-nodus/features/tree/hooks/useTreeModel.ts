@@ -42,6 +42,9 @@ const buildTreeData = (nodes: TreeNode[], disabledId: string | null): NodeData[]
         children,
         isLeaf: node.kind === NODE_KIND.doc && !children.length,
         disabled: node.id === disabledId,
+        // Only docs can be picked for an export (a folder is exported from its own menu). Its checkbox stays, hidden
+        // in globals.css, so every title keeps the same left edge.
+        disableCheckbox: node.kind === NODE_KIND.folder,
       };
     });
 

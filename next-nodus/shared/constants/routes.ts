@@ -7,6 +7,7 @@ export const API_ROUTES = {
   folders: (workspaceId: string) => `/workspaces/${workspaceId}/folders`,
   folder: (id: string) => `/folders/${id}`,
   folderMove: (id: string) => `/folders/${id}/move`,
+  folderExport: (id: string) => `/folders/${id}/export`,
 
   docs: (workspaceId: string) => `/workspaces/${workspaceId}/docs`,
   docSearch: (workspaceId: string, { query, offset }: SearchDocsRequest) =>
@@ -14,6 +15,8 @@ export const API_ROUTES = {
   doc: (id: string) => `/docs/${id}`,
   docTitle: (id: string) => `/docs/${id}/title`,
   docMove: (id: string) => `/docs/${id}/move`,
+  docExport: (id: string) => `/docs/${id}/export`,
+  docsExport: (workspaceId: string) => `/workspaces/${workspaceId}/docs/export`,
   docLinks: (id: string) => `/docs/${id}/links`,
   docHeadings: (id: string) => `/docs/${id}/headings`,
   docAutocomplete: (workspaceId: string, query: string) =>

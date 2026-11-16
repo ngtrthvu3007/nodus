@@ -32,6 +32,10 @@ export interface UpdateDocRequest {
   version: number;
 }
 
+export interface ExportDocsRequest {
+  ids: string[];
+}
+
 export interface DocSearchResult {
   id: string;
   title: string;

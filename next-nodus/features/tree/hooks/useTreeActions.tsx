@@ -7,12 +7,13 @@ import { useToast } from "@/shared/hooks";
 import type { NodeKind, TreeNode } from "@/shared/types";
 import { DRAFT_MODE, useTreeDraftStore, type CreateDraft, type RenameDraft } from "@/shared/stores";
 import type { TreeModel } from "./useTreeModel";
-import { useCreateNode, useDeleteNode, useRenameNode } from "./useTreeQueries";
+import { useCreateNode, useDeleteNode, useExportNode, useRenameNode } from "./useTreeQueries";
 
 export type TreeActions = {
   openCreate: (kind: NodeKind, parentId: string | null) => void;
   openRename: (node: TreeNode) => void;
   confirmDelete: (node: TreeNode) => void;
+  exportNode: (node: TreeNode) => void;
 };
 
 type UseTreeActionsInput = {
@@ -27,6 +28,7 @@ export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
   const createNode = useCreateNode();
   const renameNode = useRenameNode();
   const deleteNode = useDeleteNode();
+  const exportNode = useExportNode();
   const { draft, startCreate, startRename, clearDraft } = useTreeDraftStore();
 
   const createFromDraft = async (createDraft: CreateDraft, name: string) => {
@@ -84,6 +86,7 @@ export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
     openCreate: startCreate,
     openRename: (node) => startRename(node.id),
     confirmDelete,
+    exportNode: ({ kind, id }) => exportNode.mutate({ kind, id }, { onError: (error) => toast.error(error) }),
   };
 
   return { actions, submitDraft };
