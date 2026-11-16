@@ -1,5 +1,5 @@
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { createNode, deleteNode, exportDocs, exportNode, getTree, moveNode, renameNode } from "@/api";
+import { useIsMutating, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { createNode, deleteNode, exportDocs, exportNode, getTree, importDocs, moveNode, renameNode } from "@/api";
 import { DOC_HEADINGS_KEY, DOC_LINKS_KEY } from "@/features/link";
 import { SEARCH_KEY } from "@/features/search";
 import { NODE_KIND, WORKSPACE_ID } from "@/shared/constants";
@@ -50,6 +50,21 @@ export const useMoveNode = () => {
 export const useExportNode = () => useMutation({ mutationFn: exportNode, onSuccess: saveFile });
 
 export const useExportDocs = () => useMutation({ mutationFn: exportDocs, onSuccess: saveFile });
+
+const IMPORT_MUTATION_KEY = ["import-docs"];
+
+export const useImportDocs = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: IMPORT_MUTATION_KEY,
+    mutationFn: importDocs,
+    onSuccess: () => invalidateTree(queryClient),
+  });
+};
+
+// An import in flight, wherever it was started (a sidebar menu, a folder page): every New button shows it.
+export const useIsImporting = () => useIsMutating({ mutationKey: IMPORT_MUTATION_KEY }) > 0;
 
 export const useDeleteNode = () => {
   const queryClient = useQueryClient();

@@ -12,7 +12,7 @@ Người dùng đưa file markdown có sẵn (từ máy, từ Obsidian, từ cô
 
 - `POST /workspaces/:workspaceId/docs/import` (`multipart/form-data`): các file ở field `files` (1–20 file) và field `parentId` (folder, doc, hoặc bỏ trống = root, giống tạo doc — [[FRD-doc]]).
 - Mỗi file thành **1 doc mới** dưới `parentId`, nối vào cuối danh sách cùng cha theo thứ tự file trong request.
-- Chỉ nhận file đuôi `.md` (không phân biệt hoa thường), tối đa 1 MB mỗi file, nội dung phải là UTF-8 (bỏ BOM nếu có).
+- Chỉ nhận file đuôi `.md` (không phân biệt hoa thường), tối đa 1 MB mỗi file, nội dung phải là UTF-8 (bỏ BOM nếu có; byte NUL tính là không phải UTF-8). Cả request tối đa 21 MB (20 file × 1 MB và phần đóng gói); vượt → `400 invalid_body`, không tạo gì.
 - Nội dung giữ nguyên, kể cả frontmatter (không đọc, không bỏ).
 - Title lấy từ tên file bỏ đuôi `.md`:
   - bỏ khoảng trắng hai đầu; ký tự cấm trong title (`/ # | [ ]`, [[FRD-doc]]) thay bằng `-`; dài quá 200 ký tự thì cắt;
@@ -25,7 +25,7 @@ Người dùng đưa file markdown có sẵn (từ máy, từ Obsidian, từ cô
 
 - Lỗi của từng file **không làm hỏng cả lượt**: file hợp lệ vẫn được tạo (cùng một transaction), file lỗi nằm trong danh sách `failed`. Response: `{ "created": [{ "id", "title", "fileName" }], "failed": [{ "fileName", "code" }] }`.
 - Mã lỗi từng file: `invalid_file_type` (không phải `.md`), `file_too_large` (quá 1 MB), `invalid_encoding` (không phải UTF-8), `invalid_title`.
-- Lỗi cả request (không tạo gì): quá 20 file hoặc không có file → `400 invalid_params`; `parentId` không tồn tại → `404 folder_not_found` / `doc_not_found`; vượt độ sâu tối đa như tạo doc ([[FRD-sitemap]]); không phải member ([[FRD-account]]).
+- Lỗi cả request (không tạo gì): quá 20 file hoặc không có file → `400 invalid_params`; `parentId` không phải id của folder hoặc doc trong workspace (không tồn tại, hoặc không phải UUID) → `400 invalid_params`, giống tạo doc ([[FRD-doc]]); vượt độ sâu tối đa như tạo doc ([[FRD-sitemap]]); không phải member ([[FRD-account]]).
 - Mọi quy tắc đặt chỗ kiểm tra ở server, không tin UI ([[FRD-doc]]).
 
 ### 3. Giao diện

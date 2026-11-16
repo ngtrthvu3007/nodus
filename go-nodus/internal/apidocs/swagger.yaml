@@ -48,6 +48,33 @@ definitions:
       title:
         type: string
     type: object
+  doc.importCreatedDoc:
+    properties:
+      fileName:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  doc.importDocsResponse:
+    properties:
+      created:
+        items:
+          $ref: '#/definitions/doc.importCreatedDoc'
+        type: array
+      failed:
+        items:
+          $ref: '#/definitions/doc.importFailedFile'
+        type: array
+    type: object
+  doc.importFailedFile:
+    properties:
+      code:
+        type: string
+      fileName:
+        type: string
+    type: object
   doc.renameDocRequest:
     properties:
       title:
@@ -798,6 +825,51 @@ paths:
       summary: Download the chosen docs as a flat .zip (their children are not included)
       tags:
       - export
+  /workspaces/{workspaceId}/docs/import:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: 1-20 .md files, up to 1 MB each
+        in: formData
+        items:
+          type: file
+        name: files
+        required: true
+        type: array
+      - description: Folder or doc ID; leave out for the root
+        in: formData
+        name: parentId
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.importDocsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Import .md files as docs under a folder, a doc or the root; a bad file
+        is reported and does not stop the rest
+      tags:
+      - doc
   /workspaces/{workspaceId}/folders:
     post:
       parameters:

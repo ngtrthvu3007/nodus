@@ -8,6 +8,7 @@ import {
   FolderClosedIcon,
   FolderOpenIcon,
   FolderPlusIcon,
+  UploadIcon,
 } from "lucide-react";
 import { Button, Dropdown, Input, type MenuProps } from "antd";
 import { NODE_KIND, NODE_LABEL, type NodeKind } from "@/shared/constants";
@@ -69,7 +70,10 @@ export const NodeNameInput = ({ kind, initialName, onSubmit, onCancel }: NodeNam
   );
 };
 
-const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete, exportNode }: TreeActions): MenuProps => {
+const getMenu = (
+  node: TreeNode,
+  { openCreate, openRename, confirmDelete, exportNode, importDocs }: TreeActions,
+): MenuProps => {
   const newFolder = {
     key: "create-folder",
     label: "New folder",
@@ -93,6 +97,13 @@ const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete, export
     onClick: () => exportNode(node),
   };
 
+  const importItem = {
+    key: "import",
+    label: node.kind === NODE_KIND.folder ? "Import docs" : "Import child docs",
+    icon: <UploadIcon className="size-4" />,
+    onClick: () => importDocs(node),
+  };
+
   const remove = { key: "delete", label: "Delete", danger: true, onClick: () => confirmDelete(node) };
 
   return {
@@ -102,6 +113,7 @@ const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete, export
       { type: "divider" as const },
       rename,
       exportItem,
+      importItem,
       { type: "divider" as const },
       remove,
     ],

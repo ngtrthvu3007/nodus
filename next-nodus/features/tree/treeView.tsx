@@ -63,7 +63,7 @@ export const TreeView = () => {
     selectedId,
     forcedOpenId: draft?.mode === DRAFT_MODE.create ? draft.parentId : null,
   });
-  const { actions, submitDraft } = useTreeActions({ model, onExpand: expand });
+  const { actions, submitDraft, importInput } = useTreeActions({ model, onExpand: expand });
   const drag = useTreeDrag({ model, onExpand: expand, onBlockDoc: setBlockedDocId });
   const selection = useDocSelection();
 
@@ -109,6 +109,8 @@ export const TreeView = () => {
 
   return (
     <div className="flex flex-col gap-2 pb-2">
+      {importInput}
+
       {selection.isSelecting ? (
         <SelectionBar
           count={selection.selectedIds.length}
