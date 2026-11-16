@@ -10,6 +10,7 @@ export const useToast = () => {
 
   return {
     success: (title: string) => notification.success({ title }),
+    warning: (title: string) => notification.warning({ title }),
     error: (error: unknown) => notification.error({ title: getErrorMessage(error) }),
   };
 };

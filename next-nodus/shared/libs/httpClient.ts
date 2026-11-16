@@ -33,13 +33,21 @@ const isApiResponse = (body: unknown): body is ApiResponse<unknown> =>
 
 type SendInput = { method: string; path: string; body?: unknown; options?: RequestOptions };
 
+const toBodyInit = (body: unknown): Pick<RequestInit, "body" | "headers"> => {
+  if (body === undefined) return {};
+
+  // A form (a file upload) is sent as is: the browser adds the multipart header, with its boundary.
+  if (body instanceof FormData) return { body };
+
+  // Only a request with a body needs the header; it would make every cross-origin GET send a preflight.
+  return { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+};
+
 const sendRequest = ({ method, path, body, options }: SendInput) =>
   fetch(`${API_BASE}${path}`, {
     method,
     credentials: "include",
-    // Only a request with a body needs it; the header would make every cross-origin GET send a preflight.
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    ...toBodyInit(body),
     signal: options?.signal,
     keepalive: options?.keepalive,
   });

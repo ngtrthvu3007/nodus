@@ -17,6 +17,7 @@ export const API_ROUTES = {
   docMove: (id: string) => `/docs/${id}/move`,
   docExport: (id: string) => `/docs/${id}/export`,
   docsExport: (workspaceId: string) => `/workspaces/${workspaceId}/docs/export`,
+  docsImport: (workspaceId: string) => `/workspaces/${workspaceId}/docs/import`,
   docLinks: (id: string) => `/docs/${id}/links`,
   docHeadings: (id: string) => `/docs/${id}/headings`,
   docAutocomplete: (workspaceId: string, query: string) =>

@@ -36,6 +36,30 @@ export interface ExportDocsRequest {
   ids: string[];
 }
 
+export type ImportFailureCode = "invalid_file_type" | "file_too_large" | "invalid_encoding" | "invalid_title";
+
+// Not sent as JSON: the files go in a multipart form (api/doc.ts builds it).
+export interface ImportDocsRequest {
+  files: File[];
+  parentId: string | null;
+}
+
+export interface ImportedDoc {
+  id: string;
+  title: string;
+  fileName: string;
+}
+
+export interface ImportFailure {
+  fileName: string;
+  code: ImportFailureCode;
+}
+
+export interface ImportDocsResponse {
+  created: ImportedDoc[];
+  failed: ImportFailure[];
+}
+
 export interface DocSearchResult {
   id: string;
   title: string;
