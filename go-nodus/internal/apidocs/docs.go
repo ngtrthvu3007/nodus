@@ -876,6 +876,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/workspaces/{workspaceId}/docs/import": {
+            "post": {
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "tags": [
+                    "doc"
+                ],
+                "summary": "Import .md files as docs under a folder, a doc or the root; a bad file is reported and does not stop the rest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Workspace ID",
+                        "name": "workspaceId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "file"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "1-20 .md files, up to 1 MB each",
+                        "name": "files",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Folder or doc ID; leave out for the root",
+                        "name": "parentId",
+                        "in": "formData"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/httpx.SuccessBody"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/doc.importDocsResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/httpx.ErrorBody"
+                        }
+                    }
+                }
+            }
+        },
         "/workspaces/{workspaceId}/folders": {
             "post": {
                 "tags": [
@@ -1060,6 +1130,48 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "doc.importCreatedDoc": {
+            "type": "object",
+            "properties": {
+                "fileName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "doc.importDocsResponse": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/doc.importCreatedDoc"
+                    }
+                },
+                "failed": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/doc.importFailedFile"
+                    }
+                }
+            }
+        },
+        "doc.importFailedFile": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "fileName": {
                     "type": "string"
                 }
             }

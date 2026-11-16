@@ -57,30 +57,74 @@ func (service *Service) PlaceNew(
 	parentID *uuid.UUID,
 	name string,
 ) (*Node, int64, error) {
+	parent, position, _, err := service.place(tx, workspaceID, kind, parentID, name, false)
+	return parent, position, err
+}
+
+// PlaceNewRenamed is PlaceNew, but a name a sibling already has becomes name-2, name-3... instead of an error. It
+// returns the name to use.
+func (service *Service) PlaceNewRenamed(
+	tx *gorm.DB,
+	workspaceID uuid.UUID,
+	kind string,
+	parentID *uuid.UUID,
+	name string,
+) (*Node, int64, string, error) {
+	return service.place(tx, workspaceID, kind, parentID, name, true)
+}
+
+// CheckParent fails when parentID does not exist or a new doc under it would be too deep.
+func (service *Service) CheckParent(tx *gorm.DB, workspaceID uuid.UUID, parentID *uuid.UUID) error {
 	index, err := service.LoadIndex(tx, workspaceID)
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 
 	parent, err := resolveParent(index, parentID)
 	if err != nil {
-		return nil, 0, err
+		return err
 	}
 
-	newItem := Item{Kind: kind, Name: name}
+	// The empty name never matches a sibling, so only the parent and the depth are checked.
+	_, err = checkPlacement(index, Item{Kind: KindDoc}, parent, 1)
 
-	siblings, err := checkPlacement(index, newItem, parent, 1)
+	return err
+}
+
+func (service *Service) place(
+	tx *gorm.DB,
+	workspaceID uuid.UUID,
+	kind string,
+	parentID *uuid.UUID,
+	name string,
+	renameIfTaken bool,
+) (*Node, int64, string, error) {
+	index, err := service.LoadIndex(tx, workspaceID)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, "", err
+	}
+
+	parent, err := resolveParent(index, parentID)
+	if err != nil {
+		return nil, 0, "", err
+	}
+
+	if renameIfTaken {
+		name = findFreeName(index.findSiblings(parent), name)
+	}
+
+	siblings, err := checkPlacement(index, Item{Kind: kind, Name: name}, parent, 1)
+	if err != nil {
+		return nil, 0, "", err
 	}
 
 	if len(siblings) == 0 {
-		return parent, positionStep, nil
+		return parent, positionStep, name, nil
 	}
 
 	lastSibling := siblings[len(siblings)-1]
 
-	return parent, lastSibling.Position + positionStep, nil
+	return parent, lastSibling.Position + positionStep, name, nil
 }
 
 func (service *Service) CheckNameFree(

@@ -3,10 +3,12 @@ package tree
 import (
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
+	"golang.org/x/text/unicode/norm"
 
 	"go-nodus/internal/db"
 	"go-nodus/internal/httpx"
@@ -176,6 +178,45 @@ func ValidateName(name string) (string, error) {
 	}
 
 	return trimmed, nil
+}
+
+// ToValidName turns free text such as a file name into a name that passes ValidateName: forbidden characters become
+// "-" and it is cut to the length limit. The result is empty when nothing is left. File names can arrive with
+// accents taken apart (a Mac does this); NFC puts them back, so the name matches what is typed and wiki-links resolve.
+func ToValidName(text string) string {
+	replaced := strings.Map(func(char rune) rune {
+		if strings.ContainsRune(forbiddenNameChars, char) {
+			return '-'
+		}
+
+		return char
+	}, norm.NFC.String(text))
+
+	return strings.TrimSpace(truncateRunes(strings.TrimSpace(replaced), maxNameLength))
+}
+
+func truncateRunes(text string, limit int) string {
+	if utf8.RuneCountInString(text) <= limit {
+		return text
+	}
+
+	return string([]rune(text)[:limit])
+}
+
+// findFreeName is name, or name-2, name-3... when a sibling already has it, and still within the length limit.
+func findFreeName(siblings []Node, name string) string {
+	if !isNameTaken(siblings, name) {
+		return name
+	}
+
+	for number := 2; ; number++ {
+		suffix := "-" + strconv.Itoa(number)
+		candidate := truncateRunes(name, maxNameLength-len(suffix)) + suffix
+
+		if !isNameTaken(siblings, candidate) {
+			return candidate
+		}
+	}
 }
 
 func resolveParent(index *Index, id *uuid.UUID) (*Node, error) {
