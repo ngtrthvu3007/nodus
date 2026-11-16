@@ -85,7 +85,8 @@
   /* Background of code blocks, in the preview and in the editor. Light is the app background with a touch of the
      text color; going deeper lowers the contrast of some syntax colors below 4.5:1. Dark goes darker than the
      app background. */
-  :root {
+  :root,
+  .nodus-light {
     --nodus-code-bg: color-mix(in srgb, var(--nodus-color-canvas) 94%, var(--nodus-color-fg));
   }
 
@@ -95,7 +96,8 @@
 
   /* Text color of inline code, in the editor and the preview: pink, apart from the link blue and the text. 4.95:1 on the
      light background and 9.8:1 on the dark one (the old blue was 3.4:1). */
-  :root {
+  :root,
+  .nodus-light {
     --nodus-code-text: #be185d;
   }
 
@@ -240,6 +242,11 @@
     color: var(--shiki-dark);
   }
 
+  /* A light scope inside a dark page (the print copy): same specificity as the rule above, so it comes after it. */
+  .nodus-light .nodus-code .shiki span {
+    color: var(--shiki-light);
+  }
+
   /* Slim scrollbar for the editor and the preview, drawn only while the pointer or the keyboard is in the panel. */
   .cm-scroller,
   .nodus-scroll {
@@ -338,6 +345,62 @@
   }
 }
 
+/* Print copy of a doc (features/doc/components/printDoc.tsx): hidden on screen; when printing it is the only thing
+   left in <body>. It carries `nodus-light`, the light tokens, so it prints light whatever the app's theme is, and the
+   app behind the print dialog is not touched. */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  /* A dark app sets color-scheme: dark on <html>, which makes the blank page dark too; paper is white. */
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: transparent;
+  }
+
+  /* !important: antd portals (modals, dropdowns) set their own inline display. */
+  body > :not(.nodus-print-root) {
+    display: none !important;
+  }
+
+  /* body's text color was resolved with the app's theme and is inherited as a plain color, so it is set again here. */
+  .nodus-print-root {
+    color: var(--nodus-color-fg);
+    print-color-adjust: exact; /* keeps code and table backgrounds */
+  }
+
+  /* A [[wiki-link]] prints as plain text. */
+  .nodus-print-root a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .nodus-print-root :is(.nodus-code button, .nodus-diagram button) {
+    display: none;
+  }
+
+  .nodus-print-root pre {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+
+  .nodus-print-root .nodus-mermaid {
+    overflow: visible;
+  }
+
+  .nodus-print-root :is(.nodus-code, .nodus-diagram, tr, img) {
+    break-inside: avoid;
+  }
+
+  .nodus-print-root :is(h1, h2, h3, h4) {
+    break-after: avoid;
+  }
+}
+
 /* Long names are cut with an ellipsis instead of stretching the row, and with it the sidebar. */
 .ant-tree .ant-tree-node-content-wrapper {
   min-width: 0;
@@ -386,6 +449,21 @@
 .ant-tree-show-line .ant-tree-switcher-leaf-line::before,
 .ant-tree-show-line .ant-tree-switcher-leaf-line::after {
   display: none;
+}
+
+/* While docs are picked for an export, a folder's checkbox is hidden but keeps its space, so titles line up. */
+.ant-tree .ant-tree-checkbox-disabled {
+  visibility: hidden;
+}
+
+/* An empty box needs more contrast than antd's hairline border to read as a control; hovering the row shows the primary.
+   In antd v6 the border is on the .ant-tree-checkbox element itself, not on its -inner. */
+.ant-tree .ant-tree-checkbox:not(.ant-tree-checkbox-checked) {
+  border-color: var(--nodus-color-fg-subtle);
+}
+
+.ant-tree .ant-tree-treenode:hover .ant-tree-checkbox:not(.ant-tree-checkbox-checked) {
+  border-color: var(--nodus-color-primary);
 }
 
 /* Drag grip sits in the gutter left of the row so it does not push the guides and chevrons. */

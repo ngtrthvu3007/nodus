@@ -23,3 +23,5 @@ export const moveFolder = (id: string, request: MoveRequest) =>
   httpClient.patch<MoveResponse>(API_ROUTES.folderMove(id), request);
 
 export const deleteFolder = (id: string) => httpClient.delete(API_ROUTES.folder(id));
+
+export const exportFolder = (id: string) => httpClient.getFile(API_ROUTES.folderExport(id));

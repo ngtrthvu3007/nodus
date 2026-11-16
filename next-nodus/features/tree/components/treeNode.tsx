@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  DownloadIcon,
   EllipsisIcon,
   FilePlusIcon,
   FileTextIcon,
@@ -68,7 +69,7 @@ export const NodeNameInput = ({ kind, initialName, onSubmit, onCancel }: NodeNam
   );
 };
 
-const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete }: TreeActions): MenuProps => {
+const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete, exportNode }: TreeActions): MenuProps => {
   const newFolder = {
     key: "create-folder",
     label: "New folder",
@@ -85,10 +86,25 @@ const getMenu = (node: TreeNode, { openCreate, openRename, confirmDelete }: Tree
 
   const rename = { key: "rename", label: "Rename", onClick: () => openRename(node) };
 
+  const exportItem = {
+    key: "export",
+    label: node.kind === NODE_KIND.folder ? "Export folder (.zip)" : "Export this doc only (.md)",
+    icon: <DownloadIcon className="size-4" />,
+    onClick: () => exportNode(node),
+  };
+
   const remove = { key: "delete", label: "Delete", danger: true, onClick: () => confirmDelete(node) };
 
   return {
-    items: [...(node.kind === NODE_KIND.folder ? [newFolder] : []), newDoc, { type: "divider" as const }, rename, remove],
+    items: [
+      ...(node.kind === NODE_KIND.folder ? [newFolder] : []),
+      newDoc,
+      { type: "divider" as const },
+      rename,
+      exportItem,
+      { type: "divider" as const },
+      remove,
+    ],
     onClick: ({ domEvent }) => domEvent.stopPropagation(),
   };
 };
@@ -117,7 +133,8 @@ export const TreeNodeTitle = ({ node, expanded, actions, onRename }: TreeNodeTit
       <span className="group flex min-w-0 items-center gap-2">
         <NodeIcon kind={node.kind} expanded={expanded} />
 
-        <span className="min-w-0 flex-1 truncate">{node.name}</span>
+        {/* text-fg: antd dims a folder's row while docs are picked (its checkbox is disabled); the name stays readable. */}
+        <span className="min-w-0 flex-1 truncate text-fg">{node.name}</span>
 
         <Dropdown menu={menu} trigger={["click"]}>
           <Button
