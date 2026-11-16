@@ -33,7 +33,7 @@ func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/docs/{id}/export [get]
 func (handler *Handler) exportDoc(ginContext *gin.Context) {
-	file, err := handler.service.ExportDoc(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	file, err := handler.service.BuildDocFile(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
@@ -50,7 +50,7 @@ func (handler *Handler) exportDoc(ginContext *gin.Context) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/folders/{id}/export [get]
 func (handler *Handler) exportFolder(ginContext *gin.Context) {
-	file, err := handler.service.ExportFolder(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	file, err := handler.service.BuildFolderZip(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
@@ -69,7 +69,7 @@ func (handler *Handler) exportFolder(ginContext *gin.Context) {
 // @Failure	400,404		{object}	httpx.ErrorBody
 // @Router		/workspaces/{workspaceId}/docs/export [post]
 func (handler *Handler) exportDocs(ginContext *gin.Context) {
-	file, err := handler.service.ExportDocs(
+	file, err := handler.service.BuildDocsZip(
 		ginContext.Request.Context(),
 		httpx.GetWorkspaceID(ginContext),
 		httpx.GetBody[exportDocsRequest](ginContext),
@@ -87,7 +87,8 @@ func (handler *Handler) exportDocs(ginContext *gin.Context) {
 // no longer be JSON, so it is only logged and the download ends early.
 func sendFile(ginContext *gin.Context, file exportFile) {
 	ginContext.Header("Content-Type", file.ContentType)
-	ginContext.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": file.Name}))
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": file.Name})
+	ginContext.Header(httpx.HeaderContentDisposition, disposition)
 	ginContext.Status(http.StatusOK)
 
 	err := file.Write(ginContext.Writer)

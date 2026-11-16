@@ -30,6 +30,28 @@ func TestToFileName(t *testing.T) {
 	}
 }
 
+func TestToDownloadName(t *testing.T) {
+	tests := []struct {
+		input string
+		want  string
+	}{
+		{"Tổng quan", "tong-quan"},
+		{"Đường đi", "duong-di"},
+		{"Hướng dẫn  API", "huong-dan-api"},
+		{`A:B*C`, "a-b-c"},
+		{"--Auth--", "auth"},
+		{"Release 2.0", "release-2-0"},
+		{"???", "export"},
+		{strings.Repeat("a ", 100), strings.Repeat("a-", 49) + "a"},
+	}
+
+	for _, test := range tests {
+		if got := toDownloadName(test.input); got != test.want {
+			t.Errorf("toDownloadName(%q) = %q, want %q", test.input, got, test.want)
+		}
+	}
+}
+
 func TestToPrefixedName(t *testing.T) {
 	tests := []struct {
 		number int
@@ -59,15 +81,15 @@ func TestGetPrefixWidth(t *testing.T) {
 	}
 }
 
-func TestTakeNameAddsNumberOnClash(t *testing.T) {
+func TestGetUniqueNameAddsNumberOnClash(t *testing.T) {
 	used := map[string]bool{}
 
 	got := []string{
-		takeName(used, "A-B", ".md"),
-		takeName(used, "A-B", ".md"),
-		takeName(used, "a-b", ".md"),
-		takeName(used, "A-B", ".md"),
-		takeName(used, "A-B", ""),
+		getUniqueName(used, "A-B", ".md"),
+		getUniqueName(used, "A-B", ".md"),
+		getUniqueName(used, "a-b", ".md"),
+		getUniqueName(used, "A-B", ".md"),
+		getUniqueName(used, "A-B", ""),
 	}
 	want := []string{"A-B.md", "A-B-2.md", "a-b-3.md", "A-B-4.md", "A-B"}
 

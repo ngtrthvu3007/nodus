@@ -26,15 +26,15 @@ func NewService(database *gorm.DB, treeService *tree.Service) *Service {
 	return &Service{db: database, treeService: treeService}
 }
 
-// ExportDoc is the doc alone: its children are not included.
-func (service *Service) ExportDoc(ctx context.Context, id uuid.UUID) (exportFile, error) {
+// BuildDocFile is the doc alone: its children are not included.
+func (service *Service) BuildDocFile(ctx context.Context, id uuid.UUID) (exportFile, error) {
 	doc, err := httpx.FindByID[db.Doc](service.db.WithContext(ctx), id, httpx.ErrDocNotFound)
 	if err != nil {
 		return exportFile{}, err
 	}
 
 	return exportFile{
-		Name:        toFileName(doc.Title) + ".md",
+		Name:        toDownloadName(doc.Title) + markdownExtension,
 		ContentType: "text/markdown; charset=utf-8",
 		Write: func(writer io.Writer) error {
 			_, err := io.WriteString(writer, doc.Content)
@@ -43,9 +43,9 @@ func (service *Service) ExportDoc(ctx context.Context, id uuid.UUID) (exportFile
 	}, nil
 }
 
-// ExportDocs is a flat zip of the chosen docs, without their children. Every id must be a live doc of the workspace,
+// BuildDocsZip is a flat zip of the chosen docs, without their children. Every id must be a live doc of the workspace,
 // otherwise nothing is sent.
-func (service *Service) ExportDocs(
+func (service *Service) BuildDocsZip(
 	ctx context.Context,
 	workspaceID uuid.UUID,
 	request exportDocsRequest,
@@ -78,14 +78,18 @@ func (service *Service) ExportDocs(
 	usedNames := map[string]bool{}
 	entries := make([]entry, 0, len(ids))
 	for _, id := range ids {
-		entries = append(entries, entry{path: takeName(usedNames, toFileName(titles[id]), ".md"), docID: id})
+		entries = append(entries, entry{
+			path:  getUniqueName(usedNames, toFileName(titles[id]), markdownExtension),
+			docID: id,
+		})
 	}
 
-	return service.buildZip(ctx, "docs.zip", entries), nil
+	// Named after the first chosen doc; the request has at least one id (binding min=1).
+	return service.buildZip(ctx, toDownloadName(titles[ids[0]])+zipExtension, entries), nil
 }
 
-// ExportFolder is the folder's branch as a zip that keeps the tree; the zip holds what is inside the folder.
-func (service *Service) ExportFolder(ctx context.Context, id uuid.UUID) (exportFile, error) {
+// BuildFolderZip is the folder's branch as a zip that keeps the tree; the zip holds what is inside the folder.
+func (service *Service) BuildFolderZip(ctx context.Context, id uuid.UUID) (exportFile, error) {
 	database := service.db.WithContext(ctx)
 
 	folder, err := httpx.FindByID[db.Folder](database, id, errFolderNotFound)
@@ -100,7 +104,7 @@ func (service *Service) ExportFolder(ctx context.Context, id uuid.UUID) (exportF
 
 	entries := buildTreeEntries(index, folder.ID, "")
 
-	return service.buildZip(ctx, toFileName(folder.Name)+".zip", entries), nil
+	return service.buildZip(ctx, toDownloadName(folder.Name)+zipExtension, entries), nil
 }
 
 // buildZip reads each doc's content only when it is written, so a big folder is never held in memory at once.
@@ -130,13 +134,14 @@ func (service *Service) writeEntry(ctx context.Context, archive *zip.Writer, ite
 	}
 
 	var doc db.Doc
-	err := service.db.WithContext(ctx).Select("content").Where("id = ?", item.docID).First(&doc).Error
+	err := service.db.WithContext(ctx).Select("content", "updated_at").Where("id = ?", item.docID).First(&doc).Error
 
 	if err != nil {
 		return err
 	}
 
-	file, err := archive.Create(item.path)
+	// The doc's own update time, so a file manager does not show every file as 1980.
+	file, err := archive.CreateHeader(&zip.FileHeader{Name: item.path, Method: zip.Deflate, Modified: doc.UpdatedAt})
 	if err != nil {
 		return err
 	}

@@ -24,7 +24,7 @@ func buildTreeEntries(lister childLister, parentID uuid.UUID, directory string) 
 		grandchildren := lister.Children(child.ID)
 
 		if child.Kind == tree.KindDoc && len(grandchildren) == 0 {
-			entries = append(entries, entry{path: directory + base + ".md", docID: child.ID})
+			entries = append(entries, entry{path: directory + base + markdownExtension, docID: child.ID})
 			continue
 		}
 
@@ -32,7 +32,7 @@ func buildTreeEntries(lister childLister, parentID uuid.UUID, directory string) 
 		entries = append(entries, entry{path: childDirectory})
 
 		if child.Kind == tree.KindDoc {
-			ownName := toPrefixedName(0, getPrefixWidth(len(grandchildren)), child.Name) + ".md"
+			ownName := toPrefixedName(0, getPrefixWidth(len(grandchildren)), child.Name) + markdownExtension
 			entries = append(entries, entry{path: childDirectory + ownName, docID: child.ID})
 		}
 
