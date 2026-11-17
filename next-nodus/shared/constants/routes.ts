@@ -1,6 +1,11 @@
 import type { NodeKind } from "./nodeKind";
 
 export const API_ROUTES = {
+  register: "/auth/register",
+  login: "/auth/login",
+  logout: "/auth/logout",
+  currentUser: "/me",
+
   tree: (workspaceId: string) => `/workspaces/${workspaceId}/tree`,
 
   folders: (workspaceId: string) => `/workspaces/${workspaceId}/folders`,
@@ -24,6 +29,8 @@ const NODE_PAGES = {
 
 export const PAGE_ROUTES = {
   home: "/",
+  login: "/login",
+  register: "/register",
   ...NODE_PAGES,
   node: (kind: NodeKind, id: string) => NODE_PAGES[kind](id),
 };

@@ -12,6 +12,8 @@ import { NodusLogo } from "./logo";
 type AppShellProps = {
   sidebar?: ReactNode;
   tabs?: ReactNode;
+  // Signed-in user and sign-out, at the bottom of the sidebar.
+  account?: ReactNode;
   children: ReactNode;
 };
 
@@ -30,7 +32,7 @@ const ThemeToggle = () => {
 
 // App frame: resizable sidebar on the left, page content on the right. Width 0 means collapsed.
 // On a phone the sidebar is a full-width menu: it opens over the whole screen, and choosing a page closes it.
-export const AppShell = ({ sidebar, tabs, children }: AppShellProps) => {
+export const AppShell = ({ sidebar, tabs, account, children }: AppShellProps) => {
   const pathname = usePathname();
   const isNarrow = useIsNarrowScreen();
   const width = useSidebarStore((state) => state.width);
@@ -71,7 +73,8 @@ export const AppShell = ({ sidebar, tabs, children }: AppShellProps) => {
             />
           </div>
           <div className="min-h-0 flex-1 overflow-auto px-5">{sidebar}</div>
-          <div className="flex items-center justify-end border-t border-border-muted px-3 py-2">
+          <div className="flex items-center gap-2 border-t border-border-muted px-3 py-2">
+            <div className="min-w-0 flex-1">{account}</div>
             <ThemeToggle />
           </div>
         </div>
