@@ -36,9 +36,12 @@ const BacklinkItem = ({ backlink }: { backlink: DocBacklink }) => (
 const OutgoingItem = ({ link }: { link: DocOutgoing }) => (
   <li className={ITEM_CLASS}>
     {link.doc ? (
-      <Link href={PAGE_ROUTES.doc(link.doc.id)} className="truncate text-link hover:underline">
-        {link.doc.title}
-      </Link>
+      <>
+        <Link href={PAGE_ROUTES.doc(link.doc.id)} className="truncate text-link hover:underline">
+          {link.doc.title}
+        </Link>
+        <span className="truncate text-ui-sm text-fg-subtle">{link.ref}</span>
+      </>
     ) : (
       <span className={`truncate ${WIKI_BROKEN_CLASS}`} title={WIKI_BROKEN_TITLE}>
         {link.ref}
