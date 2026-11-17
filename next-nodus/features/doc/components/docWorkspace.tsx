@@ -1,7 +1,7 @@
 import { Splitter } from "antd";
 import { useRef, useState, type ReactNode, type RefObject } from "react";
 import type { MarkdownEditorHandle } from "@/features/editor";
-import { useIsNarrowScreen } from "@/shared/hooks";
+import { useIsCompactScreen } from "@/shared/hooks";
 import { useDocViewStore } from "@/shared/stores";
 import { EditorPanel } from "./editorPanel";
 import { PreviewPanel } from "./previewPanel";
@@ -26,8 +26,8 @@ const COLLAPSIBLE = { motion: true };
 
 const isCollapsed = (size: PanelSize | undefined) => Number.parseFloat(String(size)) === 0;
 
-const getInitialSizes = (isNarrow: boolean, isPreviewShown: boolean) => {
-  if (!isNarrow) return DEFAULT_SIZES;
+const getInitialSizes = (isCompact: boolean, isPreviewShown: boolean) => {
+  if (!isCompact) return DEFAULT_SIZES;
 
   return isPreviewShown ? EDITOR_HIDDEN_SIZES : PREVIEW_COLLAPSED_SIZES;
 };
@@ -38,8 +38,8 @@ const getInitialSizes = (isNarrow: boolean, isPreviewShown: boolean) => {
 // scrollbar changes the width the content wraps in, which can make the scrollbars flicker.
 // A collapsed preview is only clipped, its content is still laid out: the min-w classes keep it from being squeezed to
 // zero width. It stays mounted for the animation; inert keeps the keyboard out of it.
-// On a phone the two panels cannot sit side by side: it shows the editor, and the preview button swaps it for the
-// preview at full width (and back), with no minimum widths.
+// On a phone or a tablet the two panels cannot sit side by side: it shows the editor, and the preview button swaps it
+// for the preview at full width (and back), with no minimum widths.
 export const DocWorkspace = ({
   docId,
   title,
@@ -49,10 +49,10 @@ export const DocWorkspace = ({
   saveIndicator,
   footer,
 }: DocWorkspaceProps) => {
-  const isNarrow = useIsNarrowScreen();
+  const isCompact = useIsCompactScreen();
   const isPreviewShown = useDocViewStore((state) => state.isPreviewShown);
   const setPreviewShown = useDocViewStore((state) => state.setPreviewShown);
-  const [sizes, setSizes] = useState<PanelSize[]>(getInitialSizes(isNarrow, isPreviewShown));
+  const [sizes, setSizes] = useState<PanelSize[]>(getInitialSizes(isCompact, isPreviewShown));
   // The sizes before the preview was collapsed, to bring it back to the same width.
   const expandedSizesRef = useRef<PanelSize[]>(DEFAULT_SIZES);
   const [editorSize, previewSize] = sizes;
@@ -71,9 +71,16 @@ export const DocWorkspace = ({
   };
 
   const expandPreview = () => {
-    if (isNarrow) showPreviewOnly();
+    if (isCompact) showPreviewOnly();
     else setSizes(expandedSizesRef.current);
   };
+
+  // Resizing the window across the breakpoint must not keep the other layout's sizes (a hidden editor on desktop).
+  const [wasCompact, setWasCompact] = useState(isCompact);
+  if (wasCompact !== isCompact) {
+    setWasCompact(isCompact);
+    setSizes(getInitialSizes(isCompact, isPreviewShown));
+  }
 
   return (
     <Splitter
@@ -81,7 +88,7 @@ export const DocWorkspace = ({
       onResize={setSizes}
       className="nodus-doc-splitter min-h-0 flex-1 overflow-hidden border-t border-border-muted">
       {/* @container: the save status in the tab bar sizes itself by this panel's width. */}
-      <Splitter.Panel size={editorSize} min={isNarrow ? 0 : 320} className="@container overflow-hidden bg-surface">
+      <Splitter.Panel size={editorSize} min={isCompact ? 0 : 320} className="@container overflow-hidden bg-surface">
         <EditorPanel
           content={content}
           onChange={onChange}
@@ -95,8 +102,8 @@ export const DocWorkspace = ({
 
       <Splitter.Panel
         size={previewSize}
-        min={isNarrow ? 0 : 280}
-        resizable={!isPreviewCollapsed && !isNarrow}
+        min={isCompact ? 0 : 280}
+        resizable={!isPreviewCollapsed && !isCompact}
         className="overflow-hidden bg-surface">
         <PreviewPanel
           docId={docId}
