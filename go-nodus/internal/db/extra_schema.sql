@@ -12,3 +12,9 @@ CREATE UNIQUE INDEX "docs_unique_title" ON "public"."docs" ("workspace_id", coal
 
 -- One link per source doc and target ref, case-insensitive.
 CREATE UNIQUE INDEX "doc_links_unique_ref" ON "public"."doc_links" ("source_doc_id", lower("target_ref"));
+
+-- A workspace member is an owner or a member.
+ALTER TABLE "public"."workspace_members" ADD CONSTRAINT "workspace_members_role" CHECK ("role" IN ('owner', 'member'));
+
+-- A token reads docs, or reads and writes them.
+ALTER TABLE "public"."personal_access_tokens" ADD CONSTRAINT "personal_access_tokens_scope" CHECK ("scope" IN ('docs:read', 'docs:write'));

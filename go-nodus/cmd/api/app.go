@@ -35,7 +35,8 @@ func newApp(cfg config.Config) (*app, error) {
 		return nil, err
 	}
 
-	router := httpx.NewRouter(cfg.AllowedOrigin, modules(database)...)
+	authenticate, apiModules := modules(database, cfg.AllowedOrigin)
+	router := httpx.NewRouter(cfg.AllowedOrigin, authenticate, apiModules...)
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return &app{

@@ -65,3 +65,56 @@ type DocLink struct {
 	SourceDoc *Doc `gorm:"foreignKey:SourceDocID;constraint:OnDelete:CASCADE"`
 	TargetDoc *Doc `gorm:"foreignKey:TargetDocID;constraint:OnDelete:SET NULL"`
 }
+
+// User is an account. The app stores Email trimmed and lowercased, so a plain unique index is enough.
+// PasswordHash is nil for an account that only signs in with OAuth.
+type User struct {
+	ID              uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	Email           string    `gorm:"not null;uniqueIndex"`
+	PasswordHash    *string
+	EmailVerifiedAt *time.Time
+	CreatedAt       time.Time `gorm:"not null;default:now()"`
+	UpdatedAt       time.Time `gorm:"not null;default:now()"`
+}
+
+// WorkspaceMember gives a user a role in a workspace. The migration adds the CHECK on role by hand.
+type WorkspaceMember struct {
+	WorkspaceID uuid.UUID `gorm:"type:uuid;primaryKey"`
+	UserID      uuid.UUID `gorm:"type:uuid;primaryKey;index"`
+	Role        string    `gorm:"not null"`
+	CreatedAt   time.Time `gorm:"not null;default:now()"`
+
+	// Relations only declare foreign keys for Atlas.
+	Workspace *Workspace `gorm:"constraint:OnDelete:CASCADE"`
+	User      *User      `gorm:"constraint:OnDelete:CASCADE"`
+}
+
+// Session is a browser sign-in; only the SHA-256 of the cookie value is stored.
+// It ends 14 days after LastUsedAt or at ExpiresAt, whichever comes first.
+type Session struct {
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID     uuid.UUID `gorm:"type:uuid;not null;index"`
+	TokenHash  string    `gorm:"not null;uniqueIndex"`
+	UserAgent  string    `gorm:"not null;default:''"`
+	IP         string    `gorm:"not null;default:''"`
+	CreatedAt  time.Time `gorm:"not null;default:now()"`
+	LastUsedAt time.Time `gorm:"not null;default:now()"`
+	ExpiresAt  time.Time `gorm:"not null"`
+
+	User *User `gorm:"constraint:OnDelete:CASCADE"`
+}
+
+// PersonalAccessToken lets a tool outside the browser call the API; only the SHA-256 of the token is stored.
+// The migration adds the CHECK on scope by hand.
+type PersonalAccessToken struct {
+	ID         uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
+	UserID     uuid.UUID `gorm:"type:uuid;not null;index"`
+	Name       string    `gorm:"not null"`
+	TokenHash  string    `gorm:"not null;uniqueIndex"`
+	Scope      string    `gorm:"not null"`
+	LastUsedAt *time.Time
+	RevokedAt  *time.Time
+	CreatedAt  time.Time `gorm:"not null;default:now()"`
+
+	User *User `gorm:"constraint:OnDelete:CASCADE"`
+}
