@@ -44,6 +44,11 @@ export const AppShell = ({ sidebar, tabs, children }: AppShellProps) => {
     if (isNarrow) close();
   }, [isNarrow, pathname, close]);
 
+  // Until then globals.css hides the sidebar on a phone, so the server-rendered open sidebar never flashes.
+  useEffect(() => {
+    if (!isNarrow || collapsed) document.documentElement.dataset.shellReady = "";
+  }, [isNarrow, collapsed]);
+
   return (
     <Splitter
       className="h-screen overflow-hidden bg-canvas"
@@ -55,7 +60,7 @@ export const AppShell = ({ sidebar, tabs, children }: AppShellProps) => {
         min={200}
         max={isNarrow ? undefined : 480}
         collapsible={{ start: true, showCollapsibleIcon: false }}
-        className="bg-surface">
+        className="nodus-sidebar-panel bg-surface">
         <div className="flex h-full flex-col border-r border-border-muted">
           <div className="flex items-center justify-between px-5 pt-4 pb-3">
             <div className="flex items-center gap-2">

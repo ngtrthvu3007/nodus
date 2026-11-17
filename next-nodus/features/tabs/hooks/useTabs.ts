@@ -1,16 +1,23 @@
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTree, useTreeModel } from "@/features/tree";
 import { PAGE_ROUTES } from "@/shared/constants";
 import { useTabsStore } from "@/shared/stores";
+import { useTabShortcuts } from "./useTabShortcuts";
 
 // Keeps the open tabs in step with the URL and the tree, and gives the tab bar what it shows.
 export const useTabs = () => {
   const router = useRouter();
   const { id: routeId } = useParams<{ id?: string }>(); // doc and folder pages both name the segment `id`
+  // The doc this page showed the last time the tree arrived, to tell a doc deleted now from one deleted before.
+  const shownIdRef = useRef<string | undefined>(undefined);
+  const routeIdRef = useRef(routeId);
+  useEffect(() => {
+    routeIdRef.current = routeId;
+  }, [routeId]);
   const { data } = useTree();
   const { nodesById } = useTreeModel(data);
-  const { tabIds, activeId, activateTab, closeTabs } = useTabsStore();
+  const { tabIds, activeId, activateTab, closeTabs, moveTab } = useTabsStore();
 
   // The page of a tab, or home when there is no tab (any more).
   const getHref = useCallback(
@@ -29,16 +36,27 @@ export const useTabs = () => {
 
   useEffect(() => {
     useTabsStore.persist.rehydrate();
+
+    // Another browser tab changed the list: take it, and keep the doc shown here open.
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== useTabsStore.persist.getOptions().name) return;
+      useTabsStore.persist.rehydrate();
+      if (routeIdRef.current) useTabsStore.getState().activateTab(routeIdRef.current);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   useEffect(() => {
     if (!data) return;
 
     const deletedIds = useTabsStore.getState().tabIds.filter((id) => !nodesById.has(id));
-    // Leave the page only when the doc being shown lost its tab; another URL (a link to a deleted doc) keeps its 404.
-    const isShownTabDeleted = routeId !== undefined && deletedIds.includes(routeId);
+    // Leave the page only when the doc shown here was deleted while it was open; a URL that is already deleted when
+    // the page loads (a link, or a tab saved earlier) keeps its 404.
+    const isShownDocDeleted = routeId !== undefined && shownIdRef.current === routeId && deletedIds.includes(routeId);
+    shownIdRef.current = routeId !== undefined && nodesById.has(routeId) ? routeId : undefined;
 
-    if (isShownTabDeleted) closeAndShow(deletedIds);
+    if (isShownDocDeleted) closeAndShow(deletedIds);
     else if (deletedIds.length) closeTabs(deletedIds);
 
     // A doc that is not in the tree yet (just created) opens once the tree has it.
@@ -52,10 +70,9 @@ export const useTabs = () => {
     else closeTabs([id]);
   };
 
-  return {
-    tabNodes,
-    activeId,
-    select: (id: string) => router.push(getHref(id)),
-    close,
-  };
+  const select = (id: string) => router.push(getHref(id));
+
+  useTabShortcuts({ tabIds: tabNodes.map(({ id }) => id), activeId, select, close, move: moveTab });
+
+  return { tabNodes, activeId, select, close, move: moveTab };
 };

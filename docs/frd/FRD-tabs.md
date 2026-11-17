@@ -18,7 +18,11 @@ Mở nhiều tài liệu cùng lúc trong workspace và chuyển nhanh giữa ch
 - Tab có thay đổi chưa lưu → hiện dấu hiệu trên tab (trạng thái lưu và xử lý xung đột theo [[FRD-autosave]]). Đóng tab khi đang lưu → chờ lưu xong, không mất nội dung.
 - Doc hoặc folder bị xóa (ở tab khác, qua MCP, hoặc người khác), kể cả bị xóa do cha bị xóa → tab tự đóng.
 - Reload trang → giữ nguyên danh sách tab và tab đang active (lưu ở trình duyệt, theo từng workspace).
-- URL luôn trỏ tới tài liệu ở tab đang active, nên copy link hay mở lại vẫn đúng trang.
+- URL luôn trỏ tới tài liệu ở tab đang active, nên copy link hay mở lại vẫn đúng trang. Tab đang active của mỗi tab trình duyệt theo URL của nó, không lưu chung.
+- Mở URL của doc đã bị xóa từ trước (link cũ, hoặc tab đã lưu) → hiện "Doc not found" và bỏ tab đó khỏi danh sách, không tự chuyển sang tab khác. Chỉ khi doc đang mở bị xóa lúc đang xem thì mới chuyển sang tab kề.
+- Nhiều tab trình duyệt cùng workspace dùng chung danh sách tab: đổi ở tab này thì các tab kia cập nhật theo.
+- Kéo thả tab để đổi thứ tự.
+- Phím tắt: `Alt+W` đóng tab đang active, `Ctrl+Alt+→` / `Ctrl+Alt+←` chuyển sang tab kế / trước (vòng lại ở hai đầu), `Ctrl+Alt+Shift+→` / `Ctrl+Alt+Shift+←` dời tab đang active sang phải / trái. Không dùng `Ctrl+W` và `Ctrl+Tab` vì trình duyệt giữ.
 
 ## Ngoài phạm vi
 
@@ -29,4 +33,3 @@ Mở nhiều tài liệu cùng lúc trong workspace và chuyển nhanh giữa ch
 - Chia đôi màn hình (2 nhóm tab) — [[SPEC-v4]] để sau.
 - Tab xem tạm kiểu VSCode (bấm 1 lần mở tab tạm, sửa hoặc bấm đúp mới giữ tab).
 - Giới hạn số tab mở cùng lúc.
-- Kéo thả sắp xếp tab, phím tắt chuyển/đóng tab.

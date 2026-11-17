@@ -66,6 +66,14 @@
   transition: none !important;
 }
 
+/* On a phone the sidebar starts closed, but the server renders it open: hide it until AppShell has closed it
+   (shared/components/appShell.tsx sets data-shell-ready). The query matches useIsNarrowScreen. */
+@media (max-width: 767px) {
+  html:not([data-shell-ready]) .nodus-sidebar-panel {
+    display: none;
+  }
+}
+
 /* The circular reveal is animated from JS (shared/theme/theme-provider.tsx); drop the default cross-fade. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -326,6 +334,27 @@
 
   .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active .ant-tabs-tab-btn {
     color: var(--nodus-color-fg);
+  }
+
+  /* While a tab is dragged, a primary line on the edge of the tab it would land next to, like the tree's drop line. */
+  .nodus-tab-bar .nodus-tab-drop-before::before,
+  .nodus-tab-bar .nodus-tab-drop-after::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 0;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--nodus-color-primary);
+    pointer-events: none;
+  }
+
+  .nodus-tab-bar .nodus-tab-drop-before::before {
+    left: 0;
+  }
+
+  .nodus-tab-bar .nodus-tab-drop-after::before {
+    right: 0;
   }
 
   .nodus-diagram {

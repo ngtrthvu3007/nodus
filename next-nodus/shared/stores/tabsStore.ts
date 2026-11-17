@@ -1,3 +1,4 @@
+import { arrayMove } from "@dnd-kit/sortable";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { WORKSPACE_ID } from "@/shared/constants";
@@ -11,6 +12,8 @@ type TabsState = {
   activateTab: (id: string | undefined) => void;
   // Removes the tabs and returns the active id.
   closeTabs: (ids: string[]) => string | undefined;
+  // Puts the tab where the other one is.
+  moveTab: (id: string, overId: string) => void;
 };
 
 // The tab to show after the active one closes: the first one on its right, else the last one.
@@ -41,8 +44,11 @@ export const useTabsStore = create<TabsState>()(
         set({ tabIds: remaining, activeId: next });
         return next;
       },
+      moveTab: (id, overId) =>
+        set(({ tabIds }) => ({ tabIds: arrayMove(tabIds, tabIds.indexOf(id), tabIds.indexOf(overId)) })),
     }),
     // skipHydration: the server renders no tabs, so the browser reads them after mount (see useTabs).
-    { name: `nodus:tabs:${WORKSPACE_ID}`, skipHydration: true },
+    // Only the ids are stored: the active tab is the URL of each browser tab, so browser tabs can share the list.
+    { name: `nodus:tabs:${WORKSPACE_ID}`, skipHydration: true, partialize: ({ tabIds }) => ({ tabIds }) },
   ),
 );

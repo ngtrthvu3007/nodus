@@ -4,7 +4,7 @@ import { Tabs } from "antd";
 import { NodeIcon } from "@/features/tree";
 import { useSidebarStore } from "@/shared/stores";
 import type { TreeNode } from "@/shared/types";
-import { useTabs } from "./hooks";
+import { useSortableTabBar, useTabs } from "./hooks";
 
 // The icon tells a folder from a doc at a glance; a long title is cut, and the full one shows on hover.
 const TabLabel = ({ kind, name }: Pick<TreeNode, "kind" | "name">) => (
@@ -17,8 +17,9 @@ const TabLabel = ({ kind, name }: Pick<TreeNode, "kind" | "name">) => (
 // Above the page content. While the sidebar is closed its open button floats over the left corner, so the bar makes room.
 // The header has no bottom margin: antd adds one for tab panels, and these tabs have none.
 export const TabBar = () => {
-  const { tabNodes, activeId, select, close } = useTabs();
+  const { tabNodes, activeId, select, close, move } = useTabs();
   const isSidebarCollapsed = useSidebarStore((state) => state.width === 0);
+  const renderTabBar = useSortableTabBar({ tabIds: tabNodes.map(({ id }) => id), onMove: move });
 
   // One open doc needs no bar: it would only repeat the title right below it.
   if (tabNodes.length < 2) return null;
@@ -30,6 +31,7 @@ export const TabBar = () => {
       hideAdd
       activeKey={activeId}
       items={tabNodes.map(({ id, kind, name }) => ({ key: id, label: <TabLabel kind={kind} name={name} /> }))}
+      renderTabBar={renderTabBar}
       onChange={select}
       onEdit={(key, action) => {
         if (action === "remove" && typeof key === "string") close(key);
