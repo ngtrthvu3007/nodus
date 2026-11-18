@@ -1,5 +1,17 @@
 import { httpClient } from "@/shared/libs/httpClient";
-import type { CreateDocRequest, Doc, DocDetail, MoveRequest, MoveResponse, UpdateDocRequest } from "@/shared/types";
+import type {
+  CreateDocRequest,
+  Doc,
+  DocDetail,
+  ExportDocsRequest,
+  ImportDocsRequest,
+  ImportDocsResponse,
+  MoveRequest,
+  MoveResponse,
+  SearchDocsRequest,
+  SearchDocsResponse,
+  UpdateDocRequest,
+} from "@/shared/types";
 import { API_ROUTES, WORKSPACE_ID } from "@/shared/constants";
 
 // signal: lets the client cancel the request; not an API parameter.
@@ -18,3 +30,18 @@ export const moveDoc = (id: string, request: MoveRequest) =>
   httpClient.patch<MoveResponse>(API_ROUTES.docMove(id), request);
 
 export const deleteDoc = (id: string) => httpClient.delete(API_ROUTES.doc(id));
+
+export const exportDoc = (id: string) => httpClient.getFile(API_ROUTES.docExport(id));
+
+export const exportDocs = (request: ExportDocsRequest) => httpClient.postFile(API_ROUTES.docsExport(WORKSPACE_ID), request);
+
+export const importDocs = ({ files, parentId }: ImportDocsRequest) => {
+  const form = new FormData();
+  files.forEach((file) => form.append("files", file));
+  if (parentId) form.append("parentId", parentId);
+
+  return httpClient.post<ImportDocsResponse>(API_ROUTES.docsImport(WORKSPACE_ID), form);
+};
+
+export const searchDocs =(request: SearchDocsRequest, signal?: AbortSignal) =>
+  httpClient.get<SearchDocsResponse>(API_ROUTES.docSearch(WORKSPACE_ID, request), { signal });

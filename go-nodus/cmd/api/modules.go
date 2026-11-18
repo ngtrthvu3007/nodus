@@ -9,6 +9,7 @@ import (
 	"go-nodus/internal/httpx"
 	"go-nodus/internal/modules/auth"
 	"go-nodus/internal/modules/doc"
+	"go-nodus/internal/modules/export"
 	"go-nodus/internal/modules/folder"
 	"go-nodus/internal/modules/link"
 	"go-nodus/internal/modules/tree"
@@ -38,5 +39,6 @@ func modules(database *gorm.DB, allowedOrigin string) (gin.HandlerFunc, []httpx.
 		folder.NewHandler(folder.NewService(database, treeService)),
 		doc.NewHandler(doc.NewService(database, treeService)),
 		link.NewHandler(link.NewService(database)),
+		export.NewHandler(export.NewService(database, treeService)),
 	}
 }

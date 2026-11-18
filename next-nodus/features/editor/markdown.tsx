@@ -3,6 +3,7 @@
 import { Skeleton } from "antd";
 import { useEffect, useRef } from "react";
 import { LoadError } from "@/shared/components";
+import type { ThemeMode } from "@/shared/theme";
 import { useMarkdownClicks, useMarkdownEnhance, useMarkdownHtml } from "./hooks";
 import type { OutlineItem } from "./lib/headings";
 import type { WikiResolver } from "./lib/wikiLinks";
@@ -12,13 +13,15 @@ type MarkdownProps = {
   resolveWikiLink: WikiResolver;
   // The h2-h3 headings of the rendered text, for MarkdownOutline.
   onOutlineChange?: (outline: OutlineItem[]) => void;
+  // Draws the diagrams in this theme instead of the app's.
+  mode?: ThemeMode;
 };
 
-export const Markdown = ({ source, resolveWikiLink, onOutlineChange }: MarkdownProps) => {
+export const Markdown = ({ source, resolveWikiLink, onOutlineChange, mode }: MarkdownProps) => {
   const bodyRef = useRef<HTMLDivElement>(null);
   const { rendered, failed, retry } = useMarkdownHtml(source, resolveWikiLink);
   const { onClick, zoomModal } = useMarkdownClicks();
-  useMarkdownEnhance(bodyRef, rendered?.html);
+  useMarkdownEnhance(bodyRef, rendered?.html, mode);
 
   const outline = rendered?.outline;
   useEffect(() => {

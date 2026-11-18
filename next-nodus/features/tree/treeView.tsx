@@ -1,15 +1,23 @@
 "use client";
 
-import { ChevronDownIcon, ChevronRightIcon, EllipsisVerticalIcon } from "lucide-react";
-import { Skeleton, Tree, type TreeProps } from "antd";
+import { ChevronDownIcon, ChevronRightIcon, EllipsisVerticalIcon, ListChecksIcon } from "lucide-react";
+import { Button, Skeleton, Tooltip, Tree, type TreeProps } from "antd";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { LoadError } from "@/shared/components";
-import { PAGE_ROUTES } from "@/shared/constants";
+import { NODE_KIND, PAGE_ROUTES } from "@/shared/constants";
 import { useIsNarrowScreen } from "@/shared/hooks";
 import { DRAFT_MODE, useSidebarStore, useTreeDraftStore } from "@/shared/stores";
-import { NewNodeMenu, NodeNameInput, TreeNodeTitle } from "./components";
-import { DRAFT_ID, useTree, useTreeActions, useTreeDrag, useTreeExpansion, useTreeModel } from "./hooks";
+import { NewNodeMenu, NodeNameInput, SelectionBar, TreeNodeTitle } from "./components";
+import {
+  DRAFT_ID,
+  useDocSelection,
+  useTree,
+  useTreeActions,
+  useTreeDrag,
+  useTreeExpansion,
+  useTreeModel,
+} from "./hooks";
 
 const DRAG_HANDLE = (
   <span className="flex -space-x-2">
@@ -17,6 +25,8 @@ const DRAG_HANDLE = (
     <EllipsisVerticalIcon className="size-3" />
   </span>
 );
+
+const SELECT_LABEL = "Select docs to export";
 
 const SKELETON_INDENTS = ["pl-0", "pl-4", "pl-4", "pl-8", "pl-0", "pl-4", "pl-0"];
 
@@ -53,8 +63,9 @@ export const TreeView = () => {
     selectedId,
     forcedOpenId: draft?.mode === DRAFT_MODE.create ? draft.parentId : null,
   });
-  const { actions, submitDraft } = useTreeActions({ model, onExpand: expand });
+  const { actions, submitDraft, importInput } = useTreeActions({ model, onExpand: expand });
   const drag = useTreeDrag({ model, onExpand: expand, onBlockDoc: setBlockedDocId });
+  const selection = useDocSelection();
 
   if (isPending) return <TreeSkeleton />;
 
@@ -69,6 +80,13 @@ export const TreeView = () => {
 
   const selectNode: TreeProps["onSelect"] = (_keys, { node }) => {
     const item = model.nodesById.get(String(node.key));
+
+    // While picking docs to export, a click picks instead of opening.
+    if (selection.isSelecting) {
+      if (item?.kind === NODE_KIND.doc) selection.toggle(item.id);
+      return;
+    }
+
     if (item) router.push(PAGE_ROUTES.node(item.kind, item.id));
     // Tapping the page that is already open changes no URL, so AppShell would leave the phone menu open.
     if (isNarrow) closeSidebar();
@@ -91,13 +109,40 @@ export const TreeView = () => {
 
   return (
     <div className="flex flex-col gap-2 pb-2">
-      <NewNodeMenu parentId={null} type="primary" size="middle" block />
+      {importInput}
+
+      {selection.isSelecting ? (
+        <SelectionBar
+          count={selection.selectedIds.length}
+          isExporting={selection.isExporting}
+          onExport={selection.exportSelected}
+          onCancel={selection.cancel}
+        />
+      ) : (
+        <div className="flex gap-2">
+          <div className="min-w-0 flex-1">
+            <NewNodeMenu parentId={null} type="primary" size="middle" block />
+          </div>
+          <Tooltip title={SELECT_LABEL}>
+            <Button
+              aria-label={SELECT_LABEL}
+              disabled={!model.nodes.some((node) => node.kind === NODE_KIND.doc)}
+              icon={<ListChecksIcon className="size-4" />}
+              onClick={selection.start}
+            />
+          </Tooltip>
+        </div>
+      )}
 
       {model.nodes.length || draft?.mode === DRAFT_MODE.create ? (
         <Tree
           blockNode
           showLine={true}
-          draggable={draggable}
+          draggable={selection.isSelecting ? false : draggable}
+          checkable={selection.isSelecting}
+          checkStrictly
+          checkedKeys={selection.selectedIds}
+          onCheck={(_keys, { node }) => selection.toggle(String(node.key))}
           treeData={model.treeData}
           expandedKeys={expandedKeys}
           selectedKeys={selectedId ? [selectedId] : []}

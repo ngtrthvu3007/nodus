@@ -46,6 +46,11 @@ export const AppShell = ({ sidebar, tabs, account, children }: AppShellProps) =>
     if (isNarrow) close();
   }, [isNarrow, pathname, close]);
 
+  // Until then globals.css hides the sidebar on a phone, so the server-rendered open sidebar never flashes.
+  useEffect(() => {
+    if (!isNarrow || collapsed) document.documentElement.dataset.shellReady = "";
+  }, [isNarrow, collapsed]);
+
   return (
     <Splitter
       className="h-screen overflow-hidden bg-canvas"
@@ -57,7 +62,7 @@ export const AppShell = ({ sidebar, tabs, account, children }: AppShellProps) =>
         min={200}
         max={isNarrow ? undefined : 480}
         collapsible={{ start: true, showCollapsibleIcon: false }}
-        className="bg-surface">
+        className="nodus-sidebar-panel bg-surface">
         <div className="flex h-full flex-col border-r border-border-muted">
           <div className="flex items-center justify-between px-5 pt-4 pb-3">
             <div className="flex items-center gap-2">
@@ -87,7 +92,8 @@ export const AppShell = ({ sidebar, tabs, account, children }: AppShellProps) =>
           tabIndex={collapsed ? 0 : -1}
           icon={<PanelLeftOpenIcon className="size-4" />}
           onClick={toggle}
-          className={`absolute top-3 left-3 z-10 border-border-muted bg-surface shadow-sm transition-opacity duration-300 motion-reduce:transition-none ${
+          // size-9 and top-2 match the tab row (36px tall, 8px of padding above it), so the button lines up with the tabs.
+          className={`absolute top-2 left-3 z-10 size-9 border-border-muted bg-surface shadow-sm transition-opacity duration-300 motion-reduce:transition-none ${
             collapsed ? "opacity-100" : "pointer-events-none opacity-0"
           }`}
         />

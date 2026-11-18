@@ -116,12 +116,65 @@ definitions:
       title:
         type: string
     type: object
+  doc.importCreatedDoc:
+    properties:
+      fileName:
+        type: string
+      id:
+        type: string
+      title:
+        type: string
+    type: object
+  doc.importDocsResponse:
+    properties:
+      created:
+        items:
+          $ref: '#/definitions/doc.importCreatedDoc'
+        type: array
+      failed:
+        items:
+          $ref: '#/definitions/doc.importFailedFile'
+        type: array
+    type: object
+  doc.importFailedFile:
+    properties:
+      code:
+        type: string
+      fileName:
+        type: string
+    type: object
   doc.renameDocRequest:
     properties:
       title:
         type: string
     required:
     - title
+    type: object
+  doc.searchDocResult:
+    properties:
+      id:
+        type: string
+      path:
+        type: string
+      snippet:
+        type: string
+      title:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  doc.searchDocsResponse:
+    properties:
+      hasMore:
+        type: boolean
+      items:
+        items:
+          $ref: '#/definitions/doc.searchDocResult'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
     type: object
   doc.updateDocRequest:
     properties:
@@ -131,6 +184,17 @@ definitions:
         type: integer
     required:
     - version
+    type: object
+  export.exportDocsRequest:
+    properties:
+      ids:
+        items:
+          type: string
+        maxItems: 200
+        minItems: 1
+        type: array
+    required:
+    - ids
     type: object
   folder.childNode:
     properties:
@@ -479,6 +543,29 @@ paths:
         stale
       tags:
       - doc
+  /docs/{id}/export:
+    get:
+      parameters:
+      - description: Doc ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - text/markdown
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Download one doc as a .md file (its children are not included)
+      tags:
+      - export
   /docs/{id}/headings:
     get:
       parameters:
@@ -696,6 +783,29 @@ paths:
       summary: Update the name and/or description of a folder
       tags:
       - folder
+  /folders/{id}/export:
+    get:
+      parameters:
+      - description: Folder ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/zip
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Download a folder and its branch as a .zip that keeps the tree
+      tags:
+      - export
   /folders/{id}/move:
     patch:
       parameters:
@@ -846,6 +956,47 @@ paths:
       tags:
       - auth
   /workspaces/{workspaceId}/docs:
+    get:
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Text to find in title or content
+        in: query
+        name: q
+        type: string
+      - description: Page size, default 20, max 100
+        in: query
+        name: limit
+        type: integer
+      - description: Results to skip, default 0
+        in: query
+        name: offset
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.searchDocsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Search docs by title and content
+      tags:
+      - doc
     post:
       parameters:
       - description: Workspace ID
@@ -917,6 +1068,86 @@ paths:
       summary: Suggest doc titles in a workspace for [[wiki-links]]
       tags:
       - link
+  /workspaces/{workspaceId}/docs/export:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - description: Doc IDs
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/export.exportDocsRequest'
+      produces:
+      - application/zip
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Download the chosen docs as a flat .zip (their children are not included)
+      tags:
+      - export
+  /workspaces/{workspaceId}/docs/import:
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - description: Workspace ID
+        format: uuid
+        in: path
+        name: workspaceId
+        required: true
+        type: string
+      - collectionFormat: csv
+        description: 1-20 .md files, up to 1 MB each
+        in: formData
+        items:
+          type: file
+        name: files
+        required: true
+        type: array
+      - description: Folder or doc ID; leave out for the root
+        in: formData
+        name: parentId
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/doc.importDocsResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Import .md files as docs under a folder, a doc or the root; a bad file
+        is reported and does not stop the rest
+      tags:
+      - doc
   /workspaces/{workspaceId}/folders:
     post:
       parameters:

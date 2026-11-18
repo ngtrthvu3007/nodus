@@ -6,13 +6,16 @@ import { PAGE_ROUTES } from "@/shared/constants";
 import { useToast } from "@/shared/hooks";
 import type { NodeKind, TreeNode } from "@/shared/types";
 import { DRAFT_MODE, useTreeDraftStore, type CreateDraft, type RenameDraft } from "@/shared/stores";
+import { useImportFiles } from "./useImportFiles";
 import type { TreeModel } from "./useTreeModel";
-import { useCreateNode, useDeleteNode, useRenameNode } from "./useTreeQueries";
+import { useCreateNode, useDeleteNode, useExportNode, useRenameNode } from "./useTreeQueries";
 
 export type TreeActions = {
   openCreate: (kind: NodeKind, parentId: string | null) => void;
   openRename: (node: TreeNode) => void;
   confirmDelete: (node: TreeNode) => void;
+  exportNode: (node: TreeNode) => void;
+  importDocs: (node: TreeNode) => void;
 };
 
 type UseTreeActionsInput = {
@@ -27,7 +30,9 @@ export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
   const createNode = useCreateNode();
   const renameNode = useRenameNode();
   const deleteNode = useDeleteNode();
+  const exportNode = useExportNode();
   const { draft, startCreate, startRename, clearDraft } = useTreeDraftStore();
+  const { openPicker, input: importInput } = useImportFiles({ onExpand });
 
   const createFromDraft = async (createDraft: CreateDraft, name: string) => {
     const created = await createNode.mutateAsync({ kind: createDraft.kind, name, parentId: createDraft.parentId });
@@ -84,7 +89,9 @@ export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
     openCreate: startCreate,
     openRename: (node) => startRename(node.id),
     confirmDelete,
+    exportNode: ({ kind, id }) => exportNode.mutate({ kind, id }, { onError: (error) => toast.error(error) }),
+    importDocs: (node) => openPicker(node.id),
   };
 
-  return { actions, submitDraft };
+  return { actions, submitDraft, importInput };
 };

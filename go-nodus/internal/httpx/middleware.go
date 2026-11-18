@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 )
@@ -50,6 +51,21 @@ func ParseJSONBody[T any]() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
 		var body T
 		if err := ginContext.ShouldBindJSON(&body); err != nil {
+			abortWithBodyError(ginContext, err)
+			return
+		}
+
+		ginContext.Set(bodyKey, body)
+	}
+}
+
+// ParseMultipartBody reads a multipart/form-data body (fields and files) into T; a body over maxBytes is rejected.
+func ParseMultipartBody[T any](maxBytes int64) gin.HandlerFunc {
+	return func(ginContext *gin.Context) {
+		ginContext.Request.Body = http.MaxBytesReader(ginContext.Writer, ginContext.Request.Body, maxBytes)
+
+		var body T
+		if err := ginContext.ShouldBindWith(&body, binding.FormMultipart); err != nil {
 			abortWithBodyError(ginContext, err)
 			return
 		}

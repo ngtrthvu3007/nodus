@@ -25,7 +25,8 @@ go-nodus/
 │   │   │   └── types.go       # Node, Item, MoveRequest, Moved
 │   │   ├── folder/        # /folders (đổi tên, move, xóa gọi link.RelinkWorkspace)
 │   │   ├── doc/           # /docs (tạo, sửa, move, xóa gọi link.RelinkWorkspace)
-│   │   └── link/          # wiki-link: backlink, autocomplete, headings, RelinkWorkspace
+│   │   ├── link/          # wiki-link: backlink, autocomplete, headings, RelinkWorkspace
+│   │   └── export/        # tải doc, nhiều doc, folder về file markdown (layout, đặt tên, ghi zip streaming)
 │   ├── apidocs/           # Swagger do `make swagger` sinh từ annotation (không sửa tay)
 │   ├── config/config.go   # biến môi trường
 │   └── db/
@@ -99,8 +100,12 @@ flowchart LR
 | PATCH | `/docs/:id/title` | `doc` | Đổi tên doc, không cần `version`, dựng lại wiki-link — [[FRD-doc]] |
 | PATCH | `/docs/:id/move` | `doc` | Như move folder — [[FRD-move]] |
 | GET | `/docs/:id/links` | `link` | `backlinks` (`id`, `title`, `path`; mỗi doc nguồn một dòng, không tính self-link) + `outgoing` (`ref`, `doc` hoặc `null` nếu broken), sắp theo chữ — [[FRD-wiki-link]] |
+| GET | `/workspaces/:workspaceId/docs?q=&limit=&offset=` | `doc` | Tìm theo title/nội dung, phân trang, kèm `path` và `snippet` — [[FRD-search]] |
 | GET | `/workspaces/:workspaceId/docs/autocomplete?q=` | `link` | Tối đa 10 doc có title chứa `q`, kèm `path` và `ref` ngắn nhất để chèn |
 | GET | `/docs/:id/headings` | `link` | Heading ATX (`level`, `text`), bỏ heading trong code fence |
+| GET | `/docs/:id/export` | `export` | File `.md` chỉ chứa chính doc (không kèm con); response là file, lỗi vẫn là JSON — [[FRD-export]] |
+| POST | `/workspaces/:workspaceId/docs/export` | `export` | Body `{ "ids": [...] }` (1–200) → `.zip` phẳng; id không phải doc đang tồn tại trong workspace → `404 doc_not_found`, không trả file |
+| GET | `/folders/:id/export` | `export` | `.zip` giữ cây (tiền tố số theo thứ tự sitemap, doc có con → thư mục chứa `00-Tên.md`) |
 
 ## API docs
 
@@ -113,5 +118,6 @@ flowchart LR
 - Bảng: `workspaces`, `folders`, `docs`, `doc_links`. Doc nằm ở gốc, trong folder (`folder_id`) hoặc trong doc khác (`parent_doc_id`), không bao giờ cả hai (CHECK `docs_one_parent`).
 - `doc_links`: `source_doc_id`, `target_ref` (chữ trong `[[...]]`, bỏ `#heading`; `[[...]]` trong code span/code fence không tính), `target_doc_id` (NULL = broken link, FK `SET NULL`). Unique `(source_doc_id, lower(target_ref))` viết tay trong migration. Mỗi lần ghi cây hoặc nội dung, `link.RelinkWorkspace` xóa và dựng lại link của cả workspace trong cùng transaction (xem `ponytail:` trong `link/relink.go`).
 - Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration, khai báo thêm ở `internal/db/extra_schema.sql` để Atlas không đề nghị xóa.
+- Tìm kiếm ([[FRD-search]]): extension `pg_trgm` và hai index GIN `gin_trgm_ops` (`docs.title`, `docs.content`, partial `deleted_at IS NULL`) viết tay trong migration `search_trgm_indexes` và khai báo ở `extra_schema.sql`. `CREATE EXTENSION` chỉ nằm trong migration (Atlas bản miễn phí không khai báo được extension trong schema); DB tạm của Atlas cài sẵn `pg_trgm` qua `go-nodus/atlas-dev-init.sql` (gắn trong `docker-compose.yml`) để Atlas hiểu `gin_trgm_ops` và không đề nghị xóa hai index này.
 - GORM tự lọc soft delete (`deleted_at`) với mọi query qua model, kể cả `Preload`; không còn câu SQL thô nào phải tự thêm `deleted_at IS NULL`.
 - Đổi schema: sửa `internal/db/models.go` → `make migrate-diff NAME=…` → review SQL → `make migrate-up`. Rollback local: `make migrate-down-plan` rồi `make migrate-down`; migration đã chia sẻ thì roll forward.

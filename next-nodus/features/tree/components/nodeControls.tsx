@@ -1,12 +1,12 @@
 "use client";
 
-import { FilePlusIcon, FolderPlusIcon, PlusIcon } from "lucide-react";
+import { FilePlusIcon, FolderPlusIcon, PlusIcon, UploadIcon } from "lucide-react";
 import { Breadcrumb, Button, Dropdown, type ButtonProps } from "antd";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { NODE_KIND, PAGE_ROUTES, type NodeKind } from "@/shared/constants";
 import { useTreeDraftStore } from "@/shared/stores";
-import { useTree, useTreeModel } from "../hooks";
+import { useImportFiles, useIsImporting, useTree, useTreeModel } from "../hooks";
 
 const NEW_ITEMS: { kind: NodeKind; label: string; icon: ReactNode }[] = [
   { kind: NODE_KIND.doc, label: "New doc", icon: <FilePlusIcon className="size-4" /> },
@@ -23,20 +23,34 @@ type NewNodeMenuProps = {
 
 export const NewNodeMenu = ({ parentId, type, size = "small", block }: NewNodeMenuProps) => {
   const startCreate = useTreeDraftStore((state) => state.startCreate);
+  const { openPicker, input: importInput } = useImportFiles();
+  const isImporting = useIsImporting();
 
-  const items = NEW_ITEMS.map(({ kind, label, icon }) => ({
+  const createItems = NEW_ITEMS.map(({ kind, label, icon }) => ({
     key: kind,
     label,
     icon,
     onClick: () => startCreate(kind, parentId),
   }));
 
+  const importItem = {
+    key: "import",
+    label: "Import docs",
+    icon: <UploadIcon className="size-4" />,
+    onClick: () => openPicker(parentId),
+  };
+
+  const items = [...createItems, { type: "divider" as const }, importItem];
+
   return (
-    <Dropdown trigger={["click"]} menu={{ items }}>
-      <Button size={size} type={type} block={block} icon={<PlusIcon className="size-4" />}>
-        New
-      </Button>
-    </Dropdown>
+    <>
+      <Dropdown trigger={["click"]} menu={{ items }}>
+        <Button size={size} type={type} block={block} loading={isImporting} icon={<PlusIcon className="size-4" />}>
+          New
+        </Button>
+      </Dropdown>
+      {importInput}
+    </>
   );
 };
 

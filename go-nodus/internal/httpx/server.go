@@ -12,6 +12,9 @@ import (
 	"gorm.io/gorm"
 )
 
+// HeaderContentDisposition names the downloaded file; CORS exposes it so the web app can read the name.
+const HeaderContentDisposition = "Content-Disposition"
+
 type Module interface {
 	RegisterRoutes(router gin.IRouter)
 }
@@ -29,6 +32,7 @@ func NewRouter(allowedOrigin string, authenticate gin.HandlerFunc, modules ...Mo
 			"OPTIONS",
 		},
 		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		ExposeHeaders:    []string{HeaderContentDisposition},
 		AllowCredentials: true,
 	}
 

@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+	"net/url"
+	"strconv"
 
 	"github.com/google/uuid"
 )
@@ -25,7 +26,9 @@ type idArgs struct {
 }
 
 type searchArgs struct {
-	Query string `json:"query"`
+	Query  string `json:"query"`
+	Limit  int    `json:"limit"`
+	Offset int    `json:"offset"`
 }
 
 type createNoteArgs struct {
@@ -70,12 +73,6 @@ type treeNode struct {
 	Position int64      `json:"position"`
 }
 
-type noteSummary struct {
-	ID       uuid.UUID  `json:"id"`
-	Title    string     `json:"title"`
-	ParentID *uuid.UUID `json:"parentId"`
-}
-
 type noteRef struct {
 	ID    uuid.UUID `json:"id"`
 	Title string    `json:"title"`
@@ -113,8 +110,12 @@ func buildTools(api *client, workspace string) []tool {
 	return []tool{
 		{
 			Name:        "search_notes",
-			Description: "Search notes by title (case-insensitive substring). An empty query lists every note. Results follow the tree order and carry no content; call get_note for the full content.",
-			InputSchema: object(nil, props{"query": str("Text to search for in titles. Omit to list all notes.")}),
+			Description: "Search notes by title and content (case-insensitive substring), most recently updated first. Returns one page: items (id, title, path, snippet, updatedAt) plus hasMore; pass offset to read the next page. An empty query returns the most recent notes. Items carry no full content; call get_note for it.",
+			InputSchema: object(nil, props{
+				"query":  str("Text to search for in titles and content. Omit for the most recent notes."),
+				"limit":  integer("Notes per page, 1 to 100. Default 20."),
+				"offset": integer("Notes to skip, for the next page. Default 0."),
+			}),
 			Annotations: readOnly,
 			run:         handle(t.searchNotes),
 		},
@@ -213,22 +214,18 @@ func buildTools(api *client, workspace string) []tool {
 	}
 }
 
-// searchNotes filters note titles on the tree: the API has no content search yet.
+// A zero limit or offset is left out, so the API default applies.
 func (t *toolset) searchNotes(args searchArgs) (any, error) {
-	nodes, err := t.tree()
-	if err != nil {
-		return nil, err
+	params := url.Values{"q": {args.Query}}
+	if args.Limit != 0 {
+		params.Set("limit", strconv.Itoa(args.Limit))
 	}
 
-	query := strings.ToLower(args.Query)
-	summaries := []noteSummary{}
-	for _, node := range nodes {
-		if node.Kind == "doc" && strings.Contains(strings.ToLower(node.Name), query) {
-			summaries = append(summaries, noteSummary{ID: node.ID, Title: node.Name, ParentID: node.ParentID})
-		}
+	if args.Offset != 0 {
+		params.Set("offset", strconv.Itoa(args.Offset))
 	}
 
-	return summaries, nil
+	return t.raw(http.MethodGet, t.inWorkspace("/docs?"+params.Encode()), nil)
 }
 
 func (t *toolset) getNote(args idArgs) (any, error) {
@@ -399,6 +396,10 @@ func object(required []string, properties props) map[string]any {
 
 func str(description string) map[string]any {
 	return map[string]any{"type": "string", "description": description}
+}
+
+func integer(description string) map[string]any {
+	return map[string]any{"type": "integer", "description": description}
 }
 
 func uuidStr(description string) map[string]any {
