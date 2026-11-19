@@ -13,7 +13,7 @@ import (
 // @Success	200		{object}	httpx.SuccessBody{data=[]tokenResponse}
 // @Failure	401,403	{object}	httpx.ErrorBody
 // @Router		/tokens [get]
-func (handler *Handler) listTokens(ginContext *gin.Context) {
+func (handler *Handler) getTokenList(ginContext *gin.Context) {
 	tokens, err := handler.service.ListTokens(ginContext.Request.Context(), GetPrincipal(ginContext).UserID)
 	if err != nil {
 		_ = ginContext.Error(err)
@@ -29,7 +29,7 @@ func (handler *Handler) listTokens(ginContext *gin.Context) {
 // @Success	201			{object}	httpx.SuccessBody{data=createdTokenResponse}
 // @Failure	400,401,403	{object}	httpx.ErrorBody
 // @Router		/tokens [post]
-func (handler *Handler) createToken(ginContext *gin.Context) {
+func (handler *Handler) issueToken(ginContext *gin.Context) {
 	token, err := handler.service.CreateToken(
 		ginContext.Request.Context(),
 		GetPrincipal(ginContext).UserID,
@@ -50,7 +50,7 @@ func (handler *Handler) createToken(ginContext *gin.Context) {
 // @Success	204
 // @Failure	401,403,404	{object}	httpx.ErrorBody
 // @Router		/tokens/{id} [delete]
-func (handler *Handler) revokeToken(ginContext *gin.Context) {
+func (handler *Handler) removeToken(ginContext *gin.Context) {
 	err := handler.service.RevokeToken(
 		ginContext.Request.Context(),
 		GetPrincipal(ginContext).UserID,

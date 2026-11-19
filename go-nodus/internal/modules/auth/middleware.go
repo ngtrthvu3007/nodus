@@ -19,10 +19,17 @@ var publicRoutes = map[string]bool{
 	"/auth/login":    true,
 }
 
-// Authenticate runs on every route. It reads `Authorization: Bearer <token>` or the nodus_session cookie,
-// answers 401 when neither is valid, and stores the Principal for the handlers.
+// Authenticate runs on every route. It checks the Origin of writes, then reads `Authorization: Bearer <token>`
+// or the nodus_session cookie, answers 401 when neither is valid, and stores the Principal for the handlers.
 func (handler *Handler) Authenticate() gin.HandlerFunc {
 	return func(ginContext *gin.Context) {
+		// Before the public routes return: login and register are writes too (login CSRF).
+		err := handler.checkOrigin(ginContext)
+		if err != nil {
+			httpx.AbortWithError(ginContext, err)
+			return
+		}
+
 		if publicRoutes[ginContext.FullPath()] {
 			return
 		}
@@ -33,7 +40,7 @@ func (handler *Handler) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		err = handler.checkRequest(ginContext, principal)
+		err = checkScope(ginContext.Request.Method, principal)
 		if err != nil {
 			httpx.AbortWithError(ginContext, err)
 			return
@@ -73,24 +80,24 @@ func (handler *Handler) resolvePrincipal(ginContext *gin.Context) (Principal, er
 	return handler.service.ResolveSession(ctx, sessionToken)
 }
 
-// checkRequest applies the rules that hold for every route:
-//   - a docs:read token only reads;
-//   - a cookie-authenticated write must come from the frontend or the API itself (CSRF, ADR-002).
-func (handler *Handler) checkRequest(ginContext *gin.Context, principal Principal) error {
-	if isReadMethod(ginContext.Request.Method) {
+// checkOrigin: a write sent by a browser must come from the frontend or the API itself (CSRF, ADR-002).
+// It holds for every route, public ones included. Tools (curl, MCP) send no Origin and pass.
+func (handler *Handler) checkOrigin(ginContext *gin.Context) error {
+	origin := ginContext.GetHeader("Origin")
+	if isReadMethod(ginContext.Request.Method) || origin == "" || handler.isTrustedOrigin(ginContext, origin) {
 		return nil
 	}
 
-	if !principal.canWrite() {
-		return errInsufficientScope
+	return httpx.ErrForbidden
+}
+
+// checkScope: a docs:read token only reads.
+func checkScope(method string, principal Principal) error {
+	if isReadMethod(method) || principal.canWrite() {
+		return nil
 	}
 
-	origin := ginContext.GetHeader("Origin")
-	if principal.AuthMethod == AuthMethodSession && origin != "" && !handler.isTrustedOrigin(ginContext, origin) {
-		return httpx.ErrForbidden
-	}
-
-	return nil
+	return errInsufficientScope
 }
 
 // The frontend, or the API's own pages (Swagger UI): a site on another origin cannot send either value.

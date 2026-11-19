@@ -29,9 +29,9 @@ func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	sessionOnly.POST("/auth/logout", handler.logoutSession)
 	sessionOnly.POST("/auth/logout-all", handler.logoutAllSessions)
 	sessionOnly.GET("/me", handler.getCurrentUser)
-	sessionOnly.GET("/tokens", handler.listTokens)
-	sessionOnly.POST("/tokens", httpx.ParseJSONBody[createTokenRequest](), handler.createToken)
-	sessionOnly.DELETE("/tokens/:id", httpx.ParseResourceID(errTokenNotFound), handler.revokeToken)
+	sessionOnly.GET("/tokens", handler.getTokenList)
+	sessionOnly.POST("/tokens", httpx.ParseJSONBody[createTokenRequest](), handler.issueToken)
+	sessionOnly.DELETE("/tokens/:id", httpx.ParseResourceID(errTokenNotFound), handler.removeToken)
 }
 
 // @Summary	Create an account with its personal workspace, and sign in (sets the nodus_session cookie)
