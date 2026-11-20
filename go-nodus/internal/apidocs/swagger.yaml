@@ -1,5 +1,73 @@
 basePath: /
 definitions:
+  auth.createTokenRequest:
+    properties:
+      name:
+        type: string
+      password:
+        type: string
+      scope:
+        enum:
+        - docs:read
+        - docs:write
+        type: string
+    required:
+    - name
+    - password
+    - scope
+    type: object
+  auth.createdTokenResponse:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      scope:
+        type: string
+      token:
+        type: string
+    type: object
+  auth.loginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.registerRequest:
+    properties:
+      email:
+        maxLength: 254
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  auth.tokenResponse:
+    properties:
+      createdAt:
+        type: string
+      id:
+        type: string
+      lastUsedAt:
+        type: string
+      name:
+        type: string
+      scope:
+        type: string
+    type: object
+  auth.userResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+    type: object
   doc.createDocRequest:
     properties:
       content:
@@ -290,6 +358,107 @@ info:
   title: Nodus API
   version: "0.1"
 paths:
+  /auth/login:
+    post:
+      parameters:
+      - description: Email and password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.loginRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.userResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Sign in with email and password (sets the nodus_session cookie)
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Sign out of this browser
+      tags:
+      - auth
+  /auth/logout-all:
+    post:
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Sign out of every device, this one included; tokens stay valid
+      tags:
+      - auth
+  /auth/register:
+    post:
+      parameters:
+      - description: Email and password (12-64 characters)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.registerRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.userResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "429":
+          description: Too Many Requests
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Create an account with its personal workspace, and sign in (sets the
+        nodus_session cookie)
+      tags:
+      - auth
   /docs/{id}:
     delete:
       parameters:
@@ -677,6 +846,115 @@ paths:
       summary: Move a folder under another folder or to the root
       tags:
       - folder
+  /me:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.userResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Get the signed-in user
+      tags:
+      - auth
+  /tokens:
+    get:
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/auth.tokenResponse'
+                  type: array
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: List personal access tokens (revoked ones left out)
+      tags:
+      - auth
+    post:
+      parameters:
+      - description: Name, scope and the password again
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/auth.createTokenRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/httpx.SuccessBody'
+            - properties:
+                data:
+                  $ref: '#/definitions/auth.createdTokenResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Create a personal access token; the token is shown in this response
+        only
+      tags:
+      - auth
+  /tokens/{id}:
+    delete:
+      parameters:
+      - description: Token ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/httpx.ErrorBody'
+      summary: Revoke a personal access token, effective immediately
+      tags:
+      - auth
   /workspaces/{workspaceId}/docs:
     get:
       parameters:

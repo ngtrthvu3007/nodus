@@ -19,7 +19,8 @@ type Module interface {
 	RegisterRoutes(router gin.IRouter)
 }
 
-func NewRouter(allowedOrigin string, modules ...Module) *gin.Engine {
+// authenticate runs on every route after CORS; it decides itself which routes are public.
+func NewRouter(allowedOrigin string, authenticate gin.HandlerFunc, modules ...Module) *gin.Engine {
 	corsConfig := cors.Config{
 		AllowOrigins: []string{allowedOrigin},
 		AllowMethods: []string{
@@ -30,13 +31,13 @@ func NewRouter(allowedOrigin string, modules ...Module) *gin.Engine {
 			"DELETE",
 			"OPTIONS",
 		},
-		AllowHeaders:     []string{"Content-Type"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
 		ExposeHeaders:    []string{HeaderContentDisposition},
 		AllowCredentials: true,
 	}
 
 	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery(), cors.New(corsConfig), handleErrors())
+	router.Use(gin.Logger(), gin.Recovery(), cors.New(corsConfig), handleErrors(), authenticate)
 
 	router.GET("/health", func(ginContext *gin.Context) {
 		ginContext.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -92,6 +93,8 @@ func (apiErr *Error) Error() string {
 var (
 	ErrWorkspaceNotFound = NewError(http.StatusNotFound, "workspace_not_found", "Workspace is not found")
 	ErrDocNotFound       = NewError(http.StatusNotFound, "doc_not_found", "Doc is not found")
+	ErrForbidden         = NewError(http.StatusForbidden, "forbidden", "You are not allowed to do this")
+	ErrRateLimited       = NewError(http.StatusTooManyRequests, "rate_limited", "Too many attempts, try again later")
 )
 
 // Handlers record errors with ginContext.Error(err) and return; this answers them.

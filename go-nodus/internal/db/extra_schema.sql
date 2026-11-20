@@ -17,3 +17,9 @@ CREATE UNIQUE INDEX "doc_links_unique_ref" ON "public"."doc_links" ("source_doc_
 -- (20261115140000) and, for Atlas, by atlas-dev-init.sql: free Atlas rejects CREATE EXTENSION in a schema file.
 CREATE INDEX "docs_title_trgm" ON "public"."docs" USING gin ("title" gin_trgm_ops) WHERE "deleted_at" IS NULL;
 CREATE INDEX "docs_content_trgm" ON "public"."docs" USING gin ("content" gin_trgm_ops) WHERE "deleted_at" IS NULL;
+
+-- A workspace member is an owner or a member.
+ALTER TABLE "public"."workspace_members" ADD CONSTRAINT "workspace_members_role" CHECK ("role" IN ('owner', 'member'));
+
+-- A token reads docs, or reads and writes them.
+ALTER TABLE "public"."personal_access_tokens" ADD CONSTRAINT "personal_access_tokens_scope" CHECK ("scope" IN ('docs:read', 'docs:write'));
