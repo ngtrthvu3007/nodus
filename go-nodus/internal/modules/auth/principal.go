@@ -11,6 +11,9 @@ const (
 
 	ScopeDocsRead  = "docs:read"
 	ScopeDocsWrite = "docs:write"
+
+	RoleOwner  = "owner"
+	RoleMember = "member"
 )
 
 const principalKey = "principal"
@@ -31,6 +34,7 @@ func GetPrincipal(ginContext *gin.Context) Principal {
 	return principal
 }
 
-func (principal Principal) canWrite() bool {
+// CanWriteDocs is false only for a docs:read token. workspace.CanAccess checks it, after membership.
+func (principal Principal) CanWriteDocs() bool {
 	return principal.AuthMethod == AuthMethodSession || principal.Scope == ScopeDocsWrite
 }

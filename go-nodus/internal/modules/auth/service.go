@@ -22,14 +22,12 @@ const (
 	lastUsedWriteInterval = time.Minute
 
 	personalWorkspaceName = "Personal"
-	roleOwner             = "owner"
 )
 
 var (
 	errUnauthenticated    = httpx.NewError(http.StatusUnauthorized, "unauthenticated", "Sign in to continue")
 	errInvalidCredentials = httpx.NewError(http.StatusUnauthorized, "invalid_credentials", "Wrong email or password")
 	errInvalidPassword    = httpx.NewError(http.StatusForbidden, "invalid_password", "Password is incorrect")
-	errInsufficientScope  = httpx.NewError(http.StatusForbidden, "insufficient_scope", "This token can only read")
 	errEmailTaken         = httpx.NewError(http.StatusConflict, "email_taken", "Email is already registered")
 )
 
@@ -56,7 +54,7 @@ func (service *Service) Register(ctx context.Context, request registerRequest, c
 	}
 
 	passwordHash := hashPassword(request.Password)
-	user := db.User{Email: normalizeEmail(request.Email), PasswordHash: &passwordHash}
+	user := db.User{Email: NormalizeEmail(request.Email), PasswordHash: &passwordHash}
 
 	var sessionToken string
 	err = service.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
@@ -89,7 +87,7 @@ func (service *Service) Register(ctx context.Context, request registerRequest, c
 // Failures are counted per email and per IP; past the limit every attempt is refused.
 func (service *Service) Login(ctx context.Context, request loginRequest, client clientInfo) (signedIn, error) {
 	database := service.db.WithContext(ctx)
-	email := normalizeEmail(request.Email)
+	email := NormalizeEmail(request.Email)
 
 	if service.loginLimiters.Email.IsBlocked(email) || service.loginLimiters.IP.IsBlocked(client.IP) {
 		return signedIn{}, httpx.ErrRateLimited
@@ -134,13 +132,36 @@ func (service *Service) LogoutAll(ctx context.Context, userID uuid.UUID) error {
 	return service.db.WithContext(ctx).Delete(&db.Session{}, "user_id = ?", userID).Error
 }
 
-func (service *Service) GetUser(ctx context.Context, userID uuid.UUID) (userResponse, error) {
-	user, err := httpx.FindByID[db.User](service.db.WithContext(ctx), userID, errUnauthenticated)
+// GetUser is the signed-in user with the workspaces they belong to (the same list as GET /workspaces).
+func (service *Service) GetUser(ctx context.Context, userID uuid.UUID) (currentUserResponse, error) {
+	database := service.db.WithContext(ctx)
+
+	user, err := httpx.FindByID[db.User](database, userID, errUnauthenticated)
 	if err != nil {
-		return userResponse{}, err
+		return currentUserResponse{}, err
 	}
 
-	return toUserResponse(*user), nil
+	workspaces, err := ListWorkspaces(database, userID)
+	if err != nil {
+		return currentUserResponse{}, err
+	}
+
+	return currentUserResponse{ID: user.ID, Email: user.Email, Workspaces: workspaces}, nil
+}
+
+// ListWorkspaces is every workspace the user is a member of, with their role, oldest first.
+// It lives here so GET /me and GET /workspaces share one query (the workspace module imports auth).
+func ListWorkspaces(tx *gorm.DB, userID uuid.UUID) ([]WorkspaceSummary, error) {
+	workspaces := []WorkspaceSummary{}
+
+	err := tx.Table("workspace_members").
+		Select("workspaces.id, workspaces.name, workspace_members.role").
+		Joins("JOIN workspaces ON workspaces.id = workspace_members.workspace_id").
+		Where("workspace_members.user_id = ?", userID).
+		Order("workspaces.created_at, workspaces.id").
+		Scan(&workspaces).Error
+
+	return workspaces, err
 }
 
 // ResolveSession finds the live session of a cookie value.
@@ -209,7 +230,7 @@ func createPersonalWorkspace(tx *gorm.DB, userID uuid.UUID) error {
 		return err
 	}
 
-	member := db.WorkspaceMember{WorkspaceID: workspace.ID, UserID: userID, Role: roleOwner}
+	member := db.WorkspaceMember{WorkspaceID: workspace.ID, UserID: userID, Role: RoleOwner}
 
 	return tx.Create(&member).Error
 }
@@ -249,7 +270,7 @@ func deleteEndedSessions(tx *gorm.DB, userID uuid.UUID) error {
 	).Error
 }
 
-func normalizeEmail(email string) string {
+func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 

@@ -9,20 +9,24 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
+	"go-nodus/internal/modules/workspace"
 )
 
 type Handler struct {
 	service *Service
+	guard   *workspace.Guard
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, guard *workspace.Guard) *Handler {
+	return &Handler{service: service, guard: guard}
 }
 
+// Exporting only reads, POST included. Routes by doc or folder id check access in the service.
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	router.GET("/docs/:id/export", httpx.ParseResourceID(httpx.ErrDocNotFound), handler.exportDoc)
 	router.GET("/folders/:id/export", httpx.ParseResourceID(errFolderNotFound), handler.exportFolder)
-	router.POST("/workspaces/:workspaceId/docs/export", httpx.ParseWorkspaceID(), httpx.ParseJSONBody[exportDocsRequest](), handler.exportDocs)
+	router.POST("/workspaces/:workspaceId/docs/export", httpx.ParseWorkspaceID(), handler.guard.RequireRead(), httpx.ParseJSONBody[exportDocsRequest](), handler.exportDocs)
 }
 
 // @Summary	Download one doc as a .md file (its children are not included)
@@ -33,7 +37,12 @@ func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/docs/{id}/export [get]
 func (handler *Handler) exportDoc(ginContext *gin.Context) {
-	file, err := handler.service.BuildDocFile(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	file, err := handler.service.BuildDocFile(
+		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
+		httpx.GetResourceID(ginContext),
+	)
+
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
@@ -50,7 +59,12 @@ func (handler *Handler) exportDoc(ginContext *gin.Context) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/folders/{id}/export [get]
 func (handler *Handler) exportFolder(ginContext *gin.Context) {
-	file, err := handler.service.BuildFolderZip(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	file, err := handler.service.BuildFolderZip(
+		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
+		httpx.GetResourceID(ginContext),
+	)
+
 	if err != nil {
 		_ = ginContext.Error(err)
 		return

@@ -16,10 +16,24 @@ type loginRequest struct {
 	Password string `json:"password" binding:"required"`
 }
 
-// userResponse is the same for register, login and GET /me.
+// userResponse is the answer of register and login.
 type userResponse struct {
 	ID    uuid.UUID `json:"id"`
 	Email string    `json:"email"`
+}
+
+// currentUserResponse is GET /me: the user and the workspaces they belong to.
+type currentUserResponse struct {
+	ID         uuid.UUID          `json:"id"`
+	Email      string             `json:"email"`
+	Workspaces []WorkspaceSummary `json:"workspaces"`
+}
+
+// WorkspaceSummary is a workspace as one of its members sees it; GET /workspaces answers a list of them.
+type WorkspaceSummary struct {
+	ID   uuid.UUID `json:"id"`
+	Name string    `json:"name"`
+	Role string    `json:"role"`
 }
 
 type createTokenRequest struct {

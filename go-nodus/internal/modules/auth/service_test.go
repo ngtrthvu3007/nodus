@@ -94,7 +94,7 @@ func TestRegister(t *testing.T) {
 	}
 
 	var ownedWorkspaces int64
-	service.db.Table("workspace_members").Where("user_id = ? AND role = ?", user.ID, roleOwner).Count(&ownedWorkspaces)
+	service.db.Table("workspace_members").Where("user_id = ? AND role = ?", user.ID, RoleOwner).Count(&ownedWorkspaces)
 	if ownedWorkspaces != 1 {
 		t.Fatalf("owned workspaces = %d, want the personal one", ownedWorkspaces)
 	}
@@ -276,9 +276,11 @@ func TestTokenThroughMiddleware(t *testing.T) {
 		t.Fatalf("docs:read GET = %d, want 200", recorder.Code)
 	}
 
+	// The middleware lets a docs:read write through: workspace.CanAccess refuses it after the membership check,
+	// so a non-member still gets 404 first (see the access matrix in cmd/api).
 	recorder = sendRequest(router, http.MethodPost, "/probe", bearer(readToken)...)
-	if recorder.Code != http.StatusForbidden || getErrorCode(t, recorder) != "insufficient_scope" {
-		t.Fatalf("docs:read POST = %d %q, want 403 insufficient_scope", recorder.Code, recorder.Body.String())
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("docs:read POST through the middleware = %d %q, want 200", recorder.Code, recorder.Body.String())
 	}
 
 	recorder = sendRequest(router, http.MethodPost, "/probe", bearer(writeToken)...)

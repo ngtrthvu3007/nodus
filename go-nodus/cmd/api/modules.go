@@ -13,6 +13,7 @@ import (
 	"go-nodus/internal/modules/folder"
 	"go-nodus/internal/modules/link"
 	"go-nodus/internal/modules/tree"
+	"go-nodus/internal/modules/workspace"
 	"go-nodus/internal/ratelimit"
 )
 
@@ -23,6 +24,12 @@ const (
 	loginFailureWindow    = 15 * time.Minute
 )
 
+// Members an owner may try to add per window, found or not, so the route cannot probe which emails have accounts.
+const (
+	memberAddsPerUser = 20
+	memberAddWindow   = 15 * time.Minute
+)
+
 // modules returns the authentication middleware and every API module.
 func modules(database *gorm.DB, allowedOrigin string) (gin.HandlerFunc, []httpx.Module) {
 	loginLimiters := auth.LoginLimiters{
@@ -31,14 +38,19 @@ func modules(database *gorm.DB, allowedOrigin string) (gin.HandlerFunc, []httpx.
 	}
 	authHandler := auth.NewHandler(auth.NewService(database, loginLimiters), allowedOrigin)
 
+	// One permission check (workspace.CanAccess) for every docs route; Guard runs it on routes with :workspaceId.
+	guard := workspace.NewGuard(database)
+	memberLimiter := ratelimit.New(memberAddsPerUser, memberAddWindow)
+
 	treeService := tree.NewService(tree.NewRepository(database))
 
 	return authHandler.Authenticate(), []httpx.Module{
 		authHandler,
-		tree.NewHandler(treeService),
-		folder.NewHandler(folder.NewService(database, treeService)),
-		doc.NewHandler(doc.NewService(database, treeService)),
-		link.NewHandler(link.NewService(database)),
-		export.NewHandler(export.NewService(database, treeService)),
+		workspace.NewHandler(workspace.NewService(database, memberLimiter)),
+		tree.NewHandler(treeService, guard),
+		folder.NewHandler(folder.NewService(database, treeService), guard),
+		doc.NewHandler(doc.NewService(database, treeService), guard),
+		link.NewHandler(link.NewService(database), guard),
+		export.NewHandler(export.NewService(database, treeService), guard),
 	}
 }

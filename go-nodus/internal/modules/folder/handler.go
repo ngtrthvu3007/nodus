@@ -7,19 +7,23 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
 	"go-nodus/internal/modules/tree"
+	"go-nodus/internal/modules/workspace"
 )
 
 type Handler struct {
 	service *Service
+	guard   *workspace.Guard
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, guard *workspace.Guard) *Handler {
+	return &Handler{service: service, guard: guard}
 }
 
+// Routes by folder id check access in the service, once the folder's workspace is known.
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
-	router.POST("/workspaces/:workspaceId/folders", httpx.ParseWorkspaceID(), httpx.ParseJSONBody[createFolderRequest](), handler.createFolder)
+	router.POST("/workspaces/:workspaceId/folders", httpx.ParseWorkspaceID(), handler.guard.RequireWrite(), httpx.ParseJSONBody[createFolderRequest](), handler.createFolder)
 
 	folder := router.Group("/folders/:id", httpx.ParseResourceID(errFolderNotFound))
 	folder.GET("", handler.getFolder)
@@ -57,7 +61,12 @@ func (handler *Handler) createFolder(ginContext *gin.Context) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/folders/{id} [get]
 func (handler *Handler) getFolder(ginContext *gin.Context) {
-	folder, err := handler.service.Get(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	folder, err := handler.service.Get(
+		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
+		httpx.GetResourceID(ginContext),
+	)
+
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
@@ -76,6 +85,7 @@ func (handler *Handler) getFolder(ginContext *gin.Context) {
 func (handler *Handler) updateFolder(ginContext *gin.Context) {
 	folder, err := handler.service.Update(
 		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
 		httpx.GetResourceID(ginContext),
 		httpx.GetBody[updateFolderRequest](ginContext),
 	)
@@ -98,6 +108,7 @@ func (handler *Handler) updateFolder(ginContext *gin.Context) {
 func (handler *Handler) moveFolder(ginContext *gin.Context) {
 	moved, err := handler.service.Move(
 		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
 		httpx.GetResourceID(ginContext),
 		httpx.GetBody[tree.MoveRequest](ginContext),
 	)
@@ -117,7 +128,12 @@ func (handler *Handler) moveFolder(ginContext *gin.Context) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/folders/{id} [delete]
 func (handler *Handler) deleteFolder(ginContext *gin.Context) {
-	err := handler.service.Delete(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	err := handler.service.Delete(
+		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
+		httpx.GetResourceID(ginContext),
+	)
+
 	if err != nil {
 		_ = ginContext.Error(err)
 		return

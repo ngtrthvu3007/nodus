@@ -11,6 +11,8 @@ import (
 
 	"go-nodus/internal/db"
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
+	workspaceaccess "go-nodus/internal/modules/workspace"
 )
 
 const maxSuggestions = 10
@@ -25,11 +27,16 @@ func NewService(database *gorm.DB) *Service {
 	return &Service{db: database}
 }
 
-func (service *Service) GetDocLinks(ctx context.Context, docID uuid.UUID) (docLinks, error) {
+func (service *Service) GetDocLinks(ctx context.Context, principal auth.Principal, docID uuid.UUID) (docLinks, error) {
 	links := docLinks{Backlinks: []backlink{}, Outgoing: []outgoingLink{}}
 	database := service.db.WithContext(ctx)
 
 	doc, err := httpx.FindByID[db.Doc](database, docID, httpx.ErrDocNotFound)
+	if err != nil {
+		return links, err
+	}
+
+	err = workspaceaccess.CanAccessResource(database, principal, doc.WorkspaceID, false, httpx.ErrDocNotFound)
 	if err != nil {
 		return links, err
 	}
@@ -122,8 +129,15 @@ func (service *Service) AutocompleteTitles(
 	return suggestions, nil
 }
 
-func (service *Service) GetHeadings(ctx context.Context, docID uuid.UUID) ([]heading, error) {
-	doc, err := httpx.FindByID[db.Doc](service.db.WithContext(ctx), docID, httpx.ErrDocNotFound)
+func (service *Service) GetHeadings(ctx context.Context, principal auth.Principal, docID uuid.UUID) ([]heading, error) {
+	database := service.db.WithContext(ctx)
+
+	doc, err := httpx.FindByID[db.Doc](database, docID, httpx.ErrDocNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	err = workspaceaccess.CanAccessResource(database, principal, doc.WorkspaceID, false, httpx.ErrDocNotFound)
 	if err != nil {
 		return nil, err
 	}
