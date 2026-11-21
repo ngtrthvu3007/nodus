@@ -28,15 +28,18 @@ Không có đăng nhập không mật khẩu (magic link). Đăng nhập tách k
 - 1 tài khoản gắn được **nhiều phương thức đăng nhập**, gắn thêm/gỡ bớt trong trang cài đặt. Không cho gỡ phương thức cuối cùng.
 - Đăng xuất; đăng xuất khỏi mọi thiết bị (gồm cả thiết bị đang dùng, không thu hồi PAT).
 - Xóa tài khoản: xóa các workspace mà tài khoản là `owner` duy nhất cùng toàn bộ dữ liệu bên trong; rời các workspace còn lại.
-- Dữ liệu demo hiện có bị **xóa** khi bật tài khoản, không gán cho ai.
+- Dữ liệu demo hiện có (workspace `Default` tạo sẵn trước khi có tài khoản) bị **xóa** khi bật kiểm tra quyền theo workspace, không gán cho ai.
 - MCP và chat AI ([[FRD-mcp]], [[FRD-ai-chat]]) dùng cùng quyền của tài khoản, không có đường vào riêng.
 
 ### Workspace và thành viên
 
-- Một tài khoản tạo được nhiều workspace và thuộc nhiều workspace. Mọi folder, doc, link thuộc về một workspace.
+- Một tài khoản tạo được nhiều workspace và thuộc nhiều workspace. Mọi folder, doc, link thuộc về một workspace. Người tạo workspace là `owner` của nó.
+- Tên workspace: bỏ khoảng trắng đầu/cuối, dài 1–100 ký tự; sai → `400 invalid_params`. Hai workspace được trùng tên.
+- Thông tin người dùng hiện tại (`/me`) kèm danh sách workspace mà người dùng là member (id, tên, role của người dùng trong workspace đó).
 - Role: `owner` (đổi tên và xóa workspace, thêm/xóa member, đổi role) và `member` (đọc và sửa mọi folder/doc trong workspace). Workspace luôn có ít nhất một `owner`; xóa hoặc hạ `owner` cuối cùng bị từ chối (`409 last_owner`).
+- Xóa workspace xóa luôn toàn bộ folder, doc, link bên trong, không giữ lại gì. Để tránh xóa nhầm, giao diện bắt gõ lại tên workspace trước khi xóa.
 - Member được tự rời workspace (xóa chính mình); vẫn áp `last_owner`.
-- Thêm member bằng **email của tài khoản đã có**, không gửi email mời. Email chưa có tài khoản → `404`; đã là member → `409 already_member`. Thêm member có giới hạn tốc độ riêng để không dò được email nào đã có tài khoản.
+- Thêm member bằng **email của tài khoản đã có**, không gửi email mời. Email chưa có tài khoản → `404 user_not_found`; đã là member → `409 already_member`. Thêm member có giới hạn tốc độ riêng để không dò được email nào đã có tài khoản.
 - Người không phải member không đọc/sửa được gì của workspace; API trả `404` (không tiết lộ workspace có tồn tại hay không), trừ phạm vi được share ([[FRD-share]]) hoặc publish ([[FRD-publish]]).
 - Mọi API đọc/ghi doc, folder, link, tìm kiếm, export đi qua **một hàm kiểm tra quyền duy nhất**; share mở rộng hàm này, không sửa từng truy vấn.
 - Thứ tự kiểm tra lỗi: chưa đăng nhập → `401`; không phải member → `404`; là member nhưng thiếu role hoặc quyền token → `403`.

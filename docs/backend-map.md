@@ -1,6 +1,6 @@
 # Backend map — `go-nodus`
 
-Gin + GORM + Postgres, theo [[ADR-001-tech-stack]]. Mỗi domain là **một package** (`internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`) gồm handler + service; `internal/httpx` chỉ giữ phần HTTP dùng chung; **`cmd/api`** dựng mọi dependency bằng constructor (DI viết tay, không framework) và chạy server. Quy tắc nghiệp vụ từng tính năng xem `docs/frd/`.
+Gin + GORM + Postgres, theo [[ADR-001-tech-stack]]. Mỗi domain là **một package** (`internal/modules/auth`, `internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`, `internal/modules/export`) gồm handler + service; `internal/httpx` chỉ giữ phần HTTP dùng chung; **`cmd/api`** dựng mọi dependency bằng constructor (DI viết tay, không framework) và chạy server. Quy tắc nghiệp vụ từng tính năng xem `docs/frd/`.
 
 ## Cấu trúc
 
@@ -17,6 +17,12 @@ go-nodus/
 │   │   ├── server.go      # NewRouter(origin, modules...), interface Module, response envelope, httpx.Error, FindByID
 │   │   └── middleware.go  # ParseWorkspaceID / ParseResourceID, ParseJSONBody, GetWorkspaceID / GetResourceID / GetBody
 │   ├── modules/           # các module nghiệp vụ, mỗi module một package (handler + service + types)
+│   │   ├── auth/          # đăng ký, đăng nhập, session, PAT; middleware Authenticate → Principal
+│   │   │   ├── handler.go, service.go               # /auth/*, /me
+│   │   │   ├── token_handler.go, token_service.go   # /tokens
+│   │   │   ├── middleware.go  # Authenticate (Origin, cookie hoặc Bearer → Principal), RequireSession
+│   │   │   ├── password.go    # quy tắc mật khẩu, argon2id (PHC string), common_passwords.txt nhúng bằng go:embed
+│   │   │   └── secret.go      # sinh session token / PAT `nod_…`, băm SHA-256
 │   │   ├── tree/          # cây workspace + quy tắc dùng chung cho folder và doc
 │   │   │   ├── handler.go     # chỉ có route GET /workspaces/:id/tree
 │   │   │   ├── service.go     # GetTree, LoadIndex, LockWorkspace, PlaceNew, CheckNameFree, MoveItem
@@ -27,6 +33,7 @@ go-nodus/
 │   │   ├── doc/           # /docs (tạo, sửa, move, xóa gọi link.RelinkWorkspace)
 │   │   ├── link/          # wiki-link: backlink, autocomplete, headings, RelinkWorkspace
 │   │   └── export/        # tải doc, nhiều doc, folder về file markdown (layout, đặt tên, ghi zip streaming)
+│   ├── ratelimit/         # đếm số lần theo key trong cửa sổ thời gian, trong bộ nhớ (đăng nhập sai)
 │   ├── apidocs/           # Swagger do `make swagger` sinh từ annotation (không sửa tay)
 │   ├── config/config.go   # biến môi trường
 │   └── db/
@@ -44,8 +51,8 @@ flowchart LR
     Main[cmd/api/main.go<br/>bắt SIGINT/SIGTERM] --> Cfg[config.Load]
     Cfg --> New[newApp]
     New --> DB[openDB<br/>GORM + Postgres]
-    DB --> Mods["modules(db)<br/>tree.NewRepository → tree.NewService<br/>folder, doc: NewService(db, treeService); link: NewService(db)"]
-    Mods --> Router["httpx.NewRouter(origin, modules...)<br/>middleware + RegisterRoutes"]
+    DB --> Mods["modules(db, origin)<br/>auth: NewService(db, loginLimiters), NewHandler(service, origin)<br/>tree.NewRepository → tree.NewService<br/>folder, doc, export: NewService(db, treeService); link: NewService(db)"]
+    Mods --> Router["httpx.NewRouter(origin, authenticate, modules...)<br/>middleware + RegisterRoutes"]
     Router --> Run[app.run<br/>http.Server]
     Run -- nhận tín hiệu --> Stop[Shutdown ≤ 10s<br/>rồi đóng DB]
 ```
@@ -68,7 +75,8 @@ flowchart LR
 ```mermaid
 flowchart LR
     Req[HTTP request] --> MW[Middleware<br/>Logger, Recovery, CORS, handleErrors]
-    MW --> Parse[ParseWorkspaceID / ParseResourceID<br/>ParseJSONBody / ParseJSONBodyRequiringKeys]
+    MW --> Auth["auth.Authenticate<br/>Origin → route public? → cookie / Bearer → Principal"]
+    Auth --> Parse[ParseWorkspaceID / ParseResourceID<br/>ParseJSONBody / ParseJSONBodyRequiringKeys]
     Parse --> H[Handler<br/>gọi service với ctx]
     H --> S[Service<br/>kiểm tra quy tắc → GORM]
     S --> Tx{Ghi nhiều bước?}
@@ -78,6 +86,7 @@ flowchart LR
     Query --> Res
 ```
 
+- `auth.Authenticate` chạy trên mọi route, theo thứ tự: request ghi có `Origin` lạ → `403 forbidden` (cả route public); route public (`/health`, `/swagger/*`, `/auth/register`, `/auth/login`) đi qua; còn lại đọc cookie `nodus_session` hoặc `Authorization: Bearer nod_…`, không hợp lệ → `401 unauthenticated`; hợp lệ → lưu `Principal` (`auth.GetPrincipal`). Route chỉ nhận session gắn thêm `auth.RequireSession()` (PAT → `403 forbidden`). Cơ chế xem [[ADR-002-auth]].
 - Handler chỉ bind, gọi một method của service, trả response. Lỗi thì `_ = c.Error(err)` rồi return; middleware `handleErrors` trả response lỗi.
 - Quy tắc cây (`tree.PlaceNew`, `tree.MoveItem`, `tree.CheckNameFree`…) và `link.RelinkWorkspace` nhận `*gorm.DB` làm tham số nên chạy trong transaction của `folder`/`doc`.
 - Mọi ghi vào cây (tạo, đổi tên, move, xóa) chạy trong transaction và khóa dòng workspace (`FOR UPDATE`), nên các kiểm tra độ sâu và trùng tên không bị race. Cây nạp cả workspace mỗi lần ghi (xem chú thích `ponytail:` trong `tree/logic.go`).
@@ -91,6 +100,12 @@ flowchart LR
 | --- | --- | --- | --- |
 | GET | `/health` | `httpx` | |
 | GET | `/swagger/index.html` | `cmd/api` | Giao diện Swagger; URL cũng được log khi API khởi động |
+| POST | `/auth/register` | `auth` | Public. Tạo user + workspace `Personal` (owner) + session trong 1 transaction, set cookie `nodus_session` → `201 { id, email }`; trùng email → `409 email_taken` — [[FRD-account]] |
+| POST | `/auth/login` | `auth` | Public. Sai email hoặc mật khẩu → `401 invalid_credentials`; quá giới hạn (5 lần / 15 phút theo email, 20 theo IP) → `429 rate_limited`; luôn cấp session mới |
+| POST | `/auth/logout`, `/auth/logout-all` | `auth` | Session. Xóa session hiện tại / mọi session của user (PAT giữ nguyên) → `204` |
+| GET | `/me` | `auth` | Session. `{ id, email }` |
+| GET, POST | `/tokens` | `auth` | Session. GET: danh sách PAT chưa thu hồi; POST `{ name, scope, password }` → `201`, token `nod_…` chỉ có trong response này; sai mật khẩu → `403 invalid_password` |
+| DELETE | `/tokens/:id` | `auth` | Session. Thu hồi ngay → `204`; token của người khác hoặc đã thu hồi → `404 token_not_found` |
 | GET | `/workspaces/:workspaceId/tree` | `tree` | Danh sách phẳng folder + doc, xếp theo `position` |
 | POST | `/workspaces/:workspaceId/folders` | `folder` | Quy tắc: tên 1–200 ký tự không chứa `/ # \| [ ]`, độ sâu tối đa 4, không trùng tên cùng cha — [[FRD-folder]] |
 | GET, PATCH, DELETE | `/folders/:id` | `folder` | GET kèm `children`; PATCH đổi `name`/`description`; DELETE xóa cứng, FK cascade |
@@ -115,6 +130,7 @@ flowchart LR
 
 ## Dữ liệu
 
+- Tài khoản (migration `accounts`): `users` (email unique, app lưu đã trim + lowercase; `password_hash` argon2id, nullable cho OAuth), `sessions` và `personal_access_tokens` (chỉ lưu `token_hash` SHA-256, unique; FK cascade theo `users`), `workspace_members` (PK `workspace_id, user_id`, index `user_id`). CHECK `role IN ('owner','member')` và `scope IN ('docs:read','docs:write')` khai báo ở `extra_schema.sql`.
 - Bảng: `workspaces`, `folders`, `docs`, `doc_links`. Doc nằm ở gốc, trong folder (`folder_id`) hoặc trong doc khác (`parent_doc_id`), không bao giờ cả hai (CHECK `docs_one_parent`).
 - `doc_links`: `source_doc_id`, `target_ref` (chữ trong `[[...]]`, bỏ `#heading`; `[[...]]` trong code span/code fence không tính), `target_doc_id` (NULL = broken link, FK `SET NULL`). Unique `(source_doc_id, lower(target_ref))` viết tay trong migration. Mỗi lần ghi cây hoặc nội dung, `link.RelinkWorkspace` xóa và dựng lại link của cả workspace trong cùng transaction (xem `ponytail:` trong `link/relink.go`).
 - Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration, khai báo thêm ở `internal/db/extra_schema.sql` để Atlas không đề nghị xóa.
