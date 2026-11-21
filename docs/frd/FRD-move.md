@@ -35,3 +35,9 @@ Nguồn: [[SPEC-v2]]. Quy tắc cây: [[FRD-sitemap]].
 
 - Kiểm tra và cập nhật chạy trong một transaction có khóa dòng workspace: hai move/tạo đồng thời không thể cùng vượt qua các bước trên rồi làm sai cây (ví dụ cả hai cùng đẩy node vào cây con của nhau).
 - Chọn đúng vị trí hiện tại → không đổi gì.
+
+## Kéo thả trên sidebar
+
+- Kéo node trong cây là cách gọi API move trên: thả **vào khe giữa hai node** = đổi thứ tự (`afterId`), thả **vào giữa một folder** = đặt làm con đầu tiên của folder đó (folder đang đóng thì tự mở).
+- Client chặn sớm các nước đi chắc chắn sai để người dùng thấy ngay: kéo folder lên một doc thì doc đó chuyển xám và thả không có tác dụng; không thả node vào chính nó hay vào cây con của nó; không thả vào hàng đang nhập tên. Đây chỉ là gợi ý giao diện, server vẫn kiểm tra đủ mọi quy tắc ở mục trên.
+- Server trả lỗi (`400 max_depth_exceeded`, `409 name_conflict`...) thì hiện thông báo và cây giữ nguyên như cũ; sau mỗi thay đổi thành công cây được tải lại.

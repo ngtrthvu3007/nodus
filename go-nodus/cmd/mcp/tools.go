@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
+	"strconv"
 
 	"github.com/google/uuid"
-
-	"go-nodus/internal/db"
 )
 
-const previewRunes = 160
+// The tool names and arguments keep the vocabulary of "notes" that MCP clients already know;
+// each note is a doc of the tree in the API, and every call goes through one workspace (workspaceID()).
 
 type tool struct {
 	Name        string         `json:"name"`
@@ -27,14 +26,15 @@ type idArgs struct {
 }
 
 type searchArgs struct {
-	Query string `json:"query"`
+	Query  string `json:"query"`
+	Limit  int    `json:"limit"`
+	Offset int    `json:"offset"`
 }
 
 type createNoteArgs struct {
-	Title        string     `json:"title"`
-	Content      string     `json:"content"`
-	FolderID     *uuid.UUID `json:"folderId,omitempty"`
-	ParentNoteID *uuid.UUID `json:"parentNoteId,omitempty"`
+	Title    string     `json:"title"`
+	Content  string     `json:"content"`
+	ParentID *uuid.UUID `json:"parentId,omitempty"`
 }
 
 type updateNoteArgs struct {
@@ -49,32 +49,54 @@ type appendNoteArgs struct {
 }
 
 type moveNoteArgs struct {
-	ID           uuid.UUID  `json:"id"`
-	FolderID     *uuid.UUID `json:"folderId"`
-	ParentNoteID *uuid.UUID `json:"parentNoteId"`
+	ID       uuid.UUID  `json:"id"`
+	ParentID *uuid.UUID `json:"parentId"`
+	AfterID  *uuid.UUID `json:"afterId"`
 }
 
-type folderNameArgs struct {
+type createFolderArgs struct {
+	Name     string     `json:"name"`
+	ParentID *uuid.UUID `json:"parentId,omitempty"`
+}
+
+type renameFolderArgs struct {
 	ID   uuid.UUID `json:"id"`
 	Name string    `json:"name"`
 }
 
-type noteSummary struct {
-	ID           uuid.UUID  `json:"id"`
-	Title        string     `json:"title"`
-	FolderID     *uuid.UUID `json:"folderId"`
-	ParentNoteID *uuid.UUID `json:"parentNoteId"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
-	Preview      string     `json:"preview"`
+// treeNode is one entry of GET /workspaces/:id/tree.
+type treeNode struct {
+	ID       uuid.UUID  `json:"id"`
+	ParentID *uuid.UUID `json:"parentId"`
+	Kind     string     `json:"kind"`
+	Name     string     `json:"name"`
+	Position int64      `json:"position"`
+}
+
+type noteRef struct {
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+}
+
+// noteData is GET /docs/:id: the note with its neighbours in reading order.
+type noteData struct {
+	ID       uuid.UUID  `json:"id"`
+	Title    string     `json:"title"`
+	Content  string     `json:"content"`
+	Version  int        `json:"version"`
+	ParentID *uuid.UUID `json:"parentId"`
+	Prev     *noteRef   `json:"prev"`
+	Next     *noteRef   `json:"next"`
 }
 
 type noteWithLinks struct {
-	db.Note
+	noteData
 	Links json.RawMessage `json:"links"`
 }
 
 type toolset struct {
-	api *client
+	api       *client
+	workspace string
 }
 
 var (
@@ -82,32 +104,35 @@ var (
 	destructive = map[string]any{"destructiveHint": true}
 )
 
-func buildTools(api *client) []tool {
-	t := &toolset{api: api}
+func buildTools(api *client, workspace string) []tool {
+	t := &toolset{api: api, workspace: workspace}
 
 	return []tool{
 		{
 			Name:        "search_notes",
-			Description: "Search notes by title or content (case-insensitive substring). An empty query lists every note. Results are newest-updated first and include only a short preview; call get_note for the full content.",
-			InputSchema: object(nil, props{"query": str("Text to search for. Omit to list all notes.")}),
+			Description: "Search notes by title and content (case-insensitive substring), most recently updated first. Returns one page: items (id, title, path, snippet, updatedAt) plus hasMore; pass offset to read the next page. An empty query returns the most recent notes. Items carry no full content; call get_note for it.",
+			InputSchema: object(nil, props{
+				"query":  str("Text to search for in titles and content. Omit for the most recent notes."),
+				"limit":  integer("Notes per page, 1 to 100. Default 20."),
+				"offset": integer("Notes to skip, for the next page. Default 0."),
+			}),
 			Annotations: readOnly,
 			run:         handle(t.searchNotes),
 		},
 		{
 			Name:        "get_note",
-			Description: "Get a note's full content plus its links: outgoing (notes it references via [[Title]]) and backlinks (notes that reference it).",
+			Description: "Get a note's full content plus its links: outgoing (notes it references via [[Title]]) and backlinks (notes that reference it), and the notes before and after it in reading order.",
 			InputSchema: object([]string{"id"}, props{"id": uuidStr("Note ID")}),
 			Annotations: readOnly,
 			run:         handle(t.getNote),
 		},
 		{
 			Name:        "create_note",
-			Description: "Create a note. Use [[Exact Title]] in content to link to existing notes. Give folderId to put it in a folder, or parentNoteId to make it a child of a root note (it then inherits that note's folder). Omit both for a root-level note.",
+			Description: "Create a note. Use [[Exact Title]] in content to link to existing notes. Give parentId (a folder or another note) to place it there, or omit it for the top level. The tree is at most 4 levels deep, and a title is unique among its siblings and cannot contain / # | [ ].",
 			InputSchema: object([]string{"title"}, props{
-				"title":        str("Note title"),
-				"content":      str("Markdown content"),
-				"folderId":     uuidStr("Folder to create the note in"),
-				"parentNoteId": uuidStr("Root note to nest this note under (only one level of nesting is allowed)"),
+				"title":    str("Note title"),
+				"content":  str("Markdown content"),
+				"parentId": uuidStr("Folder or note to create the note in"),
 			}),
 			run: handle(t.createNote),
 		},
@@ -132,40 +157,43 @@ func buildTools(api *client) []tool {
 		},
 		{
 			Name:        "move_note",
-			Description: "Move a note. Set folderId to move it into a folder as a root note, parentNoteId to nest it under a root note, or omit both to move it to the top level. A root note that has children cannot be nested.",
+			Description: "Move a note under parentId (a folder or another note), or to the top level when parentId is omitted. afterId places it right after that sibling; omit it to put the note first. A move that makes the tree deeper than 4 levels or puts a note inside itself is rejected.",
 			InputSchema: object([]string{"id"}, props{
-				"id":           uuidStr("Note ID"),
-				"folderId":     uuidStr("Target folder"),
-				"parentNoteId": uuidStr("Target parent (must be a root note)"),
+				"id":       uuidStr("Note ID"),
+				"parentId": uuidStr("Target folder or note"),
+				"afterId":  uuidStr("Sibling in the target to place the note after"),
 			}),
 			run: handle(t.moveNote),
 		},
 		{
 			Name:        "delete_note",
-			Description: "Delete a note. Its links disappear from other notes' backlinks.",
+			Description: "Delete a note together with every note under it. Its links disappear from other notes' backlinks.",
 			InputSchema: object([]string{"id"}, props{"id": uuidStr("Note ID")}),
 			Annotations: destructive,
 			run:         handle(t.deleteNote),
 		},
 		{
 			Name:        "list_folders",
-			Description: "List all folders with their note counts.",
+			Description: "List all folders with their parent and position.",
 			InputSchema: object(nil, props{}),
 			Annotations: readOnly,
 			run:         handle(t.listFolders),
 		},
 		{
 			Name:        "get_folder",
-			Description: "Get a folder and the root notes inside it.",
+			Description: "Get a folder and its direct children (folders and notes) in order.",
 			InputSchema: object([]string{"id"}, props{"id": uuidStr("Folder ID")}),
 			Annotations: readOnly,
 			run:         handle(t.getFolder),
 		},
 		{
 			Name:        "create_folder",
-			Description: "Create a folder.",
-			InputSchema: object([]string{"name"}, props{"name": str("Folder name")}),
-			run:         handle(t.createFolder),
+			Description: "Create a folder at the top level, or inside the folder given by parentId.",
+			InputSchema: object([]string{"name"}, props{
+				"name":     str("Folder name"),
+				"parentId": uuidStr("Folder to create it in"),
+			}),
+			run: handle(t.createFolder),
 		},
 		{
 			Name:        "rename_folder",
@@ -178,7 +206,7 @@ func buildTools(api *client) []tool {
 		},
 		{
 			Name:        "delete_folder",
-			Description: "Permanently delete a folder AND every note inside it. This cannot be undone; move notes out first if they should be kept.",
+			Description: "Permanently delete a folder AND everything inside it (notes and folders). This cannot be undone; move notes out first if they should be kept.",
 			InputSchema: object([]string{"id"}, props{"id": uuidStr("Folder ID")}),
 			Annotations: destructive,
 			run:         handle(t.deleteFolder),
@@ -186,25 +214,18 @@ func buildTools(api *client) []tool {
 	}
 }
 
+// A zero limit or offset is left out, so the API default applies.
 func (t *toolset) searchNotes(args searchArgs) (any, error) {
-	var notes []db.Note
-	if err := t.api.do(http.MethodGet, "/notes?q="+url.QueryEscape(args.Query), nil, &notes); err != nil {
-		return nil, err
+	params := url.Values{"q": {args.Query}}
+	if args.Limit != 0 {
+		params.Set("limit", strconv.Itoa(args.Limit))
 	}
 
-	summaries := make([]noteSummary, 0, len(notes))
-	for _, n := range notes {
-		summaries = append(summaries, noteSummary{
-			ID:           n.ID,
-			Title:        n.Title,
-			FolderID:     n.FolderID,
-			ParentNoteID: n.ParentNoteID,
-			UpdatedAt:    n.UpdatedAt,
-			Preview:      preview(n.Content),
-		})
+	if args.Offset != 0 {
+		params.Set("offset", strconv.Itoa(args.Offset))
 	}
 
-	return summaries, nil
+	return t.raw(http.MethodGet, t.inWorkspace("/docs?"+params.Encode()), nil)
 }
 
 func (t *toolset) getNote(args idArgs) (any, error) {
@@ -218,15 +239,11 @@ func (t *toolset) getNote(args idArgs) (any, error) {
 		return nil, err
 	}
 
-	return noteWithLinks{Note: *found, Links: links}, nil
+	return noteWithLinks{noteData: *found, Links: links}, nil
 }
 
 func (t *toolset) createNote(args createNoteArgs) (any, error) {
-	var created db.Note
-	if err := t.api.do(http.MethodPost, "/notes", args, &created); err != nil {
-		return nil, err
-	}
-	return created, nil
+	return t.raw(http.MethodPost, t.inWorkspace("/docs"), args)
 }
 
 func (t *toolset) updateNote(args updateNoteArgs) (any, error) {
@@ -235,17 +252,18 @@ func (t *toolset) updateNote(args updateNoteArgs) (any, error) {
 		return nil, err
 	}
 
-	title := existing.Title
-	if args.Title != nil {
-		title = *args.Title
+	if args.Title != nil && *args.Title != existing.Title {
+		renamed, err := t.raw(http.MethodPatch, notePath(args.ID)+"/title", map[string]string{"title": *args.Title})
+		if err != nil || args.Content == nil {
+			return renamed, err
+		}
 	}
 
-	content := existing.Content
-	if args.Content != nil {
-		content = *args.Content
+	if args.Content == nil {
+		return existing, nil
 	}
 
-	return t.saveNote(args.ID, title, content)
+	return t.saveNote(args.ID, *args.Content, existing.Version)
 }
 
 func (t *toolset) appendToNote(args appendNoteArgs) (any, error) {
@@ -259,54 +277,79 @@ func (t *toolset) appendToNote(args appendNoteArgs) (any, error) {
 		content += "\n\n"
 	}
 
-	return t.saveNote(args.ID, existing.Title, content+args.Text)
+	return t.saveNote(args.ID, content+args.Text, existing.Version)
 }
 
 func (t *toolset) moveNote(args moveNoteArgs) (any, error) {
-	// The API requires both keys to be present; null means "none".
-	body := map[string]any{"folderId": args.FolderID, "parentNoteId": args.ParentNoteID}
+	// The API requires both keys to be present; null means "top level" and "first".
+	body := map[string]any{"parentId": args.ParentID, "afterId": args.AfterID}
 	return t.raw(http.MethodPatch, notePath(args.ID)+"/move", body)
 }
 
 func (t *toolset) deleteNote(args idArgs) (any, error) {
-	return t.raw(http.MethodDelete, notePath(args.ID), nil)
+	return t.delete(notePath(args.ID), args.ID)
 }
 
 func (t *toolset) listFolders(struct{}) (any, error) {
-	return t.raw(http.MethodGet, "/folders", nil)
+	nodes, err := t.tree()
+	if err != nil {
+		return nil, err
+	}
+
+	folders := []treeNode{}
+	for _, node := range nodes {
+		if node.Kind == "folder" {
+			folders = append(folders, node)
+		}
+	}
+
+	return folders, nil
 }
 
 func (t *toolset) getFolder(args idArgs) (any, error) {
 	return t.raw(http.MethodGet, folderPath(args.ID), nil)
 }
 
-func (t *toolset) createFolder(args folderNameArgs) (any, error) {
-	return t.raw(http.MethodPost, "/folders", map[string]string{"name": args.Name})
+func (t *toolset) createFolder(args createFolderArgs) (any, error) {
+	return t.raw(http.MethodPost, t.inWorkspace("/folders"), args)
 }
 
-func (t *toolset) renameFolder(args folderNameArgs) (any, error) {
+func (t *toolset) renameFolder(args renameFolderArgs) (any, error) {
 	return t.raw(http.MethodPatch, folderPath(args.ID), map[string]string{"name": args.Name})
 }
 
 func (t *toolset) deleteFolder(args idArgs) (any, error) {
-	return t.raw(http.MethodDelete, folderPath(args.ID), nil)
+	return t.delete(folderPath(args.ID), args.ID)
 }
 
-func (t *toolset) fetchNote(id uuid.UUID) (*db.Note, error) {
-	var found db.Note
+// delete answers 204 with no body, so the tool result is built here.
+func (t *toolset) delete(path string, id uuid.UUID) (any, error) {
+	if err := t.api.do(http.MethodDelete, path, nil, nil); err != nil {
+		return nil, err
+	}
+
+	return map[string]any{"deleted": true, "id": id}, nil
+}
+
+func (t *toolset) tree() ([]treeNode, error) {
+	var nodes []treeNode
+	if err := t.api.do(http.MethodGet, t.inWorkspace("/tree"), nil, &nodes); err != nil {
+		return nil, err
+	}
+	return nodes, nil
+}
+
+func (t *toolset) fetchNote(id uuid.UUID) (*noteData, error) {
+	var found noteData
 	if err := t.api.do(http.MethodGet, notePath(id), nil, &found); err != nil {
 		return nil, err
 	}
 	return &found, nil
 }
 
-func (t *toolset) saveNote(id uuid.UUID, title, content string) (*db.Note, error) {
-	var saved db.Note
-	body := map[string]string{"title": title, "content": content}
-	if err := t.api.do(http.MethodPut, notePath(id), body, &saved); err != nil {
-		return nil, err
-	}
-	return &saved, nil
+func (t *toolset) saveNote(id uuid.UUID, content string, version int) (any, error) {
+	body := map[string]any{"content": content, "version": version}
+	return t.raw(http.MethodPut, notePath(id), body)
 }
 
 // raw passes the API's data through untouched, for tools that need no reshaping.
@@ -318,20 +361,16 @@ func (t *toolset) raw(method, path string, body any) (any, error) {
 	return out, nil
 }
 
+func (t *toolset) inWorkspace(path string) string {
+	return "/workspaces/" + t.workspace + path
+}
+
 func notePath(id uuid.UUID) string {
-	return "/notes/" + id.String()
+	return "/docs/" + id.String()
 }
 
 func folderPath(id uuid.UUID) string {
 	return "/folders/" + id.String()
-}
-
-func preview(content string) string {
-	runes := []rune(content)
-	if len(runes) <= previewRunes {
-		return content
-	}
-	return string(runes[:previewRunes]) + "…"
 }
 
 // handle decodes tool arguments into T; invalid IDs fail here, before any API call.
@@ -357,6 +396,10 @@ func object(required []string, properties props) map[string]any {
 
 func str(description string) map[string]any {
 	return map[string]any{"type": "string", "description": description}
+}
+
+func integer(description string) map[string]any {
+	return map[string]any{"type": "integer", "description": description}
 }
 
 func uuidStr(description string) map[string]any {

@@ -1,0 +1,48 @@
+name: go-nodus
+
+on:
+  pull_request:
+    branches: [dev, main]
+    paths: ["go-nodus/**", ".github/workflows/go-nodus.yml"]
+  push:
+    branches: [dev, main]
+    paths: ["go-nodus/**", ".github/workflows/go-nodus.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-nodus-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: go-nodus
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go-nodus/go.mod
+          cache-dependency-path: go-nodus/go.sum
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: go build
+        run: go build ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: Swagger docs are up to date
+        run: |
+          make swagger
+          git diff --exit-code -- internal/apidocs

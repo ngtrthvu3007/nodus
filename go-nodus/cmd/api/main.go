@@ -1,4 +1,3 @@
-// Command api bootstraps the Nodus HTTP API: load config, build the app, run until SIGINT or SIGTERM.
 package main
 
 import (
@@ -9,10 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"go-nodus/internal/app"
 	"go-nodus/internal/config"
 )
 
+// @title		Nodus API
+// @version	0.1
+// @BasePath	/
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -29,10 +30,10 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	application, err := app.New(cfg)
+	application, err := newApp(cfg)
 	if err != nil {
 		return err
 	}
 
-	return application.Run(ctx)
+	return application.run(ctx)
 }

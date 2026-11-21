@@ -66,6 +66,14 @@
   transition: none !important;
 }
 
+/* On a phone the sidebar starts closed, but the server renders it open: hide it until AppShell has closed it
+   (shared/components/appShell.tsx sets data-shell-ready). The query matches useIsNarrowScreen. */
+@media (max-width: 767px) {
+  html:not([data-shell-ready]) .nodus-sidebar-panel {
+    display: none;
+  }
+}
+
 /* The circular reveal is animated from JS (shared/theme/theme-provider.tsx); drop the default cross-fade. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
@@ -82,9 +90,434 @@
     color-scheme: dark;
   }
 
+  /* Background of code blocks, in the preview and in the editor. Light is the app background with a touch of the
+     text color; going deeper lowers the contrast of some syntax colors below 4.5:1. Dark goes darker than the
+     app background. */
+  :root,
+  .nodus-light {
+    --nodus-code-bg: color-mix(in srgb, var(--nodus-color-canvas) 94%, var(--nodus-color-fg));
+  }
+
+  [data-theme="dark"] {
+    --nodus-code-bg: color-mix(in srgb, var(--nodus-color-canvas) 70%, black);
+  }
+
+  /* Text color of inline code, in the editor and the preview: pink, apart from the link blue and the text. 4.95:1 on the
+     light background and 9.8:1 on the dark one (the old blue was 3.4:1). */
+  :root,
+  .nodus-light {
+    --nodus-code-text: #be185d;
+  }
+
+  [data-theme="dark"] {
+    --nodus-code-text: #f9a8d4;
+  }
+
+  /* One slim, themed scrollbar everywhere (scrollbar-width is not inherited, hence the *). The editor and the preview
+     hide theirs until hover; those rules are in the components layer, so they win over this one. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--nodus-color-border) transparent;
+  }
+
   body {
     background-color: var(--nodus-color-canvas);
     color: var(--nodus-color-fg);
     font-family: var(--nodus-font-sans);
   }
+}
+
+/* Reading view of a doc (features/editor). The HTML comes from renderMarkdown, so it is styled by element and by
+   the `nodus-*` classes that renderer adds; users cannot write classes. Tailwind's preflight removes list markers,
+   table borders and heading sizes, so they are restored here from the tokens. */
+@layer components {
+  .markdown-body {
+    overflow-wrap: anywhere;
+  }
+
+  .markdown-body > :first-child {
+    margin-top: 0;
+  }
+
+  .markdown-body h1 {
+    @apply mt-8 mb-4 text-h1 font-semibold;
+  }
+
+  .markdown-body h2 {
+    @apply mt-8 mb-3 text-h2 font-semibold;
+  }
+
+  .markdown-body h3 {
+    @apply mt-6 mb-2 text-h3 font-semibold;
+  }
+
+  .markdown-body :is(h4, h5, h6) {
+    @apply mt-5 mb-2 text-doc font-semibold;
+  }
+
+  .markdown-body :is(p, ul, ol, blockquote, table, details) {
+    @apply my-4;
+  }
+
+  .markdown-body ul {
+    @apply list-disc ps-6;
+  }
+
+  .markdown-body ol {
+    @apply list-decimal ps-6;
+  }
+
+  .markdown-body li {
+    @apply my-1;
+  }
+
+  .markdown-body a {
+    @apply text-link underline;
+  }
+
+  /* A [[wiki-link]] with no target; the class comes from features/editor/lib/wikiLinks.ts. Also used in the Links tab. */
+  .nodus-wiki-broken {
+    @apply cursor-help text-error underline decoration-dotted;
+  }
+
+  .markdown-body blockquote {
+    @apply border-s-4 border-border ps-4 text-fg-muted;
+  }
+
+  .markdown-body hr {
+    @apply my-8 border-border-muted;
+  }
+
+  .markdown-body table {
+    @apply w-full border-collapse;
+  }
+
+  .markdown-body :is(th, td) {
+    @apply border border-border px-3 py-2 text-left align-top;
+  }
+
+  .markdown-body th {
+    @apply bg-fill font-semibold;
+  }
+
+  .markdown-body :not(pre) > code {
+    @apply rounded-sm border border-border px-1 font-mono;
+    background-color: var(--nodus-code-bg);
+    color: var(--nodus-code-text);
+    font-size: 0.9em;
+  }
+
+  .markdown-body kbd {
+    @apply rounded-sm border border-border bg-fill px-1 font-mono;
+    font-size: 0.85em;
+  }
+
+  .markdown-body :is(img, svg) {
+    @apply h-auto max-w-full;
+  }
+
+  .markdown-body summary {
+    @apply cursor-pointer;
+  }
+
+  .nodus-code {
+    @apply my-4 overflow-hidden rounded-md border border-border;
+    background-color: var(--nodus-code-bg);
+  }
+
+  .nodus-code figcaption {
+    @apply flex items-center gap-3 border-b border-border bg-fill px-3 py-1 text-ui-sm text-fg-muted;
+  }
+
+  .nodus-code-title {
+    @apply flex-1 truncate text-fg;
+  }
+
+  .nodus-code button {
+    @apply cursor-pointer rounded-sm px-2 text-fg-muted hover:text-primary;
+  }
+
+  .nodus-code pre {
+    @apply m-0 overflow-x-auto p-3 font-mono text-ui;
+  }
+
+  /* Shiki writes two colors per token as variables; the theme mode picks one. */
+  .nodus-code .shiki span {
+    color: var(--shiki-light);
+  }
+
+  [data-theme="dark"] .nodus-code .shiki span {
+    color: var(--shiki-dark);
+  }
+
+  /* A light scope inside a dark page (the print copy): same specificity as the rule above, so it comes after it. */
+  .nodus-light .nodus-code .shiki span {
+    color: var(--shiki-light);
+  }
+
+  /* Slim scrollbar for the editor and the preview, drawn only while the pointer or the keyboard is in the panel. */
+  .cm-scroller,
+  .nodus-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .cm-scroller:is(:hover, :focus-within),
+  .nodus-scroll:is(:hover, :focus-within) {
+    scrollbar-color: var(--nodus-color-border) transparent;
+  }
+
+  /* Collapsing the preview is a little slower than antd's 0.3s, so the eye can follow it. */
+  .nodus-doc-splitter > .ant-splitter-panel-transition {
+    transition-duration: 450ms;
+  }
+
+  /* The section being read in the "On this page" menu is marked like in the side list of the full screen view: a bar on
+     the left and the primary color, not antd's filled background. */
+  .nodus-outline-menu .ant-dropdown-menu-item-selected {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: inset 2px 0 0 var(--nodus-color-primary);
+    color: var(--nodus-color-primary);
+    font-weight: 500;
+  }
+
+  /* Document tabs: the close button only shows on the tab you hover or focus, and on the one you are on, so a row of
+     tabs stays quiet. It is hidden with opacity, not display, so the keyboard can still reach it. */
+  .nodus-tab-bar .ant-tabs-tab:not(:hover, :focus-within) .ant-tabs-tab-remove {
+    opacity: 0;
+  }
+
+  .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active .ant-tabs-tab-remove {
+    opacity: 1;
+  }
+
+  /* The x is 12px wide: too small to tap. The padding makes the hit area 24px and the negative margin keeps the tab as
+     big as before. */
+  .nodus-tab-bar .ant-tabs-tab-remove {
+    padding: 6px;
+    margin: -6px -6px -6px 2px;
+    transition: opacity 150ms;
+  }
+
+  /* A tab is a shape. A tab you are not on is a soft chip (a tint and a hairline), so it reads as a tab without
+     hovering it; the active one takes the page's surface color with a primary line on top, so it reads as part of the
+     page below it. antd's own card look is flattened by our tokens. */
+  .nodus-tab-bar .ant-tabs-tab {
+    min-height: 36px;
+    padding-inline: 12px;
+    border: 0;
+    border-radius: var(--nodus-radius-md) var(--nodus-radius-md) 0 0;
+    background: color-mix(in srgb, var(--nodus-color-fg) 5%, transparent);
+    box-shadow: inset 0 0 0 1px var(--nodus-color-border-muted);
+  }
+
+  .nodus-tab-bar .ant-tabs-tab:hover {
+    background: color-mix(in srgb, var(--nodus-color-fg) 10%, transparent);
+  }
+
+  .nodus-tab-bar .ant-tabs-tab .ant-tabs-tab-btn {
+    color: var(--nodus-color-fg-muted);
+  }
+
+  .nodus-tab-bar .ant-tabs-tab:hover .ant-tabs-tab-btn {
+    color: var(--nodus-color-fg);
+  }
+
+  /* antd always marks one tab active; on the home page no doc is open (TabBar adds nodus-tab-bar-idle), so only a bar
+     with a real active tab gets this look. These rules come after the hover ones and have the same specificity, so
+     they win. The weight is not changed on purpose: a bolder label is wider and would shift the tabs next to it. */
+  .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active {
+    background: var(--nodus-color-surface);
+    box-shadow: inset 0 3px 0 var(--nodus-color-primary);
+  }
+
+  .nodus-tab-bar:not(.nodus-tab-bar-idle) .ant-tabs-tab-active .ant-tabs-tab-btn {
+    color: var(--nodus-color-fg);
+  }
+
+  /* While a tab is dragged, a primary line on the edge of the tab it would land next to, like the tree's drop line. */
+  .nodus-tab-bar .nodus-tab-drop-before::before,
+  .nodus-tab-bar .nodus-tab-drop-after::before {
+    content: "";
+    position: absolute;
+    top: 4px;
+    bottom: 0;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--nodus-color-primary);
+    pointer-events: none;
+  }
+
+  .nodus-tab-bar .nodus-tab-drop-before::before {
+    left: 0;
+  }
+
+  .nodus-tab-bar .nodus-tab-drop-after::before {
+    right: 0;
+  }
+
+  .nodus-diagram {
+    @apply relative my-4;
+  }
+
+  .nodus-diagram button {
+    @apply absolute top-1 right-1 z-10 cursor-pointer rounded-sm border border-border bg-surface px-2 text-ui-sm text-fg-muted hover:text-primary;
+  }
+
+  .nodus-mermaid {
+    @apply flex justify-center overflow-x-auto font-mono text-ui;
+  }
+
+  .nodus-zoomed svg {
+    @apply mx-auto h-auto max-h-[75vh] w-full;
+  }
+}
+
+/* Print copy of a doc (features/doc/components/printDoc.tsx): hidden on screen; when printing it is the only thing
+   left in <body>. It carries `nodus-light`, the light tokens, so it prints light whatever the app's theme is, and the
+   app behind the print dialog is not touched. */
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  /* A dark app sets color-scheme: dark on <html>, which makes the blank page dark too; paper is white. */
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: transparent;
+  }
+
+  /* !important: antd portals (modals, dropdowns) set their own inline display. */
+  body > :not(.nodus-print-root) {
+    display: none !important;
+  }
+
+  /* body's text color was resolved with the app's theme and is inherited as a plain color, so it is set again here. */
+  .nodus-print-root {
+    color: var(--nodus-color-fg);
+    print-color-adjust: exact; /* keeps code and table backgrounds */
+  }
+
+  /* A [[wiki-link]] prints as plain text. */
+  .nodus-print-root a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .nodus-print-root :is(.nodus-code button, .nodus-diagram button) {
+    display: none;
+  }
+
+  .nodus-print-root pre {
+    overflow: visible;
+    white-space: pre-wrap;
+  }
+
+  .nodus-print-root .nodus-mermaid {
+    overflow: visible;
+  }
+
+  .nodus-print-root :is(.nodus-code, .nodus-diagram, tr, img) {
+    break-inside: avoid;
+  }
+
+  .nodus-print-root :is(h1, h2, h3, h4) {
+    break-after: avoid;
+  }
+}
+
+/* Long names are cut with an ellipsis instead of stretching the row, and with it the sidebar. */
+.ant-tree .ant-tree-node-content-wrapper {
+  min-width: 0;
+}
+
+.ant-tree .ant-tree-title {
+  display: block;
+  min-width: 0;
+}
+
+/* One step per level (antd's is 26px). The chevron box has the same width, and the guide line stays in the middle. */
+.ant-tree {
+  --nodus-tree-indent: 18px;
+}
+
+.ant-tree .ant-tree-indent-unit,
+.ant-tree .ant-tree-switcher {
+  width: var(--nodus-tree-indent);
+}
+
+/* The hover box stays 24px but is centered on the narrower (18px) switcher, so the chevron sits in the middle of it. */
+.ant-tree .ant-tree-switcher {
+  margin-inline-end: 11px;
+}
+
+.ant-tree .ant-tree-switcher::before {
+  left: 50%;
+  width: 24px;
+  height: 100%;
+  transform: translateX(-50%);
+}
+
+.ant-tree-show-line .ant-tree-indent-unit::before {
+  inset-inline-end: calc(var(--nodus-tree-indent) / 2);
+}
+
+/* Tree guides at every depth: antd skips the guide under a last child, and its leaf elbows are redundant. */
+.ant-tree-show-line .ant-tree-indent-unit-end::before {
+  display: block;
+}
+
+.ant-tree-show-line .ant-tree-indent-unit::before {
+  border-inline-end-color: var(--nodus-color-border-muted);
+}
+
+.ant-tree-show-line .ant-tree-switcher-leaf-line::before,
+.ant-tree-show-line .ant-tree-switcher-leaf-line::after {
+  display: none;
+}
+
+/* While docs are picked for an export, a folder's checkbox is hidden but keeps its space, so titles line up. */
+.ant-tree .ant-tree-checkbox-disabled {
+  visibility: hidden;
+}
+
+/* An empty box needs more contrast than antd's hairline border to read as a control; hovering the row shows the primary.
+   In antd v6 the border is on the .ant-tree-checkbox element itself, not on its -inner. */
+.ant-tree .ant-tree-checkbox:not(.ant-tree-checkbox-checked) {
+  border-color: var(--nodus-color-fg-subtle);
+}
+
+.ant-tree .ant-tree-treenode:hover .ant-tree-checkbox:not(.ant-tree-checkbox-checked) {
+  border-color: var(--nodus-color-primary);
+}
+
+/* Drag grip sits in the gutter left of the row so it does not push the guides and chevrons. */
+.ant-tree .ant-tree-treenode {
+  position: relative;
+}
+
+.ant-tree .ant-tree-draggable-icon {
+  position: absolute;
+  inset-inline-start: -16px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  width: auto;
+  opacity: 0;
+  color: var(--nodus-color-fg-subtle);
+}
+
+.ant-tree .ant-tree-treenode:hover .ant-tree-draggable-icon {
+  opacity: 1;
+}
+
+/* antd's disabled row is only a faint text color; a gray block makes "cannot drop here" obvious. */
+.ant-tree .ant-tree-treenode-disabled .ant-tree-node-content-wrapper {
+  background-color: color-mix(in srgb, var(--nodus-color-fg) 12%, transparent);
+  color: var(--nodus-color-fg-muted);
 }

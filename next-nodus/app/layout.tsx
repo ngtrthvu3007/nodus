@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import { Suspense, type ReactNode } from "react";
-import { themeInitScript } from "@/shared/theme/theme-script";
-import { THEME_COOKIE, isThemeMode } from "@/shared/theme/tokens";
+import { SessionGate } from "@/features/auth";
+import { SearchPanel } from "@/features/search";
+import { TabBar } from "@/features/tabs";
+import { TreeView } from "@/features/tree";
+import { DEFAULT_THEME_MODE, THEME_COOKIE, isThemeMode, themeInitScript } from "@/shared/theme";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -18,29 +21,36 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nodus",
+  title: { default: "Nodus", template: "%s · Nodus" },
   description: "Write linked technical docs.",
 };
 
 // Reads the theme cookie so antd is server-rendered in the same mode the head script applies.
 const ThemedProviders = async ({ children }: { children: ReactNode }) => {
   const stored = (await cookies()).get(THEME_COOKIE)?.value;
-  return <Providers initialMode={isThemeMode(stored) ? stored : "light"}>{children}</Providers>;
+  return <Providers initialMode={isThemeMode(stored) ? stored : DEFAULT_THEME_MODE}>{children}</Providers>;
 };
 
 const RootLayout = ({ children }: LayoutProps<"/">) => (
   // suppressHydrationWarning: themeInitScript sets data-theme before React hydrates
-  <html
-    lang="en"
-    suppressHydrationWarning
-    className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+  <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
     <head>
       <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
     </head>
-    <body className="flex min-h-full flex-col">
+    <body className="flex min-h-full flex-col overflow-hidden">
       {/* Runtime data (theme cookie, antd's random cache id) must render inside Suspense with cacheComponents */}
       <Suspense fallback={null}>
-        <ThemedProviders>{children}</ThemedProviders>
+        <ThemedProviders>
+          <SessionGate
+            sidebar={
+              <SearchPanel>
+                <TreeView />
+              </SearchPanel>
+            }
+            tabs={<TabBar />}>
+            {children}
+          </SessionGate>
+        </ThemedProviders>
       </Suspense>
     </body>
   </html>

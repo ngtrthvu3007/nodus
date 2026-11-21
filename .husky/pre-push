@@ -1,0 +1,46 @@
+. "$(dirname "$0")/lib.sh"
+
+# Work out which files this push changes. Git feeds "<local ref> <local sha> <remote ref> <remote sha>" per ref on stdin.
+# Any doubt (new branch without origin/dev, unknown remote sha) means run everything.
+zero=0000000000000000000000000000000000000000
+run_all=0
+changed=""
+while read -r _ local_sha _ remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  if [ "$remote_sha" = "$zero" ]; then
+    base=$(git merge-base "$local_sha" origin/dev 2>/dev/null)
+  else
+    base=$remote_sha
+  fi
+  if [ -n "$base" ] && files=$(git diff --name-only "$base" "$local_sha" 2>/dev/null); then
+    changed="$changed
+$files"
+  else
+    run_all=1
+  fi
+done
+
+touches() { [ "$run_all" = 1 ] || echo "$changed" | grep -q "^$1/"; }
+
+if touches go-nodus; then
+  if command -v go >/dev/null 2>&1; then
+    say "🔬" vet "go vet ./... (go-nodus)"
+    (cd go-nodus && go vet ./...) || die "go vet reported problems"
+    say "🔨" build "go build ./... (go-nodus)"
+    (cd go-nodus && go build ./...) || die "go build failed"
+  else
+    skip "go not found, Go vet/build skipped"
+  fi
+else
+  skip "no go-nodus changes, Go vet/build not needed"
+fi
+
+if touches next-nodus; then
+  # No lint here: pre-commit already linted every changed file. next build also type-checks, so no tsc step.
+  say "🔨" build "pnpm build (next-nodus, includes type check)"
+  (cd next-nodus && pnpm build) || die "pnpm build failed"
+else
+  skip "no next-nodus changes, build not needed"
+fi
+
+done_

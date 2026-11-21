@@ -28,9 +28,15 @@ Doc là đơn vị tài liệu: có title và nội dung markdown. Đây là FRD
 
 ### Sửa doc
 
-- `PUT /docs/:id` chỉ sửa `title`/`content`, không đổi vị trí (đổi vị trí xem [[FRD-move]]).
-- Lưu kèm `version`, sai version → `409 version_conflict` — xem [[FRD-autosave]].
-- Mỗi lần ghi nội dung, link `[[...]]` được dựng lại cùng transaction ([[FRD-wiki-link]]).
+- `PUT /docs/:id` chỉ sửa `content`, không đổi vị trí (đổi vị trí xem [[FRD-move]]). Lưu kèm `version`, sai version → `409 version_conflict` — xem [[FRD-autosave]].
+- `PATCH /docs/:id/title` đổi tên doc, theo cùng quy tắc tên như lúc tạo (1–200 ký tự, không chứa `/ # | [ ]`, không trùng tên cùng cha); không cần `version`.
+- Mỗi lần ghi nội dung hoặc đổi tên, link `[[...]]` được dựng lại cùng transaction ([[FRD-wiki-link]]).
+
+### Hiển thị
+
+- Trang doc hiện title, nội dung, đường dẫn (breadcrumb) và hai liên kết **Previous/Next** theo thứ tự đọc của [[FRD-sitemap]]; doc đầu hoặc cuối cây thì thiếu liên kết tương ứng.
+- Đường dẫn (breadcrumb) chỉ liệt kê các thư mục cha; tên của chính doc nằm ở tiêu đề (rút gọn bằng "…" nếu dài). Khi sidebar đóng, nút mở sidebar không đè lên đường dẫn và tiêu đề.
+- Doc chưa có nội dung: editor hiện chữ gợi ý để bắt đầu viết, preview hiện câu báo trống; nút Format và toàn màn hình bị khóa cho tới khi có chữ ([[FRD-editor-preview]]).
 
 ### Xóa doc
 

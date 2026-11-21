@@ -1,0 +1,23 @@
+. "$(dirname "$0")/lib.sh"
+
+msg_file=$1
+first=$(head -n1 "$msg_file")
+
+case "$first" in
+  Merge*|Revert*|fixup!*|squash!*) skip "merge/revert/fixup message, format not checked" ;;
+  *)
+    say "📝" message "format must be type(scope): message"
+    pattern='^(feat|fix|docs|refactor|chore|test|style|perf|build|ci|add|init)(\([a-z0-9._/-]+\))?!?: .+'
+    if ! echo "$first" | grep -Eq "$pattern"; then
+      echo "types: feat fix docs refactor chore test style perf build ci add init"
+      die "bad commit message: $first"
+    fi
+    ;;
+esac
+
+say "🚫" message "no Co-Authored-By line"
+if grep -qiE '^co-authored-by:' "$msg_file"; then
+  die "remove the Co-Authored-By line (CLAUDE.md: no AI attribution in commits)"
+fi
+
+done_

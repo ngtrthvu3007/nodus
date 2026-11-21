@@ -1,0 +1,11 @@
+{
+  "name": "nodus",
+  "private": true,
+  "scripts": {
+    "prepare": "husky"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

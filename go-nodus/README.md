@@ -9,21 +9,21 @@ Cần: Go, Docker, `make`.
 ```text
 go-nodus/
 ├── cmd/
-│   ├── api/main.go        # bootstrap
+│   ├── api/               # main.go, app.go (mở DB, router, graceful shutdown), modules.go (wiring)
 │   └── mcp/               # MCP server (stdio), gọi HTTP API
 ├── internal/
-│   ├── app/
-│   │   ├── app.go         # mở DB, dựng router + http.Server, graceful shutdown
-│   │   └── modules.go     # wiring dependency
-│   ├── api/
-│   │   ├── server.go      # NewRouter, Module, CORS, response, error, bind
-│   │   ├── notes.go       # NoteHandler — /notes
-│   │   ├── folders.go     # FolderHandler — /folders
-│   │   └── links.go       # LinkHandler — wiki-link, backlink, autocomplete
+│   ├── httpx/             # HTTP dùng chung: NewRouter, Module, CORS, response, lỗi, middleware
+│   ├── modules/           # module nghiệp vụ, mỗi module một package (handler, service, types)
+│   │   ├── tree/          # cây workspace + quy tắc dùng chung (rules)
+│   │   ├── folder/
+│   │   ├── doc/
+│   │   └── link/          # wiki-link, backlink, autocomplete
+│   ├── apidocs/           # Swagger sinh bởi `make swagger` (không sửa tay)
 │   ├── config/config.go   # env
 │   └── db/models.go       # GORM models — nguồn schema
 ├── migrations/            # SQL do Atlas sinh + atlas.sum
 ├── atlas.hcl
+├── Dockerfile             # image của API (docker compose --profile app)
 └── docker-compose.yml
 ```
 
@@ -31,10 +31,9 @@ Routes: [docs/backend-map.md](../docs/backend-map.md) · Rules: [docs/frd/](../d
 
 ## Architecture
 
-- `main.go` chỉ bootstrap: `app.New(cfg).Run(ctx)`.
-- `internal/app` wiring mọi dependency bằng constructor (không DI framework).
-- `internal/api`: mỗi domain một handler struct, implement `api.Module`.
-- Handler: bind → check rules → GORM → response. Ghi nhiều bước dùng `db.Transaction`.
+- `cmd/api` wiring mọi dependency bằng constructor (không DI framework): `modules.go` ghép service vào handler.
+- Mỗi domain là một package: `Handler` (implement `httpx.Module`) → `Service` → GORM. Chỉ `tree` có `Repository`; các module khác gọi GORM trong service.
+- Handler: bind → gọi service → response. Service: check rules → GORM; ghi nhiều bước dùng `db.Transaction`.
 - Response: `{ "success": true, "data": … }` / `{ "success": false, "error": { "code", "message" } }`.
 
 ## Getting started
@@ -48,11 +47,39 @@ make dev                 # http://localhost:8080
 curl localhost:8080/health
 ```
 
+### Chạy API bằng Docker (không cần cài Go)
+
+Dành cho người chỉ làm frontend, hoặc muốn chạy cả hệ thống bằng Docker:
+
+```bash
+docker compose up -d                     # Postgres
+make migrate-up                          # tạo schema (một lần)
+docker compose --profile app up -d --build   # build image và chạy API: http://localhost:8080
+```
+
+- `docker compose up -d` thường vẫn chỉ bật Postgres; API nằm trong profile `app`.
+- API trong container nối `postgres:5432` (compose tự dựng `DATABASE_URL`), không dùng `DATABASE_URL` trong `.env`. Cổng host lấy từ `PORT` (mặc định 8080), nên tắt `make dev` trước khi chạy.
+- Sửa code Go thì build lại: `docker compose --profile app up -d --build api`. Muốn hot reload khi sửa backend thì dùng `make dev`.
+- Xem log: `docker compose logs -f api`. Dừng: `docker compose --profile app stop api`.
+
+## API docs (Swagger)
+
+Bật cùng API: chạy `make dev` rồi mở **http://localhost:8080/swagger/index.html** (cổng theo `PORT`; URL cũng được log khi API khởi động). Bấm **Try it out** để gọi thử từng route. Workspace mặc định có id `00000000-0000-0000-0000-000000000001`.
+
+Sau khi sửa route, request hoặc response type, sinh lại docs rồi commit `internal/apidocs/` (file sinh ra, không sửa tay):
+
+```bash
+make swagger
+```
+
+Mỗi handler cần annotation `@Summary`, `@Tags`, `@Param`, `@Success`, `@Failure`, `@Router` (xem `internal/modules/folder/handler.go`).
+
 ## Env
 
 | Biến | Ghi chú |
 | --- | --- |
 | `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Container Postgres |
+| `POSTGRES_PORT` | Cổng host của container, mặc định `5432`. Đổi khi máy đã có Postgres chiếm 5432 (nhớ đổi cổng trong `DATABASE_URL`) |
 | `DATABASE_URL` | API kết nối DB |
 | `PORT` | Mặc định `8080` |
 | `ALLOWED_ORIGIN` | Frontend gọi API (`http://localhost:4000`) |
