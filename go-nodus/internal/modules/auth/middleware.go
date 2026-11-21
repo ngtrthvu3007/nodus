@@ -40,12 +40,7 @@ func (handler *Handler) Authenticate() gin.HandlerFunc {
 			return
 		}
 
-		err = checkScope(ginContext.Request.Method, principal)
-		if err != nil {
-			httpx.AbortWithError(ginContext, err)
-			return
-		}
-
+		// The token scope is checked by workspace.CanAccess, after membership, to keep 401 → 404 → 403.
 		ginContext.Set(principalKey, principal)
 	}
 }
@@ -89,15 +84,6 @@ func (handler *Handler) checkOrigin(ginContext *gin.Context) error {
 	}
 
 	return httpx.ErrForbidden
-}
-
-// checkScope: a docs:read token only reads.
-func checkScope(method string, principal Principal) error {
-	if isReadMethod(method) || principal.canWrite() {
-		return nil
-	}
-
-	return errInsufficientScope
 }
 
 // The frontend, or the API's own pages (Swagger UI): a site on another origin cannot send either value.

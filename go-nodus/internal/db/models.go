@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// Workspace owns every folder and doc. Their foreign keys use NO ACTION until workspace deletion exists.
+// Workspace owns every folder and doc; deleting it deletes them too (their foreign keys cascade).
 type Workspace struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Name      string    `gorm:"not null"`
@@ -27,8 +27,8 @@ type Folder struct {
 	UpdatedAt      time.Time  `gorm:"not null;default:now()"`
 
 	// Relations only declare foreign keys for Atlas.
-	Workspace    *Workspace
-	ParentFolder *Folder `gorm:"constraint:OnDelete:CASCADE"`
+	Workspace    *Workspace `gorm:"constraint:OnDelete:CASCADE"`
+	ParentFolder *Folder    `gorm:"constraint:OnDelete:CASCADE"`
 }
 
 // Doc sits at the root, in a folder (FolderID) or in another doc (ParentDocID); never both.
@@ -47,9 +47,9 @@ type Doc struct {
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
 
 	// Relations only declare foreign keys for Atlas.
-	Workspace *Workspace
-	Folder    *Folder `gorm:"constraint:OnDelete:CASCADE"`
-	ParentDoc *Doc    `gorm:"constraint:OnDelete:CASCADE"`
+	Workspace *Workspace `gorm:"constraint:OnDelete:CASCADE"`
+	Folder    *Folder    `gorm:"constraint:OnDelete:CASCADE"`
+	ParentDoc *Doc       `gorm:"constraint:OnDelete:CASCADE"`
 }
 
 // DocLink is a [[wiki-link]] in a doc's content, rebuilt for the whole workspace on every write.

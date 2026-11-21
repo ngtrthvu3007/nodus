@@ -15,6 +15,7 @@ const (
 	bodyKey        = "body"
 	workspaceIDKey = "workspaceId"
 	idKey          = "id"
+	memberIDKey    = "memberId"
 )
 
 func ParseWorkspaceID() gin.HandlerFunc {
@@ -32,6 +33,16 @@ func GetWorkspaceID(ginContext *gin.Context) uuid.UUID {
 
 func GetResourceID(ginContext *gin.Context) uuid.UUID {
 	id, _ := ginContext.Value(idKey).(uuid.UUID)
+	return id
+}
+
+// ParseMemberID reads the :userId parameter of a workspace member route.
+func ParseMemberID(notFound *Error) gin.HandlerFunc {
+	return parseUUIDParam("userId", memberIDKey, notFound)
+}
+
+func GetMemberID(ginContext *gin.Context) uuid.UUID {
+	id, _ := ginContext.Value(memberIDKey).(uuid.UUID)
 	return id
 }
 

@@ -1,6 +1,6 @@
 # Backend map — `go-nodus`
 
-Gin + GORM + Postgres, theo [[ADR-001-tech-stack]]. Mỗi domain là **một package** (`internal/modules/auth`, `internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`, `internal/modules/export`) gồm handler + service; `internal/httpx` chỉ giữ phần HTTP dùng chung; **`cmd/api`** dựng mọi dependency bằng constructor (DI viết tay, không framework) và chạy server. Quy tắc nghiệp vụ từng tính năng xem `docs/frd/`.
+Gin + GORM + Postgres, theo [[ADR-001-tech-stack]]. Mỗi domain là **một package** (`internal/modules/auth`, `internal/modules/workspace`, `internal/modules/folder`, `internal/modules/doc`, `internal/modules/link`, `internal/modules/tree`, `internal/modules/export`) gồm handler + service; `internal/httpx` chỉ giữ phần HTTP dùng chung; **`cmd/api`** dựng mọi dependency bằng constructor (DI viết tay, không framework) và chạy server. Quy tắc nghiệp vụ từng tính năng xem `docs/frd/`.
 
 ## Cấu trúc
 
@@ -23,6 +23,10 @@ go-nodus/
 │   │   │   ├── middleware.go  # Authenticate (Origin, cookie hoặc Bearer → Principal), RequireSession
 │   │   │   ├── password.go    # quy tắc mật khẩu, argon2id (PHC string), common_passwords.txt nhúng bằng go:embed
 │   │   │   └── secret.go      # sinh session token / PAT `nod_…`, băm SHA-256
+│   │   ├── workspace/     # workspace, member, và CanAccess — hàm kiểm tra quyền duy nhất của mọi route tài liệu
+│   │   │   ├── access.go          # CanAccess, CanAccessResource, Guard (RequireRead / RequireWrite cho route :workspaceId)
+│   │   │   ├── handler.go, service.go               # /workspaces
+│   │   │   └── member_service.go  # /workspaces/:id/members, chặn owner cuối cùng (409 last_owner)
 │   │   ├── tree/          # cây workspace + quy tắc dùng chung cho folder và doc
 │   │   │   ├── handler.go     # chỉ có route GET /workspaces/:id/tree
 │   │   │   ├── service.go     # GetTree, LoadIndex, LockWorkspace, PlaceNew, CheckNameFree, MoveItem
@@ -51,7 +55,7 @@ flowchart LR
     Main[cmd/api/main.go<br/>bắt SIGINT/SIGTERM] --> Cfg[config.Load]
     Cfg --> New[newApp]
     New --> DB[openDB<br/>GORM + Postgres]
-    DB --> Mods["modules(db, origin)<br/>auth: NewService(db, loginLimiters), NewHandler(service, origin)<br/>tree.NewRepository → tree.NewService<br/>folder, doc, export: NewService(db, treeService); link: NewService(db)"]
+    DB --> Mods["modules(db, origin)<br/>auth: NewService(db, loginLimiters), NewHandler(service, origin)<br/>workspace: NewGuard(db); NewService(db, memberLimiter)<br/>tree.NewRepository → tree.NewService<br/>folder, doc, export: NewService(db, treeService); link: NewService(db)<br/>tree, folder, doc, link, export: NewHandler(service, guard)"]
     Mods --> Router["httpx.NewRouter(origin, authenticate, modules...)<br/>middleware + RegisterRoutes"]
     Router --> Run[app.run<br/>http.Server]
     Run -- nhận tín hiệu --> Stop[Shutdown ≤ 10s<br/>rồi đóng DB]
@@ -87,6 +91,7 @@ flowchart LR
 ```
 
 - `auth.Authenticate` chạy trên mọi route, theo thứ tự: request ghi có `Origin` lạ → `403 forbidden` (cả route public); route public (`/health`, `/swagger/*`, `/auth/register`, `/auth/login`) đi qua; còn lại đọc cookie `nodus_session` hoặc `Authorization: Bearer nod_…`, không hợp lệ → `401 unauthenticated`; hợp lệ → lưu `Principal` (`auth.GetPrincipal`). Route chỉ nhận session gắn thêm `auth.RequireSession()` (PAT → `403 forbidden`). Cơ chế xem [[ADR-002-auth]].
+- Quyền theo workspace đi qua một hàm `workspace.CanAccess(tx, principal, workspaceID, write)`: không phải member → `404`; `write` với token `docs:read` → `403 insufficient_scope` (sau membership, giữ thứ tự 401 → 404 → 403; auth middleware không kiểm tra scope). Route có `:workspaceId` gắn `guard.RequireRead()` / `guard.RequireWrite()` ngay sau `ParseWorkspaceID`; route theo id (`/docs/:id`, `/folders/:id`, `move`, `links`, `headings`, `export`) để service tải dòng rồi gọi `workspace.CanAccessResource(…, notFound)` — người ngoài nhận `doc_not_found` / `folder_not_found` như khi không có dòng đó. Route ghi tài liệu **phải** gọi với `write = true`. `workspace` import `auth`, không có chiều ngược lại; module `link` import nó với tên `workspaceaccess` vì đã có type `workspace`.
 - Handler chỉ bind, gọi một method của service, trả response. Lỗi thì `_ = c.Error(err)` rồi return; middleware `handleErrors` trả response lỗi.
 - Quy tắc cây (`tree.PlaceNew`, `tree.MoveItem`, `tree.CheckNameFree`…) và `link.RelinkWorkspace` nhận `*gorm.DB` làm tham số nên chạy trong transaction của `folder`/`doc`.
 - Mọi ghi vào cây (tạo, đổi tên, move, xóa) chạy trong transaction và khóa dòng workspace (`FOR UPDATE`), nên các kiểm tra độ sâu và trùng tên không bị race. Cây nạp cả workspace mỗi lần ghi (xem chú thích `ponytail:` trong `tree/logic.go`).
@@ -103,9 +108,14 @@ flowchart LR
 | POST | `/auth/register` | `auth` | Public. Tạo user + workspace `Personal` (owner) + session trong 1 transaction, set cookie `nodus_session` → `201 { id, email }`; trùng email → `409 email_taken` — [[FRD-account]] |
 | POST | `/auth/login` | `auth` | Public. Sai email hoặc mật khẩu → `401 invalid_credentials`; quá giới hạn (5 lần / 15 phút theo email, 20 theo IP) → `429 rate_limited`; luôn cấp session mới |
 | POST | `/auth/logout`, `/auth/logout-all` | `auth` | Session. Xóa session hiện tại / mọi session của user (PAT giữ nguyên) → `204` |
-| GET | `/me` | `auth` | Session. `{ id, email }` |
+| GET | `/me` | `auth` | Session. `{ id, email, workspaces: [{ id, name, role }] }` — trùng dữ liệu với `GET /workspaces` (chấp nhận), FE phải invalidate cả hai khi workspace hoặc member đổi |
 | GET, POST | `/tokens` | `auth` | Session. GET: danh sách PAT chưa thu hồi; POST `{ name, scope, password }` → `201`, token `nod_…` chỉ có trong response này; sai mật khẩu → `403 invalid_password` |
 | DELETE | `/tokens/:id` | `auth` | Session. Thu hồi ngay → `204`; token của người khác hoặc đã thu hồi → `404 token_not_found` |
+| GET | `/workspaces` | `workspace` | Session hoặc PAT. Các workspace user là member `[{ id, name, role }]`, cũ nhất trước — cùng truy vấn với `workspaces` của `GET /me` (`auth.ListWorkspaces`) |
+| POST | `/workspaces` | `workspace` | Session. `{ name }` (trim, 1–100 ký tự, sai → `400 invalid_params`) → `201`, người tạo là `owner` |
+| PATCH, DELETE | `/workspaces/:workspaceId` | `workspace` | Session, chỉ `owner` (member → `403 forbidden`, người ngoài → `404`). DELETE xóa luôn folder/doc/link/member (FK cascade) → `204` — [[FRD-account]] |
+| GET, POST | `/workspaces/:workspaceId/members` | `workspace` | Session. GET: member xem được `[{ userId, email, role }]`. POST `{ email, role? }` chỉ `owner`, giới hạn 20 lần / 15 phút mỗi owner → `201`; email chưa có tài khoản → `404 user_not_found`; đã là member → `409 already_member` |
+| PATCH, DELETE | `/workspaces/:workspaceId/members/:userId` | `workspace` | Session. PATCH `{ role }` chỉ `owner`; DELETE: `owner` xóa bất kỳ ai, member tự rời (`userId` của mình). Hạ hoặc xóa `owner` cuối cùng → `409 last_owner` (khóa dòng workspace để hai owner không hạ nhau cùng lúc) |
 | GET | `/workspaces/:workspaceId/tree` | `tree` | Danh sách phẳng folder + doc, xếp theo `position` |
 | POST | `/workspaces/:workspaceId/folders` | `folder` | Quy tắc: tên 1–200 ký tự không chứa `/ # \| [ ]`, độ sâu tối đa 4, không trùng tên cùng cha — [[FRD-folder]] |
 | GET, PATCH, DELETE | `/folders/:id` | `folder` | GET kèm `children`; PATCH đổi `name`/`description`; DELETE xóa cứng, FK cascade |
@@ -131,6 +141,7 @@ flowchart LR
 ## Dữ liệu
 
 - Tài khoản (migration `accounts`): `users` (email unique, app lưu đã trim + lowercase; `password_hash` argon2id, nullable cho OAuth), `sessions` và `personal_access_tokens` (chỉ lưu `token_hash` SHA-256, unique; FK cascade theo `users`), `workspace_members` (PK `workspace_id, user_id`, index `user_id`). CHECK `role IN ('owner','member')` và `scope IN ('docs:read','docs:write')` khai báo ở `extra_schema.sql`.
+- FK `workspace_id` của `folders` và `docs` là `ON DELETE CASCADE` (migration `workspace_access`): xóa workspace xóa luôn bên trong. Cùng migration đó xóa workspace seed `Default` (`…0001`) cùng dữ liệu demo ([[ADR-002-auth]], mục Dữ liệu cũ).
 - Bảng: `workspaces`, `folders`, `docs`, `doc_links`. Doc nằm ở gốc, trong folder (`folder_id`) hoặc trong doc khác (`parent_doc_id`), không bao giờ cả hai (CHECK `docs_one_parent`).
 - `doc_links`: `source_doc_id`, `target_ref` (chữ trong `[[...]]`, bỏ `#heading`; `[[...]]` trong code span/code fence không tính), `target_doc_id` (NULL = broken link, FK `SET NULL`). Unique `(source_doc_id, lower(target_ref))` viết tay trong migration. Mỗi lần ghi cây hoặc nội dung, `link.RelinkWorkspace` xóa và dựng lại link của cả workspace trong cùng transaction (xem `ponytail:` trong `link/relink.go`).
 - Tên folder và title doc không trùng (không phân biệt hoa thường) trong cùng một cha: unique index viết tay trong migration, khai báo thêm ở `internal/db/extra_schema.sql` để Atlas không đề nghị xóa.

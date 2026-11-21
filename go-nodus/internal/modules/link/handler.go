@@ -7,20 +7,24 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
+	workspaceaccess "go-nodus/internal/modules/workspace"
 )
 
 type Handler struct {
 	service *Service
+	guard   *workspaceaccess.Guard
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, guard *workspaceaccess.Guard) *Handler {
+	return &Handler{service: service, guard: guard}
 }
 
+// Routes by doc id check access in the service, once the doc's workspace is known.
 func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 	router.GET("/docs/:id/links", httpx.ParseResourceID(httpx.ErrDocNotFound), handler.getDocLinks)
 	router.GET("/docs/:id/headings", httpx.ParseResourceID(httpx.ErrDocNotFound), handler.getDocHeadings)
-	router.GET("/workspaces/:workspaceId/docs/autocomplete", httpx.ParseWorkspaceID(), handler.autocompleteTitles)
+	router.GET("/workspaces/:workspaceId/docs/autocomplete", httpx.ParseWorkspaceID(), handler.guard.RequireRead(), handler.autocompleteTitles)
 }
 
 // @Summary	List the headings of a doc
@@ -30,7 +34,12 @@ func (handler *Handler) RegisterRoutes(router gin.IRouter) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/docs/{id}/headings [get]
 func (handler *Handler) getDocHeadings(ginContext *gin.Context) {
-	headings, err := handler.service.GetHeadings(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	headings, err := handler.service.GetHeadings(
+		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
+		httpx.GetResourceID(ginContext),
+	)
+
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
@@ -46,7 +55,12 @@ func (handler *Handler) getDocHeadings(ginContext *gin.Context) {
 // @Failure	404	{object}	httpx.ErrorBody
 // @Router		/docs/{id}/links [get]
 func (handler *Handler) getDocLinks(ginContext *gin.Context) {
-	links, err := handler.service.GetDocLinks(ginContext.Request.Context(), httpx.GetResourceID(ginContext))
+	links, err := handler.service.GetDocLinks(
+		ginContext.Request.Context(),
+		auth.GetPrincipal(ginContext),
+		httpx.GetResourceID(ginContext),
+	)
+
 	if err != nil {
 		_ = ginContext.Error(err)
 		return
