@@ -64,7 +64,7 @@ docker compose --profile app up -d --build   # build image và chạy API: http:
 
 ## API docs (Swagger)
 
-Bật cùng API: chạy `make dev` rồi mở **http://localhost:8080/swagger/index.html** (cổng theo `PORT`; URL cũng được log khi API khởi động). Bấm **Try it out** để gọi thử từng route. Workspace mặc định có id `00000000-0000-0000-0000-000000000001`.
+Bật cùng API: chạy `make dev` rồi mở **http://localhost:8080/swagger/index.html** (cổng theo `PORT`; URL cũng được log khi API khởi động). Bấm **Try it out** để gọi thử từng route. Đăng ký một tài khoản, workspace Personal được tạo sẵn; lấy id từ `GET /me`.
 
 Sau khi sửa route, request hoặc response type, sinh lại docs rồi commit `internal/apidocs/` (file sinh ra, không sửa tay):
 

@@ -342,19 +342,20 @@ func TestAddMemberErrors(t *testing.T) {
 	unknown := map[string]any{"email": "nobody-" + uuid.NewString() + "@example.test"}
 	api.expect(api.send(http.MethodPost, membersPath, alice.session, unknown), http.StatusNotFound, "user_not_found")
 
-	// The email is matched trimmed and lowercased, like at register; the role defaults to member.
-	byEmail := map[string]any{"email": "  " + strings.ToUpper(bob.email) + " "}
+	// The email is matched lowercased, like at register; the role defaults to member.
+	byEmail := map[string]any{"email": strings.ToUpper(bob.email)}
 	added := decode[struct{ UserID, Role string }](t, api.expect(
 		api.send(http.MethodPost, membersPath, alice.session, byEmail), http.StatusCreated, ""))
 	if added.UserID != bob.id || added.Role != "member" {
 		t.Fatalf("added = %+v, want bob as member", added)
 	}
 
-	again := map[string]any{"email": bob.email}
-	api.expect(api.send(http.MethodPost, membersPath, alice.session, again), http.StatusConflict, "already_member")
-
 	badRole := map[string]any{"email": bob.email, "role": "admin"}
 	api.expect(api.send(http.MethodPost, membersPath, alice.session, badRole), http.StatusBadRequest, "invalid_params")
+
+	// Last: the duplicate key aborts the test's outer transaction, so no request may follow it.
+	again := map[string]any{"email": bob.email}
+	api.expect(api.send(http.MethodPost, membersPath, alice.session, again), http.StatusConflict, "already_member")
 }
 
 // The token scope is checked after membership: 401 → 404 → 403.

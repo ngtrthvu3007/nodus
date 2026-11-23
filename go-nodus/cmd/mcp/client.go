@@ -27,7 +27,8 @@ func apiBase() string {
 	return "http://localhost:8080"
 }
 
-// defaultWorkspaceID is the workspace seeded by the folder_doc_tree migration, used until accounts exist.
+// defaultWorkspaceID was seeded by the folder_doc_tree migration and deleted by workspace_access (NOD-63);
+// it stays stale until MCP picks its workspace (NOD-39).
 const defaultWorkspaceID = "00000000-0000-0000-0000-000000000001"
 
 func workspaceID() string {
