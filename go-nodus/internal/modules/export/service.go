@@ -12,7 +12,9 @@ import (
 
 	"go-nodus/internal/db"
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
 	"go-nodus/internal/modules/tree"
+	"go-nodus/internal/modules/workspace"
 )
 
 var errFolderNotFound = httpx.NewError(http.StatusNotFound, "folder_not_found", "Folder is not found")
@@ -27,8 +29,15 @@ func NewService(database *gorm.DB, treeService *tree.Service) *Service {
 }
 
 // BuildDocFile is the doc alone: its children are not included.
-func (service *Service) BuildDocFile(ctx context.Context, id uuid.UUID) (exportFile, error) {
-	doc, err := httpx.FindByID[db.Doc](service.db.WithContext(ctx), id, httpx.ErrDocNotFound)
+func (service *Service) BuildDocFile(ctx context.Context, principal auth.Principal, id uuid.UUID) (exportFile, error) {
+	database := service.db.WithContext(ctx)
+
+	doc, err := httpx.FindByID[db.Doc](database, id, httpx.ErrDocNotFound)
+	if err != nil {
+		return exportFile{}, err
+	}
+
+	err = workspace.CanAccessResource(database, principal, doc.WorkspaceID, false, httpx.ErrDocNotFound)
 	if err != nil {
 		return exportFile{}, err
 	}
@@ -89,10 +98,19 @@ func (service *Service) BuildDocsZip(
 }
 
 // BuildFolderZip is the folder's branch as a zip that keeps the tree; the zip holds what is inside the folder.
-func (service *Service) BuildFolderZip(ctx context.Context, id uuid.UUID) (exportFile, error) {
+func (service *Service) BuildFolderZip(
+	ctx context.Context,
+	principal auth.Principal,
+	id uuid.UUID,
+) (exportFile, error) {
 	database := service.db.WithContext(ctx)
 
 	folder, err := httpx.FindByID[db.Folder](database, id, errFolderNotFound)
+	if err != nil {
+		return exportFile{}, err
+	}
+
+	err = workspace.CanAccessResource(database, principal, folder.WorkspaceID, false, errFolderNotFound)
 	if err != nil {
 		return exportFile{}, err
 	}

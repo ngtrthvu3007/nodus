@@ -9,8 +9,10 @@ import (
 
 	"go-nodus/internal/db"
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
 	"go-nodus/internal/modules/link"
 	"go-nodus/internal/modules/tree"
+	"go-nodus/internal/modules/workspace"
 )
 
 var (
@@ -47,10 +49,15 @@ func (service *Service) Create(
 	return toFolderResponse(&folder), nil
 }
 
-func (service *Service) Get(ctx context.Context, id uuid.UUID) (folderDetail, error) {
+func (service *Service) Get(ctx context.Context, principal auth.Principal, id uuid.UUID) (folderDetail, error) {
 	database := service.db.WithContext(ctx)
 
 	folder, err := httpx.FindByID[db.Folder](database, id, errFolderNotFound)
+	if err != nil {
+		return folderDetail{}, err
+	}
+
+	err = workspace.CanAccessResource(database, principal, folder.WorkspaceID, false, errFolderNotFound)
 	if err != nil {
 		return folderDetail{}, err
 	}
@@ -71,6 +78,7 @@ func (service *Service) Get(ctx context.Context, id uuid.UUID) (folderDetail, er
 
 	return folderDetail{
 		ID:          folder.ID,
+		WorkspaceID: folder.WorkspaceID,
 		Name:        folder.Name,
 		Description: folder.Description,
 		ParentID:    folder.ParentFolderID,
@@ -78,12 +86,17 @@ func (service *Service) Get(ctx context.Context, id uuid.UUID) (folderDetail, er
 	}, nil
 }
 
-func (service *Service) Update(ctx context.Context, id uuid.UUID, request updateFolderRequest) (folderResponse, error) {
+func (service *Service) Update(
+	ctx context.Context,
+	principal auth.Principal,
+	id uuid.UUID,
+	request updateFolderRequest,
+) (folderResponse, error) {
 	database := service.db.WithContext(ctx)
 
 	var updated *db.Folder
 	err := database.Transaction(func(tx *gorm.DB) (err error) {
-		updated, err = service.applyFolderUpdate(tx, id, request)
+		updated, err = service.applyFolderUpdate(tx, principal, id, request)
 		return err
 	})
 
@@ -94,12 +107,17 @@ func (service *Service) Update(ctx context.Context, id uuid.UUID, request update
 	return toFolderResponse(updated), nil
 }
 
-func (service *Service) Move(ctx context.Context, id uuid.UUID, request tree.MoveRequest) (tree.Moved, error) {
+func (service *Service) Move(
+	ctx context.Context,
+	principal auth.Principal,
+	id uuid.UUID,
+	request tree.MoveRequest,
+) (tree.Moved, error) {
 	database := service.db.WithContext(ctx)
 
 	var moved tree.Moved
 	err := database.Transaction(func(tx *gorm.DB) error {
-		folder, err := service.lockFolder(tx, id)
+		folder, err := service.lockFolder(tx, principal, id)
 		if err != nil {
 			return err
 		}
@@ -122,11 +140,11 @@ func (service *Service) Move(ctx context.Context, id uuid.UUID, request tree.Mov
 }
 
 // Delete is a hard delete; the foreign keys cascade to everything inside.
-func (service *Service) Delete(ctx context.Context, id uuid.UUID) error {
+func (service *Service) Delete(ctx context.Context, principal auth.Principal, id uuid.UUID) error {
 	database := service.db.WithContext(ctx)
 
 	return database.Transaction(func(tx *gorm.DB) error {
-		folder, err := service.lockFolder(tx, id)
+		folder, err := service.lockFolder(tx, principal, id)
 		if err != nil {
 			return err
 		}
@@ -171,8 +189,13 @@ func (service *Service) insertFolder(
 	return folder, tx.Create(&folder).Error
 }
 
-func (service *Service) applyFolderUpdate(tx *gorm.DB, id uuid.UUID, request updateFolderRequest) (*db.Folder, error) {
-	folder, err := service.lockFolder(tx, id)
+func (service *Service) applyFolderUpdate(
+	tx *gorm.DB,
+	principal auth.Principal,
+	id uuid.UUID,
+	request updateFolderRequest,
+) (*db.Folder, error) {
+	folder, err := service.lockFolder(tx, principal, id)
 	if err != nil {
 		return nil, err
 	}
@@ -228,9 +251,14 @@ func toFolderResponse(folder *db.Folder) folderResponse {
 	}
 }
 
-// Locks the workspace first, then re-reads the folder so it stays valid until commit.
-func (service *Service) lockFolder(tx *gorm.DB, id uuid.UUID) (*db.Folder, error) {
+// Checks write access, locks the workspace, then re-reads the folder so it stays valid until commit.
+func (service *Service) lockFolder(tx *gorm.DB, principal auth.Principal, id uuid.UUID) (*db.Folder, error) {
 	folder, err := httpx.FindByID[db.Folder](tx, id, errFolderNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	err = workspace.CanAccessResource(tx, principal, folder.WorkspaceID, true, errFolderNotFound)
 	if err != nil {
 		return nil, err
 	}

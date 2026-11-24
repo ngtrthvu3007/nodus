@@ -9,8 +9,10 @@ import (
 
 	"go-nodus/internal/db"
 	"go-nodus/internal/httpx"
+	"go-nodus/internal/modules/auth"
 	"go-nodus/internal/modules/link"
 	"go-nodus/internal/modules/tree"
+	"go-nodus/internal/modules/workspace"
 )
 
 type Service struct {
@@ -48,7 +50,7 @@ func (service *Service) Create(
 	}, nil
 }
 
-func (service *Service) Get(ctx context.Context, id uuid.UUID) (docDetail, error) {
+func (service *Service) Get(ctx context.Context, principal auth.Principal, id uuid.UUID) (docDetail, error) {
 	database := service.db.WithContext(ctx)
 
 	doc, err := httpx.FindByID[db.Doc](database, id, httpx.ErrDocNotFound)
@@ -56,15 +58,25 @@ func (service *Service) Get(ctx context.Context, id uuid.UUID) (docDetail, error
 		return docDetail{}, err
 	}
 
+	err = workspace.CanAccessResource(database, principal, doc.WorkspaceID, false, httpx.ErrDocNotFound)
+	if err != nil {
+		return docDetail{}, err
+	}
+
 	return service.buildDocDetail(database, doc)
 }
 
-func (service *Service) Update(ctx context.Context, id uuid.UUID, request updateDocRequest) (docDetail, error) {
+func (service *Service) Update(
+	ctx context.Context,
+	principal auth.Principal,
+	id uuid.UUID,
+	request updateDocRequest,
+) (docDetail, error) {
 	database := service.db.WithContext(ctx)
 
 	var saved *db.Doc
 	err := database.Transaction(func(tx *gorm.DB) (err error) {
-		saved, err = service.saveDoc(tx, id, request)
+		saved, err = service.saveDoc(tx, principal, id, request)
 		return err
 	})
 
@@ -75,12 +87,17 @@ func (service *Service) Update(ctx context.Context, id uuid.UUID, request update
 	return service.buildDocDetail(database, saved)
 }
 
-func (service *Service) Rename(ctx context.Context, id uuid.UUID, request renameDocRequest) (docDetail, error) {
+func (service *Service) Rename(
+	ctx context.Context,
+	principal auth.Principal,
+	id uuid.UUID,
+	request renameDocRequest,
+) (docDetail, error) {
 	database := service.db.WithContext(ctx)
 
 	var saved *db.Doc
 	err := database.Transaction(func(tx *gorm.DB) (err error) {
-		saved, err = service.applyDocRename(tx, id, request)
+		saved, err = service.applyDocRename(tx, principal, id, request)
 		return err
 	})
 
@@ -91,12 +108,17 @@ func (service *Service) Rename(ctx context.Context, id uuid.UUID, request rename
 	return service.buildDocDetail(database, saved)
 }
 
-func (service *Service) Move(ctx context.Context, id uuid.UUID, request tree.MoveRequest) (tree.Moved, error) {
+func (service *Service) Move(
+	ctx context.Context,
+	principal auth.Principal,
+	id uuid.UUID,
+	request tree.MoveRequest,
+) (tree.Moved, error) {
 	database := service.db.WithContext(ctx)
 
 	var moved tree.Moved
 	err := database.Transaction(func(tx *gorm.DB) error {
-		doc, err := service.lockDoc(tx, id)
+		doc, err := service.lockDoc(tx, principal, id)
 		if err != nil {
 			return err
 		}
@@ -119,11 +141,11 @@ func (service *Service) Move(ctx context.Context, id uuid.UUID, request tree.Mov
 }
 
 // Delete soft-deletes the doc and every doc under it.
-func (service *Service) Delete(ctx context.Context, id uuid.UUID) error {
+func (service *Service) Delete(ctx context.Context, principal auth.Principal, id uuid.UUID) error {
 	database := service.db.WithContext(ctx)
 
 	return database.Transaction(func(tx *gorm.DB) error {
-		doc, err := service.lockDoc(tx, id)
+		doc, err := service.lockDoc(tx, principal, id)
 		if err != nil {
 			return err
 		}
@@ -153,13 +175,14 @@ func (service *Service) buildDocDetail(tx *gorm.DB, doc *db.Doc) (docDetail, err
 	prev, next := findDocNeighbors(index, doc.ID)
 
 	return docDetail{
-		ID:       doc.ID,
-		Title:    doc.Title,
-		Content:  doc.Content,
-		Version:  doc.Version,
-		ParentID: tree.GetParentID(tree.GetDocParent(doc)),
-		Prev:     prev,
-		Next:     next,
+		ID:          doc.ID,
+		WorkspaceID: doc.WorkspaceID,
+		Title:       doc.Title,
+		Content:     doc.Content,
+		Version:     doc.Version,
+		ParentID:    tree.GetParentID(tree.GetDocParent(doc)),
+		Prev:        prev,
+		Next:        next,
 	}, nil
 }
 
@@ -195,8 +218,13 @@ func (service *Service) insertDoc(tx *gorm.DB, workspaceID uuid.UUID, request cr
 	return doc, link.RelinkWorkspace(tx, workspaceID)
 }
 
-func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequest) (*db.Doc, error) {
-	doc, err := service.lockDoc(tx, id)
+func (service *Service) saveDoc(
+	tx *gorm.DB,
+	principal auth.Principal,
+	id uuid.UUID,
+	request updateDocRequest,
+) (*db.Doc, error) {
+	doc, err := service.lockDoc(tx, principal, id)
 	if err != nil {
 		return nil, err
 	}
@@ -222,8 +250,13 @@ func (service *Service) saveDoc(tx *gorm.DB, id uuid.UUID, request updateDocRequ
 	return httpx.FindByID[db.Doc](tx, doc.ID, httpx.ErrDocNotFound)
 }
 
-func (service *Service) applyDocRename(tx *gorm.DB, id uuid.UUID, request renameDocRequest) (*db.Doc, error) {
-	doc, err := service.lockDoc(tx, id)
+func (service *Service) applyDocRename(
+	tx *gorm.DB,
+	principal auth.Principal,
+	id uuid.UUID,
+	request renameDocRequest,
+) (*db.Doc, error) {
+	doc, err := service.lockDoc(tx, principal, id)
 	if err != nil {
 		return nil, err
 	}
@@ -291,9 +324,14 @@ func findDocNeighbors(index *tree.Index, id uuid.UUID) (prev, next *docRef) {
 	return prev, next
 }
 
-// Locks the workspace first, then re-reads the doc so it stays valid until commit.
-func (service *Service) lockDoc(tx *gorm.DB, id uuid.UUID) (*db.Doc, error) {
+// Checks write access, locks the workspace, then re-reads the doc so it stays valid until commit.
+func (service *Service) lockDoc(tx *gorm.DB, principal auth.Principal, id uuid.UUID) (*db.Doc, error) {
 	doc, err := httpx.FindByID[db.Doc](tx, id, httpx.ErrDocNotFound)
+	if err != nil {
+		return nil, err
+	}
+
+	err = workspace.CanAccessResource(tx, principal, doc.WorkspaceID, true, httpx.ErrDocNotFound)
 	if err != nil {
 		return nil, err
 	}

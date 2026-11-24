@@ -110,9 +110,9 @@ func (handler *Handler) logoutAllSessions(ginContext *gin.Context) {
 	ginContext.Status(http.StatusNoContent)
 }
 
-// @Summary	Get the signed-in user
+// @Summary	Get the signed-in user and the workspaces they belong to
 // @Tags		auth
-// @Success	200		{object}	httpx.SuccessBody{data=userResponse}
+// @Success	200		{object}	httpx.SuccessBody{data=currentUserResponse}
 // @Failure	401,403	{object}	httpx.ErrorBody
 // @Router		/me [get]
 func (handler *Handler) getCurrentUser(ginContext *gin.Context) {

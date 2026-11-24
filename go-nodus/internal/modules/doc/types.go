@@ -61,12 +61,14 @@ type searchDocsResponse struct {
 	HasMore bool              `json:"hasMore"`
 }
 
+// docDetail carries workspaceId so a link to a doc can be checked against the workspace in the URL.
 type docDetail struct {
-	ID       uuid.UUID  `json:"id"`
-	Title    string     `json:"title"`
-	Content  string     `json:"content"`
-	Version  int        `json:"version"`
-	ParentID *uuid.UUID `json:"parentId"`
-	Prev     *docRef    `json:"prev"`
-	Next     *docRef    `json:"next"`
+	ID          uuid.UUID  `json:"id"`
+	WorkspaceID uuid.UUID  `json:"workspaceId"`
+	Title       string     `json:"title"`
+	Content     string     `json:"content"`
+	Version     int        `json:"version"`
+	ParentID    *uuid.UUID `json:"parentId"`
+	Prev        *docRef    `json:"prev"`
+	Next        *docRef    `json:"next"`
 }

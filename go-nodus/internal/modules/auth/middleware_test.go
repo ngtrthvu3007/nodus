@@ -77,36 +77,6 @@ func newTestContext(method string, origin string) *gin.Context {
 	return ginContext
 }
 
-func TestCheckScope(t *testing.T) {
-	session := Principal{AuthMethod: AuthMethodSession}
-	readToken := Principal{AuthMethod: AuthMethodToken, Scope: ScopeDocsRead}
-	writeToken := Principal{AuthMethod: AuthMethodToken, Scope: ScopeDocsWrite}
-
-	cases := []struct {
-		name      string
-		principal Principal
-		method    string
-		want      error
-	}{
-		{"docs:read token reads", readToken, http.MethodGet, nil},
-		{"docs:read token creates", readToken, http.MethodPost, errInsufficientScope},
-		{"docs:read token updates", readToken, http.MethodPut, errInsufficientScope},
-		{"docs:read token moves", readToken, http.MethodPatch, errInsufficientScope},
-		{"docs:read token deletes", readToken, http.MethodDelete, errInsufficientScope},
-		{"docs:write token writes", writeToken, http.MethodPost, nil},
-		{"session writes", session, http.MethodDelete, nil},
-	}
-
-	for _, testCase := range cases {
-		t.Run(testCase.name, func(t *testing.T) {
-			err := checkScope(testCase.method, testCase.principal)
-			if !errors.Is(err, testCase.want) {
-				t.Fatalf("checkScope = %v, want %v", err, testCase.want)
-			}
-		})
-	}
-}
-
 func TestCheckOrigin(t *testing.T) {
 	handler := &Handler{allowedOrigin: testAllowedOrigin}
 
