@@ -2,13 +2,14 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { useTree, useTreeModel } from "@/features/tree";
 import { PAGE_ROUTES } from "@/shared/constants";
-import { useTabsStore } from "@/shared/stores";
+import { getTabsStorageKey, hasStoredTabs, useTabsStore } from "@/shared/stores";
 import { useTabShortcuts } from "./useTabShortcuts";
 
 // Keeps the open tabs in step with the URL and the tree, and gives the tab bar what it shows.
 export const useTabs = () => {
   const router = useRouter();
-  const { id: routeId } = useParams<{ id?: string }>(); // doc and folder pages both name the segment `id`
+  // Doc and folder pages both name their segment `id`.
+  const { id: routeId, workspaceId = "" } = useParams<{ id?: string; workspaceId?: string }>();
   // The doc this page showed the last time the tree arrived, to tell a doc deleted now from one deleted before.
   const shownIdRef = useRef<string | undefined>(undefined);
   const routeIdRef = useRef(routeId);
@@ -19,13 +20,13 @@ export const useTabs = () => {
   const { nodesById } = useTreeModel(data);
   const { tabIds, activeId, activateTab, closeTabs, moveTab } = useTabsStore();
 
-  // The page of a tab, or home when there is no tab (any more).
+  // The page of a tab, or the workspace home when there is no tab (any more).
   const getHref = useCallback(
     (id: string | undefined) => {
       const node = id === undefined ? undefined : nodesById.get(id);
-      return node ? PAGE_ROUTES.node(node.kind, node.id) : PAGE_ROUTES.home;
+      return node ? PAGE_ROUTES.node(workspaceId, node.kind, node.id) : PAGE_ROUTES.workspace(workspaceId);
     },
-    [nodesById],
+    [workspaceId, nodesById],
   );
 
   // Closes the tabs and shows the one that became active, or home when none is left.
@@ -34,8 +35,14 @@ export const useTabs = () => {
     [router, getHref, closeTabs],
   );
 
+  // Each workspace has its own tabs. persist writes on every setState, so the list is emptied only for a workspace
+  // with nothing saved; otherwise clearing it first would overwrite that workspace's saved tabs.
   useEffect(() => {
-    useTabsStore.persist.rehydrate();
+    const storageKey = getTabsStorageKey(workspaceId);
+    useTabsStore.persist.setOptions({ name: storageKey });
+
+    if (hasStoredTabs(storageKey)) useTabsStore.persist.rehydrate();
+    else useTabsStore.setState({ tabIds: [] });
 
     // Another browser tab changed the list: take it, and keep the doc shown here open.
     const onStorage = (event: StorageEvent) => {
@@ -45,7 +52,7 @@ export const useTabs = () => {
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [workspaceId]);
 
   useEffect(() => {
     if (!data) return;

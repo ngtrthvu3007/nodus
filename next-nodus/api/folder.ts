@@ -7,14 +7,14 @@ import type {
   MoveResponse,
   UpdateFolderRequest,
 } from "@/shared/types";
-import { API_ROUTES, WORKSPACE_ID } from "@/shared/constants";
+import { API_ROUTES } from "@/shared/constants";
 
 // signal: lets the client cancel the request; not an API parameter.
 export const getFolder = (id: string, signal?: AbortSignal) =>
   httpClient.get<FolderDetail>(API_ROUTES.folder(id), { signal });
 
-export const createFolder = (request: CreateFolderRequest) =>
-  httpClient.post<Folder>(API_ROUTES.folders(WORKSPACE_ID), request);
+export const createFolder = (workspaceId: string, request: CreateFolderRequest) =>
+  httpClient.post<Folder>(API_ROUTES.folders(workspaceId), request);
 
 export const updateFolder = (id: string, request: UpdateFolderRequest) =>
   httpClient.patch<Folder>(API_ROUTES.folder(id), request);

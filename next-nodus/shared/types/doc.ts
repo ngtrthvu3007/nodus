@@ -13,6 +13,7 @@ export interface DocRef {
 
 export interface DocDetail {
   id: string;
+  workspaceId: string;
   title: string;
   content: string;
   version: number;

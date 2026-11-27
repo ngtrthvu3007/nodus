@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 import { AUTH_MODE, type AuthMode } from "../lib/authMode";

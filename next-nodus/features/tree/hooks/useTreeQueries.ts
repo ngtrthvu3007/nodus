@@ -1,17 +1,34 @@
 import { useIsMutating, useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { createNode, deleteNode, exportDocs, exportNode, getTree, importDocs, moveNode, renameNode } from "@/api";
+import {
+  createNode,
+  deleteNode,
+  exportDocs,
+  exportNode,
+  getTree,
+  importDocs,
+  moveNode,
+  renameNode,
+  type CreateNodeInput,
+} from "@/api";
 import { DOC_HEADINGS_KEY, DOC_LINKS_KEY } from "@/features/link";
 import { SEARCH_KEY } from "@/features/search";
-import { NODE_KIND, WORKSPACE_ID } from "@/shared/constants";
+import { NODE_KIND } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import { saveFile } from "@/shared/libs/saveFile";
+import type { ExportDocsRequest, ImportDocsRequest } from "@/shared/types";
 
-export const useTree = () =>
-  useQuery({
-    queryKey: ["tree", WORKSPACE_ID],
-    queryFn: ({ signal }) => getTree(signal),
+export const useTree = () => {
+  const workspaceId = useWorkspaceId();
+
+  return useQuery({
+    queryKey: ["tree", workspaceId],
+    queryFn: ({ signal }) => getTree(workspaceId, signal),
+    // Outside a workspace page (settings) there is no tree.
+    enabled: Boolean(workspaceId),
     // Docs deleted or renamed elsewhere (another tab, MCP, a teammate) reach the sidebar and the tabs on return.
     refetchOnWindowFocus: true,
   });
+};
 
 const TREE_QUERY_KEYS = ["tree", NODE_KIND.folder, NODE_KIND.doc, DOC_LINKS_KEY, DOC_HEADINGS_KEY, SEARCH_KEY];
 
@@ -21,9 +38,10 @@ const invalidateTree = (queryClient: QueryClient) =>
 
 export const useCreateNode = () => {
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceId();
 
   return useMutation({
-    mutationFn: createNode,
+    mutationFn: (input: Omit<CreateNodeInput, "workspaceId">) => createNode({ ...input, workspaceId }),
     onSuccess: () => invalidateTree(queryClient),
   });
 };
@@ -49,16 +67,24 @@ export const useMoveNode = () => {
 // An export changes nothing on the server, so nothing is invalidated: the file goes straight to the browser.
 export const useExportNode = () => useMutation({ mutationFn: exportNode, onSuccess: saveFile });
 
-export const useExportDocs = () => useMutation({ mutationFn: exportDocs, onSuccess: saveFile });
+export const useExportDocs = () => {
+  const workspaceId = useWorkspaceId();
+
+  return useMutation({
+    mutationFn: (request: ExportDocsRequest) => exportDocs(workspaceId, request),
+    onSuccess: saveFile,
+  });
+};
 
 const IMPORT_MUTATION_KEY = ["import-docs"];
 
 export const useImportDocs = () => {
   const queryClient = useQueryClient();
+  const workspaceId = useWorkspaceId();
 
   return useMutation({
     mutationKey: IMPORT_MUTATION_KEY,
-    mutationFn: importDocs,
+    mutationFn: (request: ImportDocsRequest) => importDocs(workspaceId, request),
     onSuccess: () => invalidateTree(queryClient),
   });
 };

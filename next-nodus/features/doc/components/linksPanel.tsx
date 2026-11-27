@@ -5,6 +5,7 @@ import { WIKI_BROKEN_CLASS, WIKI_BROKEN_TITLE } from "@/features/editor";
 import { useDocLinks } from "@/features/link";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import type { DocBacklink, DocOutgoing } from "@/shared/types";
 
 const ITEM_CLASS = "flex min-w-0 items-baseline gap-2 py-1 text-ui";
@@ -24,31 +25,39 @@ const LinkSection = ({ title, emptyText, children }: LinkSectionProps) => (
   </section>
 );
 
-const BacklinkItem = ({ backlink }: { backlink: DocBacklink }) => (
-  <li className={ITEM_CLASS}>
-    <Link href={PAGE_ROUTES.doc(backlink.id)} className="truncate text-link hover:underline">
-      {backlink.title}
-    </Link>
-    <span className="truncate text-ui-sm text-fg-subtle">{backlink.path}</span>
-  </li>
-);
+const BacklinkItem = ({ backlink }: { backlink: DocBacklink }) => {
+  const workspaceId = useWorkspaceId();
 
-const OutgoingItem = ({ link }: { link: DocOutgoing }) => (
-  <li className={ITEM_CLASS}>
-    {link.doc ? (
-      <>
-        <Link href={PAGE_ROUTES.doc(link.doc.id)} className="truncate text-link hover:underline">
-          {link.doc.title}
-        </Link>
-        <span className="truncate text-ui-sm text-fg-subtle">{link.ref}</span>
-      </>
-    ) : (
-      <span className={`truncate ${WIKI_BROKEN_CLASS}`} title={WIKI_BROKEN_TITLE}>
-        {link.ref}
-      </span>
-    )}
-  </li>
-);
+  return (
+    <li className={ITEM_CLASS}>
+      <Link href={PAGE_ROUTES.doc(workspaceId, backlink.id)} className="truncate text-link hover:underline">
+        {backlink.title}
+      </Link>
+      <span className="truncate text-ui-sm text-fg-subtle">{backlink.path}</span>
+    </li>
+  );
+};
+
+const OutgoingItem = ({ link }: { link: DocOutgoing }) => {
+  const workspaceId = useWorkspaceId();
+
+  return (
+    <li className={ITEM_CLASS}>
+      {link.doc ? (
+        <>
+          <Link href={PAGE_ROUTES.doc(workspaceId, link.doc.id)} className="truncate text-link hover:underline">
+            {link.doc.title}
+          </Link>
+          <span className="truncate text-ui-sm text-fg-subtle">{link.ref}</span>
+        </>
+      ) : (
+        <span className={`truncate ${WIKI_BROKEN_CLASS}`} title={WIKI_BROKEN_TITLE}>
+          {link.ref}
+        </span>
+      )}
+    </li>
+  );
+};
 
 // One line per target doc, however many ways the text points to it; a broken link has no doc, so it keeps its own line.
 const getOutgoingKey = (link: DocOutgoing) => link.doc?.id ?? `broken:${link.ref}`;

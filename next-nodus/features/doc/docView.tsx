@@ -3,11 +3,12 @@
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { Result, Skeleton } from "antd";
 import Link from "next/link";
-import { use, useRef, useState } from "react";
+import { use, useCallback, useRef, useState } from "react";
 import type { MarkdownEditorHandle } from "@/features/editor";
 import { NodeBreadcrumb } from "@/features/tree";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId, useWorkspaceRedirect } from "@/shared/hooks";
 import { ApiError } from "@/shared/libs/httpClient";
 import { useSidebarStore } from "@/shared/stores";
 import type { DocDetail, DocRef } from "@/shared/types";
@@ -30,13 +31,15 @@ type DocNeighborLinkProps = {
 };
 
 const DocNeighborLink = ({ doc, direction }: DocNeighborLinkProps) => {
+  const workspaceId = useWorkspaceId();
+
   // Keeps the other card in its column when there is no previous or next doc.
   if (!doc) return <div />;
 
   const { label, Arrow, cardClass, labelClass } = SIDES[direction];
 
   return (
-    <Link href={PAGE_ROUTES.doc(doc.id)} className={`${CARD_CLASS} ${cardClass}`}>
+    <Link href={PAGE_ROUTES.doc(workspaceId, doc.id)} className={`${CARD_CLASS} ${cardClass}`}>
       <span className={`flex items-center gap-1 text-ui-sm text-fg-subtle ${labelClass}`}>
         <Arrow className="size-3" />
         {label}
@@ -99,13 +102,15 @@ const DocContent = ({ doc }: { doc: DocDetail }) => {
   );
 };
 
-type DocViewProps = { params: Promise<{ id: string }> };
+type DocViewProps = { params: Promise<{ workspaceId: string; id: string }> };
 
 export const DocView = ({ params }: DocViewProps) => {
   const { id } = use(params);
   const { data, isPending, error, refetch } = useDoc(id);
+  const buildHref = useCallback((workspaceId: string) => PAGE_ROUTES.doc(workspaceId, id), [id]);
+  const isWrongWorkspace = useWorkspaceRedirect(data?.workspaceId, buildHref);
 
-  if (isPending && !error) return <Skeleton active className="mx-auto max-w-3xl px-8 py-10" />;
+  if ((isPending && !error) || isWrongWorkspace) return <Skeleton active className="mx-auto max-w-3xl px-8 py-10" />;
 
   // With data, a refetch that fails with 404 must not replace the editor: its unsaved text would be lost.
   if (!data && error instanceof ApiError && error.status === 404) {

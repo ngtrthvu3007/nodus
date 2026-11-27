@@ -1,3 +1,5 @@
+"use client";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { login, logout, register } from "@/api";
@@ -5,7 +7,8 @@ import { PAGE_ROUTES } from "@/shared/constants";
 import type { User } from "@/shared/types";
 import { CURRENT_USER_KEY } from "../lib/session";
 
-// Drops everything cached for the previous user before showing the new one's workspace.
+// Drops everything cached for the previous user before showing the new one's workspace. Login and register answer
+// only id and email, so GET /me is asked again for the workspaces that "/" sends the user to.
 const useOpenWorkspace = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -13,6 +16,7 @@ const useOpenWorkspace = () => {
   return (user: User) => {
     queryClient.clear();
     queryClient.setQueryData(CURRENT_USER_KEY, user);
+    void queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
     router.replace(PAGE_ROUTES.home);
   };
 };

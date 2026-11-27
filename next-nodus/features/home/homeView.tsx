@@ -6,9 +6,11 @@ import type { MouseEvent } from "react";
 import { NewNodeMenu, useTree, useTreeModel } from "@/features/tree";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 
 export const HomeView = () => {
   const router = useRouter();
+  const workspaceId = useWorkspaceId();
   const { data, isPending, refetch } = useTree();
   const { firstDocId } = useTreeModel(data);
 
@@ -18,7 +20,7 @@ export const HomeView = () => {
 
   const openFirstDoc = (event: MouseEvent) => {
     event.preventDefault();
-    if (firstDocId) router.push(PAGE_ROUTES.doc(firstDocId));
+    if (firstDocId) router.push(PAGE_ROUTES.doc(workspaceId, firstDocId));
   };
 
   const isEmpty = data.length === 0;
@@ -32,7 +34,7 @@ export const HomeView = () => {
       <h1 className="text-h2 font-semibold">{title}</h1>
       <p className="text-doc text-fg-muted">{hint}</p>
       {firstDocId && (
-        <Button type="primary" href={PAGE_ROUTES.doc(firstDocId)} onClick={openFirstDoc}>
+        <Button type="primary" href={PAGE_ROUTES.doc(workspaceId, firstDocId)} onClick={openFirstDoc}>
           Open the first doc
         </Button>
       )}

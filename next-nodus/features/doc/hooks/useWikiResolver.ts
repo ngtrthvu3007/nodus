@@ -2,6 +2,7 @@ import { useCallback, useMemo } from "react";
 import { parseWikiLinks, slugify, type WikiResolver } from "@/features/editor";
 import { useDocLinks, useHeadingSlugs } from "@/features/link";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import type { DocOutgoing } from "@/shared/types";
 
 // One constant, so the resolver does not change on every render while the links load.
@@ -9,6 +10,7 @@ const NO_OUTGOING: DocOutgoing[] = [];
 
 // Turns a [[link]] of the previewed text into an href, or null when broken; links the API has not seen (unsaved) are broken.
 export const useWikiResolver = (docId: string, source: string): WikiResolver => {
+  const workspaceId = useWorkspaceId();
   const { data } = useDocLinks(docId);
   // The preview renders while the links load or fail: every link is then broken.
   const outgoing = data ? data.outgoing : NO_OUTGOING;
@@ -32,7 +34,7 @@ export const useWikiResolver = (docId: string, source: string): WikiResolver => 
       const doc = docByRef.get(ref.toLowerCase());
       if (!doc) return null;
 
-      const href = PAGE_ROUTES.doc(doc.id);
+      const href = PAGE_ROUTES.doc(workspaceId, doc.id);
       if (!heading) return href;
 
       const slug = slugify(heading);
@@ -40,6 +42,6 @@ export const useWikiResolver = (docId: string, source: string): WikiResolver => 
 
       return slugs && slugs.has(slug) ? `${href}#${encodeURIComponent(slug)}` : null;
     },
-    [docByRef, slugsByDoc],
+    [workspaceId, docByRef, slugsByDoc],
   );
 };

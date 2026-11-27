@@ -5,6 +5,7 @@ import { Breadcrumb, Button, Dropdown, type ButtonProps } from "antd";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { NODE_KIND, PAGE_ROUTES, type NodeKind } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import { useTreeDraftStore } from "@/shared/stores";
 import { useImportFiles, useIsImporting, useTree, useTreeModel } from "../hooks";
 
@@ -57,6 +58,7 @@ export const NewNodeMenu = ({ parentId, type, size = "small", block }: NewNodeMe
 // The ancestors only: the screen's own title already names the current node. Names come from the tree, so a
 // rename shows up at once.
 export const NodeBreadcrumb = ({ id }: { id: string }) => {
+  const workspaceId = useWorkspaceId();
   const { data } = useTree();
   const { getPath } = useTreeModel(data);
   const path = getPath(id);
@@ -65,10 +67,10 @@ export const NodeBreadcrumb = ({ id }: { id: string }) => {
   if (!current) return null;
 
   const parentItems = path.slice(0, -1).map((node) => ({
-    title: <Link href={PAGE_ROUTES.node(node.kind, node.id)}>{node.name}</Link>,
+    title: <Link href={PAGE_ROUTES.node(workspaceId, node.kind, node.id)}>{node.name}</Link>,
   }));
 
-  const workspaceItem = { title: <Link href={PAGE_ROUTES.home}>Workspace</Link> };
+  const workspaceItem = { title: <Link href={PAGE_ROUTES.workspace(workspaceId)}>Workspace</Link> };
   const items = [workspaceItem, ...parentItems];
 
   return <Breadcrumb items={items} classNames={{ root: "text-ui-sm [&_a]:text-fg-muted [&_a:hover]:text-primary [&_li]:text-fg-muted" }} />;

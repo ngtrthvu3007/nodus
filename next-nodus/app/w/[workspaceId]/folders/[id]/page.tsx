@@ -5,7 +5,7 @@ import { FolderView } from "@/features/folder";
 export const metadata: Metadata = { title: "Folder" };
 
 // params is passed down unread: awaiting it here would tie the shared app shell to one URL.
-const FolderPage = ({ params }: PageProps<"/folders/[id]">) => (
+const FolderPage = ({ params }: PageProps<"/w/[workspaceId]/folders/[id]">) => (
   <Suspense>
     <FolderView params={params} />
   </Suspense>

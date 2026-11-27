@@ -3,15 +3,17 @@ import type { MoveRequest } from "@/shared/types";
 import { createDoc, deleteDoc, exportDoc, moveDoc, renameDoc } from "./doc";
 import { createFolder, deleteFolder, exportFolder, moveFolder, updateFolder } from "./folder";
 
-export type CreateNodeInput = { kind: NodeKind; name: string; parentId: string | null };
+export type CreateNodeInput = { workspaceId: string; kind: NodeKind; name: string; parentId: string | null };
 export type RenameNodeInput = { kind: NodeKind; id: string; name: string };
 export type MoveNodeInput = MoveRequest & { kind: NodeKind; id: string };
 // A node picked by kind and id: what delete and export need.
 export type NodeRefInput = { kind: NodeKind; id: string };
 
 // A folder and a doc share the tree operations but use different endpoints; callers only pass the kind.
-export const createNode = async ({ kind, name, parentId }: CreateNodeInput) =>
-  kind === NODE_KIND.folder ? createFolder({ name, parentId }) : createDoc({ title: name, content: "", parentId });
+export const createNode = async ({ workspaceId, kind, name, parentId }: CreateNodeInput) =>
+  kind === NODE_KIND.folder
+    ? createFolder(workspaceId, { name, parentId })
+    : createDoc(workspaceId, { title: name, content: "", parentId });
 
 export const renameNode = async ({ kind, id, name }: RenameNodeInput) =>
   kind === NODE_KIND.folder ? updateFolder(id, { name }) : renameDoc(id, name);

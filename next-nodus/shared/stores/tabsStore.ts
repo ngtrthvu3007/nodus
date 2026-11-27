@@ -1,7 +1,6 @@
 import { arrayMove } from "@dnd-kit/sortable";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { WORKSPACE_ID } from "@/shared/constants";
 
 type TabsState = {
   // Only ids: the title and kind come from the tree, so a rename updates the tab and a deleted node is easy to spot.
@@ -14,6 +13,17 @@ type TabsState = {
   closeTabs: (ids: string[]) => string | undefined;
   // Puts the tab where the other one is.
   moveTab: (id: string, overId: string) => void;
+};
+
+export const getTabsStorageKey = (workspaceId: string) => `nodus:tabs:${workspaceId}`;
+
+// Whether the workspace saved tabs before; storage can be missing or blocked, which counts as none.
+export const hasStoredTabs = (storageKey: string) => {
+  try {
+    return window.localStorage.getItem(storageKey) !== null;
+  } catch {
+    return false;
+  }
 };
 
 // The tab to show after the active one closes: the first one on its right, else the last one.
@@ -49,6 +59,7 @@ export const useTabsStore = create<TabsState>()(
     }),
     // skipHydration: the server renders no tabs, so the browser reads them after mount (see useTabs).
     // Only the ids are stored: the active tab is the URL of each browser tab, so browser tabs can share the list.
-    { name: `nodus:tabs:${WORKSPACE_ID}`, skipHydration: true, partialize: ({ tabIds }) => ({ tabIds }) },
+    // Each workspace keeps its own list: useTabs points the store at the workspace of the URL (getTabsStorageKey).
+    { name: getTabsStorageKey(""), skipHydration: true, partialize: ({ tabIds }) => ({ tabIds }) },
   ),
 );
