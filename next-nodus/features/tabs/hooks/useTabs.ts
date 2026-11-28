@@ -2,14 +2,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { useTree, useTreeModel } from "@/features/tree";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import { getTabsStorageKey, hasStoredTabs, useTabsStore } from "@/shared/stores";
 import { useTabShortcuts } from "./useTabShortcuts";
 
 // Keeps the open tabs in step with the URL and the tree, and gives the tab bar what it shows.
 export const useTabs = () => {
   const router = useRouter();
-  // Doc and folder pages both name their segment `id`.
-  const { id: routeId, workspaceId = "" } = useParams<{ id?: string; workspaceId?: string }>();
+  const workspaceId = useWorkspaceId();
+  const { id: routeId } = useParams<{ id?: string }>(); // Doc and folder pages both name their segment `id`.
   // The doc this page showed the last time the tree arrived, to tell a doc deleted now from one deleted before.
   const shownIdRef = useRef<string | undefined>(undefined);
   const routeIdRef = useRef(routeId);

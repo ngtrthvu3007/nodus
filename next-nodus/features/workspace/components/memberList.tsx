@@ -2,12 +2,10 @@
 
 import { Button, Popconfirm, Select, Tag } from "antd";
 import { useRouter } from "next/navigation";
-import { PAGE_ROUTES, ROLE_LABEL, WORKSPACE_ROLE } from "@/shared/constants";
+import { PAGE_ROUTES, ROLE_LABEL, ROLE_OPTIONS } from "@/shared/constants";
 import { useToast } from "@/shared/hooks";
 import type { WorkspaceMember, WorkspaceRole } from "@/shared/types";
 import { useChangeMemberRole, useRemoveMember } from "../hooks";
-
-const ROLE_OPTIONS = Object.values(WORKSPACE_ROLE).map((role) => ({ value: role, label: ROLE_LABEL[role] }));
 
 type MemberListProps = {
   workspaceId: string;
@@ -33,8 +31,14 @@ const MemberRow = ({ workspaceId, member, userId, isOwner }: MemberRowProps) => 
   const remove = () =>
     removeMember.mutate(member.userId, {
       onError: toast.error,
-      // Leaving: the workspace is no longer the user's, so go to one that is.
-      onSuccess: () => (isSelf ? router.replace(PAGE_ROUTES.home) : toast.success(`Removed ${member.email}`)),
+      onSuccess: () => {
+        if (isSelf) {
+          // Left: the workspace is no longer the user's, so "/" picks one that is.
+          router.replace(PAGE_ROUTES.home);
+        } else {
+          toast.success(`Removed ${member.email}`);
+        }
+      },
     });
 
   const removeLabel = isSelf ? "Leave" : "Remove";

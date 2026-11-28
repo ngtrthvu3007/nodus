@@ -1,6 +1,4 @@
-import type { WorkspaceRole } from "@/shared/constants";
-
-export type { WorkspaceRole } from "@/shared/constants";
+export type WorkspaceRole = "owner" | "member";
 
 // A workspace as one of its members sees it, with that member's role (GET /me, GET /workspaces).
 export interface WorkspaceSummary {

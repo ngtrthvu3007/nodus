@@ -23,7 +23,7 @@ export const useRenameWorkspace = (workspaceId: string) => {
   });
 };
 
-export const useDeleteWorkspace = (workspaceId: string) => {
-  const refreshWorkspaces = useRefreshWorkspaces();
-  return useMutation({ mutationFn: () => deleteWorkspace(workspaceId), onSuccess: refreshWorkspaces });
-};
+// No refresh here: the caller goes to "/", which fetches GET /me again and waits for it. Refreshing first would drop
+// the workspace from the list while its page is still on screen, which shows "Workspace not found" for a moment.
+export const useDeleteWorkspace = (workspaceId: string) =>
+  useMutation({ mutationFn: () => deleteWorkspace(workspaceId) });

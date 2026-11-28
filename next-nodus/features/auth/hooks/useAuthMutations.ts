@@ -8,7 +8,8 @@ import type { User } from "@/shared/types";
 import { CURRENT_USER_KEY } from "../lib/session";
 
 // Drops everything cached for the previous user before showing the new one's workspace. Login and register answer
-// only id and email, so GET /me is asked again for the workspaces that "/" sends the user to.
+// only id and email: "/" fetches GET /me again on mount and waits for the workspaces, so nothing is invalidated here
+// (an invalidation would let "/" show "no workspace" until it returns).
 const useOpenWorkspace = () => {
   const queryClient = useQueryClient();
   const router = useRouter();
@@ -16,7 +17,6 @@ const useOpenWorkspace = () => {
   return (user: User) => {
     queryClient.clear();
     queryClient.setQueryData(CURRENT_USER_KEY, user);
-    void queryClient.invalidateQueries({ queryKey: CURRENT_USER_KEY });
     router.replace(PAGE_ROUTES.home);
   };
 };

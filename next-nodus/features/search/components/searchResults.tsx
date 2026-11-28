@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import type { DocSearchResult } from "@/shared/types";
 import { useSearch } from "../hooks";
 
@@ -61,8 +62,8 @@ const ResultItem = ({ doc, keyword, isActive, href }: ResultItemProps) => (
 type SearchResultsProps = { input: string; onClear: () => void };
 
 export const SearchResults = ({ input, onClear }: SearchResultsProps) => {
-  // Doc and folder pages both name their segment `id`.
-  const { id: activeId, workspaceId = "" } = useParams<{ id?: string; workspaceId?: string }>();
+  const workspaceId = useWorkspaceId();
+  const { id: activeId } = useParams<{ id?: string }>(); // Doc and folder pages both name their segment `id`.
   // The API stores precomposed Vietnamese letters; text typed or pasted in decomposed form would match nothing.
   const keyword = input.trim().normalize("NFC");
   const { data, isPending, isError, refetch, isPlaceholderData, hasNextPage, fetchNextPage, isFetchingNextPage } =

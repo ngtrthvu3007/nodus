@@ -1,9 +1,9 @@
+import type { TokenScope } from "@/shared/types";
+
 export const TOKEN_SCOPE = {
   read: "docs:read",
   write: "docs:write",
-} as const;
-
-export type TokenScope = (typeof TOKEN_SCOPE)[keyof typeof TOKEN_SCOPE];
+} as const satisfies Record<string, TokenScope>;
 
 export const TOKEN_SCOPE_LABEL = {
   "docs:read": "Read docs",

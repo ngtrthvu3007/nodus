@@ -1,6 +1,5 @@
-import type { TokenScope } from "@/shared/constants";
-
-export type { TokenScope } from "@/shared/constants";
+// docs:write includes reading.
+export type TokenScope = "docs:read" | "docs:write";
 
 export interface AccessToken {
   id: string;
