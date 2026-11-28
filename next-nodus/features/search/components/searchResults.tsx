@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { LoadError } from "@/shared/components";
 import { PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId } from "@/shared/hooks";
 import type { DocSearchResult } from "@/shared/types";
 import { useSearch } from "../hooks";
 
@@ -31,13 +32,13 @@ const Highlight = ({ text, keyword }: { text: string; keyword: string }) =>
     ),
   );
 
-type ResultItemProps = { doc: DocSearchResult; keyword: string; isActive: boolean };
+type ResultItemProps = { doc: DocSearchResult; keyword: string; isActive: boolean; href: string };
 
 // The doc on screen gets the same quiet mark as its row in the tree; the transparent border keeps rows from shifting.
-const ResultItem = ({ doc, keyword, isActive }: ResultItemProps) => (
+const ResultItem = ({ doc, keyword, isActive, href }: ResultItemProps) => (
   <li>
     <Link
-      href={PAGE_ROUTES.doc(doc.id)}
+      href={href}
       aria-current={isActive ? "page" : undefined}
       className="block rounded-md border-l-2 border-transparent px-2 py-2 hover:bg-primary/10 focus-visible:bg-primary/10 aria-[current=page]:border-primary aria-[current=page]:bg-primary/15">
       <Flex vertical>
@@ -61,7 +62,8 @@ const ResultItem = ({ doc, keyword, isActive }: ResultItemProps) => (
 type SearchResultsProps = { input: string; onClear: () => void };
 
 export const SearchResults = ({ input, onClear }: SearchResultsProps) => {
-  const { id: activeId } = useParams<{ id?: string }>(); // Both doc and folder name their dynamic segment `id`.
+  const workspaceId = useWorkspaceId();
+  const { id: activeId } = useParams<{ id?: string }>(); // Doc and folder pages both name their segment `id`.
   // The API stores precomposed Vietnamese letters; text typed or pasted in decomposed form would match nothing.
   const keyword = input.trim().normalize("NFC");
   const { data, isPending, isError, refetch, isPlaceholderData, hasNextPage, fetchNextPage, isFetchingNextPage } =
@@ -91,7 +93,13 @@ export const SearchResults = ({ input, onClear }: SearchResultsProps) => {
       </p>
       <ul aria-label="Search results">
         {data.map((doc) => (
-          <ResultItem key={doc.id} doc={doc} keyword={keyword} isActive={doc.id === activeId} />
+          <ResultItem
+            key={doc.id}
+            doc={doc}
+            keyword={keyword}
+            isActive={doc.id === activeId}
+            href={PAGE_ROUTES.doc(workspaceId, doc.id)}
+          />
         ))}
       </ul>
       {hasNextPage && (

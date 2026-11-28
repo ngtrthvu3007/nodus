@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, type FormEvent } from "react";
 import { z } from "zod";
 import { AUTH_MODE, type AuthMode } from "../lib/authMode";
@@ -36,7 +38,10 @@ export const useAuthForm = (mode: AuthMode) => {
     event.preventDefault();
 
     const result = SCHEMAS[mode].safeParse({ email: email.trim(), password });
-    if (!result.success) return setFieldErrors(toFieldErrors(result.error.issues));
+    if (!result.success) {
+      setFieldErrors(toFieldErrors(result.error.issues));
+      return;
+    }
 
     setFieldErrors({});
     mutation.mutate(result.data);
@@ -44,12 +49,12 @@ export const useAuthForm = (mode: AuthMode) => {
 
   const onEmailChange = (value: string) => {
     setEmail(value);
-    setFieldErrors(({ password: passwordError }) => ({ password: passwordError }));
+    setFieldErrors((errors) => ({ ...errors, email: undefined }));
   };
 
   const onPasswordChange = (value: string) => {
     setPassword(value);
-    setFieldErrors(({ email: emailError }) => ({ email: emailError }));
+    setFieldErrors((errors) => ({ ...errors, password: undefined }));
   };
 
   return {

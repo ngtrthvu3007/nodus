@@ -1,3 +1,5 @@
+"use client";
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { login, logout, register } from "@/api";
@@ -5,7 +7,9 @@ import { PAGE_ROUTES } from "@/shared/constants";
 import type { User } from "@/shared/types";
 import { CURRENT_USER_KEY } from "../lib/session";
 
-// Drops everything cached for the previous user before showing the new one's workspace.
+// Drops everything cached for the previous user before showing the new one's workspace. Login and register answer
+// only id and email: "/" fetches GET /me again on mount and waits for the workspaces, so nothing is invalidated here
+// (an invalidation would let "/" show "no workspace" until it returns).
 const useOpenWorkspace = () => {
   const queryClient = useQueryClient();
   const router = useRouter();

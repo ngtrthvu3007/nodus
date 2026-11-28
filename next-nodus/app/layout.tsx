@@ -6,6 +6,7 @@ import { SessionGate } from "@/features/auth";
 import { SearchPanel } from "@/features/search";
 import { TabBar } from "@/features/tabs";
 import { TreeView } from "@/features/tree";
+import { WorkspaceOnly, WorkspacePageGate, WorkspaceSwitcher } from "@/features/workspace";
 import { DEFAULT_THEME_MODE, THEME_COOKIE, isThemeMode, themeInitScript } from "@/shared/theme";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -19,6 +20,10 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+// SessionGate waits for GET /me before it shows any page, so no page can render instantly: this opts the whole app
+// out of the instant-navigation check, which otherwise reports every page as a dropped segment (Next 16, `instant`).
+export const instant = false;
 
 export const metadata: Metadata = {
   title: { default: "Nodus", template: "%s · Nodus" },
@@ -43,12 +48,21 @@ const RootLayout = ({ children }: LayoutProps<"/">) => (
         <ThemedProviders>
           <SessionGate
             sidebar={
-              <SearchPanel>
-                <TreeView />
-              </SearchPanel>
+              <div className="flex flex-col gap-3">
+                <WorkspaceSwitcher />
+                <WorkspaceOnly>
+                  <SearchPanel>
+                    <TreeView />
+                  </SearchPanel>
+                </WorkspaceOnly>
+              </div>
             }
-            tabs={<TabBar />}>
-            {children}
+            tabs={
+              <WorkspaceOnly>
+                <TabBar />
+              </WorkspaceOnly>
+            }>
+            <WorkspacePageGate>{children}</WorkspacePageGate>
           </SessionGate>
         </ThemedProviders>
       </Suspense>

@@ -12,12 +12,13 @@ import type {
   SearchDocsResponse,
   UpdateDocRequest,
 } from "@/shared/types";
-import { API_ROUTES, WORKSPACE_ID } from "@/shared/constants";
+import { API_ROUTES } from "@/shared/constants";
 
 // signal: lets the client cancel the request; not an API parameter.
 export const getDoc = (id: string, signal?: AbortSignal) => httpClient.get<DocDetail>(API_ROUTES.doc(id), { signal });
 
-export const createDoc = (request: CreateDocRequest) => httpClient.post<Doc>(API_ROUTES.docs(WORKSPACE_ID), request);
+export const createDoc = (workspaceId: string, request: CreateDocRequest) =>
+  httpClient.post<Doc>(API_ROUTES.docs(workspaceId), request);
 
 // keepalive: lets the save finish after the page is closed.
 export const updateDoc = (id: string, request: UpdateDocRequest, keepalive?: boolean) =>
@@ -33,15 +34,16 @@ export const deleteDoc = (id: string) => httpClient.delete(API_ROUTES.doc(id));
 
 export const exportDoc = (id: string) => httpClient.getFile(API_ROUTES.docExport(id));
 
-export const exportDocs = (request: ExportDocsRequest) => httpClient.postFile(API_ROUTES.docsExport(WORKSPACE_ID), request);
+export const exportDocs = (workspaceId: string, request: ExportDocsRequest) =>
+  httpClient.postFile(API_ROUTES.docsExport(workspaceId), request);
 
-export const importDocs = ({ files, parentId }: ImportDocsRequest) => {
+export const importDocs = (workspaceId: string, { files, parentId }: ImportDocsRequest) => {
   const form = new FormData();
   files.forEach((file) => form.append("files", file));
   if (parentId) form.append("parentId", parentId);
 
-  return httpClient.post<ImportDocsResponse>(API_ROUTES.docsImport(WORKSPACE_ID), form);
+  return httpClient.post<ImportDocsResponse>(API_ROUTES.docsImport(workspaceId), form);
 };
 
-export const searchDocs =(request: SearchDocsRequest, signal?: AbortSignal) =>
-  httpClient.get<SearchDocsResponse>(API_ROUTES.docSearch(WORKSPACE_ID, request), { signal });
+export const searchDocs = (workspaceId: string, request: SearchDocsRequest, signal?: AbortSignal) =>
+  httpClient.get<SearchDocsResponse>(API_ROUTES.docSearch(workspaceId, request), { signal });

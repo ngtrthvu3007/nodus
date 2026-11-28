@@ -16,6 +16,7 @@ export interface FolderChild {
 
 export interface FolderDetail {
   id: string;
+  workspaceId: string;
   name: string;
   description: string;
   parentId: string | null;

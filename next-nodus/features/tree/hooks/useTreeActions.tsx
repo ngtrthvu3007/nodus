@@ -3,7 +3,7 @@
 import { App } from "antd";
 import { useRouter } from "next/navigation";
 import { PAGE_ROUTES } from "@/shared/constants";
-import { useToast } from "@/shared/hooks";
+import { useToast, useWorkspaceId } from "@/shared/hooks";
 import type { NodeKind, TreeNode } from "@/shared/types";
 import { DRAFT_MODE, useTreeDraftStore, type CreateDraft, type RenameDraft } from "@/shared/stores";
 import { useImportFiles } from "./useImportFiles";
@@ -27,6 +27,7 @@ export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
   const { modal } = App.useApp();
   const toast = useToast();
   const router = useRouter();
+  const workspaceId = useWorkspaceId();
   const createNode = useCreateNode();
   const renameNode = useRenameNode();
   const deleteNode = useDeleteNode();
@@ -38,7 +39,7 @@ export const useTreeActions = ({ model, onExpand }: UseTreeActionsInput) => {
     const created = await createNode.mutateAsync({ kind: createDraft.kind, name, parentId: createDraft.parentId });
     if (createDraft.parentId) onExpand(createDraft.parentId);
     clearDraft();
-    router.push(PAGE_ROUTES.node(createDraft.kind, created.id));
+    router.push(PAGE_ROUTES.node(workspaceId, createDraft.kind, created.id));
   };
 
   const renameFromDraft = async (renameDraft: RenameDraft, name: string) => {

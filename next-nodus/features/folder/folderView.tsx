@@ -2,10 +2,11 @@
 
 import { Empty, Result, Skeleton } from "antd";
 import Link from "next/link";
-import { use } from "react";
+import { use, useCallback } from "react";
 import { NewNodeMenu, NodeBreadcrumb, NodeIcon } from "@/features/tree";
 import { LoadError } from "@/shared/components";
 import { NODE_KIND, NODE_LABEL, PAGE_ROUTES } from "@/shared/constants";
+import { useWorkspaceId, useWorkspaceRedirect } from "@/shared/hooks";
 import { ApiError } from "@/shared/libs/httpClient";
 import type { FolderChild, FolderDetail } from "@/shared/types";
 import { FolderDescription } from "./folderDescription";
@@ -15,13 +16,17 @@ const ROW_CLASS =
   "flex items-center gap-3 px-4 py-2 text-ui hover:bg-fill " +
   "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary";
 
-const FolderChildRow = ({ item }: { item: FolderChild }) => (
-  <Link href={PAGE_ROUTES.node(item.kind, item.id)} className={ROW_CLASS}>
-    <NodeIcon kind={item.kind} />
-    <span className="min-w-0 flex-1 truncate">{item.name}</span>
-    <span className="text-ui-sm text-fg-subtle">{NODE_LABEL[item.kind]}</span>
-  </Link>
-);
+const FolderChildRow = ({ item }: { item: FolderChild }) => {
+  const workspaceId = useWorkspaceId();
+
+  return (
+    <Link href={PAGE_ROUTES.node(workspaceId, item.kind, item.id)} className={ROW_CLASS}>
+      <NodeIcon kind={item.kind} />
+      <span className="min-w-0 flex-1 truncate">{item.name}</span>
+      <span className="text-ui-sm text-fg-subtle">{NODE_LABEL[item.kind]}</span>
+    </Link>
+  );
+};
 
 type FolderChildrenProps = {
   folderId: string;
@@ -79,13 +84,15 @@ const FolderContent = ({ folder }: { folder: FolderDetail }) => (
   </div>
 );
 
-type FolderViewProps = { params: Promise<{ id: string }> };
+type FolderViewProps = { params: Promise<{ workspaceId: string; id: string }> };
 
 export const FolderView = ({ params }: FolderViewProps) => {
   const { id } = use(params);
   const { data, isPending, error, refetch } = useFolder(id);
+  const buildHref = useCallback((workspaceId: string) => PAGE_ROUTES.folder(workspaceId, id), [id]);
+  const isWrongWorkspace = useWorkspaceRedirect(data?.workspaceId, buildHref);
 
-  if (isPending && !error) return <Skeleton active className="mx-auto max-w-3xl px-8 py-10" />;
+  if ((isPending && !error) || isWrongWorkspace) return <Skeleton active className="mx-auto max-w-3xl px-8 py-10" />;
 
   if (error instanceof ApiError && error.status === 404) {
     return <Result status="404" title="Folder not found" subTitle="This folder does not exist or was deleted." />;

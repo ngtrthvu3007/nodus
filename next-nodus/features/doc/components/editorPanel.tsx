@@ -1,11 +1,9 @@
 import { Button, Tabs } from "antd";
 import { PanelRightOpenIcon, WandSparklesIcon } from "lucide-react";
-import type { ReactNode, RefObject } from "react";
+import { useMemo, type ReactNode, type RefObject } from "react";
 import { getDocHeadings, suggestDocs } from "@/api";
 import { MarkdownEditor, type MarkdownEditorHandle, type WikiFetchers } from "@/features/editor";
-
-// Module level, so the editor always gets the same object.
-const WIKI_FETCHERS: WikiFetchers = { suggest: suggestDocs, getHeadings: getDocHeadings };
+import { useWorkspaceId } from "@/shared/hooks";
 
 type EditorPanelProps = {
   content: string;
@@ -28,44 +26,53 @@ export const EditorPanel = ({
   isHidden,
   isPreviewCollapsed,
   onExpandPreview,
-}: EditorPanelProps) => (
-  <div inert={isHidden} className="flex h-full min-w-80 flex-col">
-    <Tabs
-      size="small"
-      activeKey="markdown"
-      items={[{ key: "markdown", label: "Markdown" }]}
-      tabBarExtraContent={
-        <div className="flex items-center gap-3">
-          {saveIndicator}
-          <Button
-            size="small"
-            type="text"
-            title="Format (Shift+Alt+F)"
-            disabled={!content.trim()}
-            icon={<WandSparklesIcon className="size-4" />}
-            onClick={() => editorRef.current?.format()}>
-            Format
-          </Button>
-          {isPreviewCollapsed ? (
+}: EditorPanelProps) => {
+  const workspaceId = useWorkspaceId();
+  // Memoized, so the editor gets the same object until the workspace changes; suggestions stay in the workspace.
+  const wikiFetchers = useMemo<WikiFetchers>(
+    () => ({ suggest: (query) => suggestDocs(workspaceId, query), getHeadings: getDocHeadings }),
+    [workspaceId],
+  );
+
+  return (
+    <div inert={isHidden} className="flex h-full min-w-80 flex-col">
+      <Tabs
+        size="small"
+        activeKey="markdown"
+        items={[{ key: "markdown", label: "Markdown" }]}
+        tabBarExtraContent={
+          <div className="flex items-center gap-3">
+            {saveIndicator}
             <Button
               size="small"
               type="text"
-              aria-label="Show preview"
-              icon={<PanelRightOpenIcon className="size-4" />}
-              onClick={onExpandPreview}
-            />
-          ) : null}
-        </div>
-      }
-      className="shrink-0 px-6"
-    />
+              title="Format (Shift+Alt+F)"
+              disabled={!content.trim()}
+              icon={<WandSparklesIcon className="size-4" />}
+              onClick={() => editorRef.current?.format()}>
+              Format
+            </Button>
+            {isPreviewCollapsed ? (
+              <Button
+                size="small"
+                type="text"
+                aria-label="Show preview"
+                icon={<PanelRightOpenIcon className="size-4" />}
+                onClick={onExpandPreview}
+              />
+            ) : null}
+          </div>
+        }
+        className="shrink-0 px-6"
+      />
 
-    <MarkdownEditor
-      ref={editorRef}
-      value={content}
-      onChange={onChange}
-      wikiFetchers={WIKI_FETCHERS}
-      className="min-h-0 flex-1"
-    />
-  </div>
-);
+      <MarkdownEditor
+        ref={editorRef}
+        value={content}
+        onChange={onChange}
+        wikiFetchers={wikiFetchers}
+        className="min-h-0 flex-1"
+      />
+    </div>
+  );
+};

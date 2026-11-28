@@ -6,6 +6,13 @@ export const API_ROUTES = {
   login: "/auth/login",
   logout: "/auth/logout",
   currentUser: "/me",
+  tokens: "/tokens",
+  token: (id: string) => `/tokens/${id}`,
+
+  workspaces: "/workspaces",
+  workspace: (workspaceId: string) => `/workspaces/${workspaceId}`,
+  members: (workspaceId: string) => `/workspaces/${workspaceId}/members`,
+  member: (workspaceId: string, userId: string) => `/workspaces/${workspaceId}/members/${userId}`,
 
   tree: (workspaceId: string) => `/workspaces/${workspaceId}/tree`,
 
@@ -29,15 +36,22 @@ export const API_ROUTES = {
     `/workspaces/${workspaceId}/docs/autocomplete?q=${encodeURIComponent(query)}`,
 };
 
+const workspacePage = (workspaceId: string) => `/w/${workspaceId}`;
+
+// Every page of a workspace carries its id in the URL, so a link always opens the right workspace.
 const NODE_PAGES = {
-  folder: (id: string) => `/folders/${id}`,
-  doc: (id: string) => `/docs/${id}`,
-} satisfies Record<NodeKind, (id: string) => string>;
+  folder: (workspaceId: string, id: string) => `${workspacePage(workspaceId)}/folders/${id}`,
+  doc: (workspaceId: string, id: string) => `${workspacePage(workspaceId)}/docs/${id}`,
+} satisfies Record<NodeKind, (workspaceId: string, id: string) => string>;
 
 export const PAGE_ROUTES = {
+  // Sends the user on to a workspace of theirs (the last one opened, else the first).
   home: "/",
   login: "/login",
   register: "/register",
+  tokens: "/settings/tokens",
+  workspace: workspacePage,
+  members: (workspaceId: string) => `${workspacePage(workspaceId)}/members`,
   ...NODE_PAGES,
-  node: (kind: NodeKind, id: string) => NODE_PAGES[kind](id),
+  node: (workspaceId: string, kind: NodeKind, id: string) => NODE_PAGES[kind](workspaceId, id),
 };

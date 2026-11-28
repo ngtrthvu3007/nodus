@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { LoadError } from "@/shared/components";
 import { NODE_KIND, PAGE_ROUTES } from "@/shared/constants";
-import { useIsNarrowScreen } from "@/shared/hooks";
+import { useIsNarrowScreen, useWorkspaceId } from "@/shared/hooks";
 import { DRAFT_MODE, useSidebarStore, useTreeDraftStore } from "@/shared/stores";
 import { NewNodeMenu, NodeNameInput, SelectionBar, TreeNodeTitle } from "./components";
 import {
@@ -48,6 +48,7 @@ const renderSwitcherIcon =({ expanded }: { expanded?: boolean }) => (
 
 export const TreeView = () => {
   const router = useRouter();
+  const workspaceId = useWorkspaceId();
   const isNarrow = useIsNarrowScreen();
   const closeSidebar = useSidebarStore((state) => state.close);
   const { id: selectedId = null } = useParams<{ id?: string }>(); //Both doc and folder name their dynamic segment `id`.
@@ -87,7 +88,7 @@ export const TreeView = () => {
       return;
     }
 
-    if (item) router.push(PAGE_ROUTES.node(item.kind, item.id));
+    if (item) router.push(PAGE_ROUTES.node(workspaceId, item.kind, item.id));
     // Tapping the page that is already open changes no URL, so AppShell would leave the phone menu open.
     if (isNarrow) closeSidebar();
   };
